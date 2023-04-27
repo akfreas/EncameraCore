@@ -1,0 +1,283 @@
+/* 
+  Localizable.strings
+  Encamera
+
+  Created by Alexander Freas on 30.01.23.
+  
+*/
+/* ./EncameraCore/Constants/AppConstants.swift */
+"DefaultKey" = "DefaultKey";
+// $'"n"n"nnCopy the code into the "n" form in the app to use it again."' = $'"n"n"nnCopy the code into the "n" form in the app to use it again."';
+/* ./EncameraCore/Utils/KeyManager.swift */
+"Could not delete keychain items." = "Could not delete keychain items.";
+"Unhandled error." = "Unhandled error.";
+"Not authenticated for this operation." = "Not authenticated for this operation.";
+"Key name is invalid, must be more than two characters" = "Key name is invalid, must be more than two characters";
+"Key not found." = "Key not found.";
+"Error coding keychain data." = "Error coding keychain data.";
+"A key with this name already exists." = "A key with this name already exists.";
+/* ./EncameraCore/Utils/AuthManager.swift */
+"Touch ID" = "Touch ID";
+"Face ID" = "Face ID";
+"Password" = "Password";
+"Use Password" = "Use Password";
+"Keep your encrypted data safe by using %@." = "Keep your encrypted data safe by using %@.";
+/* ./EncameraCore/Utils/PasswordValidator.swift */
+"Not determined." = "Not determined.";
+"Password is valid." = "Password is valid.";
+"Password is too short, <%@" = "Password is too short, <%@";
+"Passwords do not match." = "Passwords do not match.";
+"Password is too long, >%@" = "Password is too long, >%@";
+/* ./EncameraCore/Utils/DataStorageUserDefaultsSetting.swift */
+"No iCloud account found on this device." = "No iCloud account found on this device.";
+/* ./EncameraCore/Utils/SettingsManager.swift */
+"%@ must be set" = "%@ must be set";
+/* ./EncameraCore/Models/StorageType.swift */
+"iCloud" = "iCloud";
+"Local" = "Local";
+"Saves encrypted files to iCloud Drive." = "Saves encrypted files to iCloud Drive.";
+"Saves encrypted files to this device." = "Saves encrypted files to this device.";
+
+/* Encamera App */
+/* ./Encamera/CameraView/CameraView.swift */
+"Missing camera access." = "Missing camera access.";
+"Open settings to allow camera access permission" = "Open settings to allow camera access permission";
+"No Key" = "No Key";
+"No Key Selected" = "No Key Selected";
+"You don't have an active key selected, select one to continue saving media." = "You don't have an active key selected, select one to continue saving media.";
+"Key Selection" = "Key Selection";
+/* ./Encamera/CameraView/CameraModePicker.swift */
+"PHOTO" = "PHOTO";
+"VIDEO" = "VIDEO";
+/* ./Encamera/ShareHandling/ShareHandling.swift */
+"Shared Media" = "Shared Media";
+"Save" = "Save";
+/* ./Encamera/Settings/SettingsView.swift */
+"What is Encamera?" = "What is Encamera?";
+"Why Encrypt Media?" = "Why Encrypt Media?";
+"Open Source" = "Open Source";
+"Password successfully changed" = "Password successfully changed";
+"premium sparkles" = "✨ Premium ✨";
+"Restore Purchases" = "Restore Purchases";
+"Settings" = "Settings";
+"Contact" = "Contact";
+"Privacy Policy" = "Privacy Policy";
+"Terms of Use" = "Terms of Use";
+"Erase" = "Erase";
+"Erase keychain data" = "Erase keychain data";
+"Erase all data" = "Erase all data";
+"allDataExplanation" = "Are you sure you want to erase __all__ app data?\n\n__This will erase:__\n\n• All your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n• Media you have stored locally or on iCloud 💾\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.";
+"appDataExplanation" = "Are you sure you want to erase all app data?\n\n__This will erase:__\n\n• All your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\n__This will not erase:__\n\n• Media you have stored locally or on iCloud 💾\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n";
+
+"Erase" = "Erase";
+"Change Password" = "Change Password";
+"Current Password" = "Current Password";
+"New Password" = "New Password";
+"Repeat Password" = "Repeat Password";
+"Save" = "Save";
+"Change Password" = "Change Password";
+/* ./Encamera/Settings/PromptToErase.swift */
+"Hold to erase" = "Hold to erase";
+"Erase app data" = "Erase app data";
+"Erasing in %@" = "Erasing in %@";
+/* ./Encamera/Tutorial/FirstPhotoTakenTutorial.swift */
+"Congratulations!" = "Congratulations!";
+"You took your first photo! 📸 🥳"= "You took your first photo! 📸 🥳";
+"See the photos that belong to a key by tapping the " = "See the photos that belong to a key by tapping the ";
+" icon on the top left of the screen." = " icon on the top left of the screen.";
+"Got it!" = "Got it!";
+/* ./Encamera/Tutorial/ExplanationForUpgradeTutorial.swift */
+"Want more?" = "Want more?";
+"Support privacy-focused development by upgrading!" = "Support privacy-focused development by upgrading!";
+"View unlimited photos 😍 " = "View unlimited photos 😍 ";
+"Create unlimited keys 🔑 " = "Create unlimited keys 🔑 ";
+"Free Trial" = "Free Trial";
+"No, thanks" = "No, thanks";
+/* ./Encamera/Camera/CameraConfigurationService.swift */
+/* ./Encamera/Camera/AlertError.swift */
+"Accept" = "Accept";
+/* ./Encamera/KeyManagement/KeySelectionGridItem.swift */
+"Active" = "Active";
+"Create New Key" = "Create New Key";
+"Add Existing Key" = "Add Existing Key";
+"My Keys" = "My Keys";
+/* ./Encamera/KeyManagement/KeyOperationCell.swift */
+"Add Key" = "Add Key";
+/* ./Encamera/KeyManagement/KeyExchange.swift */
+"Share your encryption key with someone you trust.\n\nSharing it with them means they can decrypt any media you share with them that is encrypted with this key." = "Share your encryption key with someone you trust.\n\nSharing it with them means they can decrypt any media you share with them that is encrypted with this key.";
+"Hold to reveal" = "Hold to reveal";
+"Share Key" = "Share Key";
+/* ./Encamera/KeyManagement/KeyDetailView.swift */
+"Error deleting key. Please try again." = "Error deleting key. Please try again.";
+"Error clearing keychain" = "Error clearing keychain";
+"Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "Error deleting key and associated files. Please try again or try to delete files manually via the Files app.";
+"Error deleting all files" = "Error deleting all files";
+"Set as Active Key" = "Set as Active Key";
+"Key Info" = "Key Info";
+"Share Key" = "Share Key";
+"Copy to clipboard" = "Copy to clipboard";
+"Delete Key" = "Delete Key";
+"Delete All Key Data" = "Delete All Key Data";
+"Save Key to iCloud" = "Save Key to iCloud";
+"Copied to Clipboard" = "Copied to Clipboard";
+"OK" = "OK";
+"Key copied to clipboard. Store this in a password manager or other secure place." = "Key copied to clipboard. Store this in a password manager or other secure place.";
+"Delete All Associated Data?" = "Delete All Associated Data?";
+"Delete Everything" = "Delete Everything";
+"Cancel" = "Cancel";
+"Enter the name of the key to delete all its data, including saved media, forever." = "Enter the name of the key to delete all its data, including saved media, forever.";
+"Do you want to delete this key and all media associated with it forever?" = "Do you want to delete this key and all media associated with it forever?";
+"Delete Key question" = "Delete Key?";
+"Delete" = "Delete";
+"Cancel" = "Cancel";
+"Enter the name of the key to delete it forever. All media will remain saved." = "Enter the name of the key to delete it forever. All media will remain saved.";
+"Do you want to delete this key forever? All media will remain saved." = "Do you want to delete this key forever? All media will remain saved.";
+"Deletion Error" = "Deletion Error";
+"OK" = "OK";
+/* ./Encamera/KeyManagement/KeySelectionCell.swift */
+"Active" = "Active";
+/* ./Encamera/KeyManagement/KeyInformation.swift */
+"Created %@" = "Created %@";
+"Key length: %@" = "Key length: %@";
+/* ./Encamera/KeyManagement/KeySelectionList.swift */
+"Create New Key" = "Create New Key";
+"Add Existing Key" = "Add Existing Key";
+"Backup Keys" = "Backup Keys";
+"Keys" = "Keys";
+"Key Management" = "Key Management";
+"Active" = "Active";
+/* ./Encamera/KeyManagement/AddExchangedKeyConfirmation.swift */
+"Key Name: %@" = "Key Name: %@";
+"Creation Date: %@" = "Creation Date: %@";
+"Save Key" = "Save Key";
+"Confirm adding key" = "Confirm adding key";
+/* ./Encamera/KeyManagement/KeyEntry.swift */
+"Error saving key" = "Error saving key";
+"Paste the private key here." = "Paste the private key here.";
+"Where do you want to save this key's media?" = "Where do you want to save this key's media?";
+"Save" = "Save";
+"Key Entry" = "Key Entry";
+"Cancel" = "Cancel";
+"Save Key" = "Save Key";
+/* ./Encamera/KeyManagement/KeyGeneration.swift */
+"" = "";
+"StorageSettingsSubheading" = "Where do you want to store media for files encrypted with this key?\nEach key will store data in its own directory.\n";
+
+"New Key" = "New Key";
+"MultipleKeysForMultiplePurposesExplanation" = "You can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".";
+"Next" = "Next";
+"Storage Settings" = "Storage Settings";
+"Save Key" = "Save Key";
+"Select a place to keep media for this key." = "Select a place to keep media for this key.";
+/* ./Encamera/Styles/ViewModifiers/PurchaseOptionViewModifier.swift */
+"Family Shareable" = "Family Shareable";
+"Free Trial" = "Free Trial";
+/* ./Encamera/Styles/ViewModifiers/ButtonViewModifier.swift */
+"Encrypt Everything" = "Encrypt Everything";
+"Unlock" = "Unlock";
+"Share" = "Share";
+/* ./Encamera/EncameraApp.swift */
+"No private key or media found." = "No private key or media found.";
+"Close" = "Close";
+"Save this media?" = "Save this media?";
+"This will save the media to your library." = "This will save the media to your library.";
+"Cancel" = "Cancel";
+"Save" = "Save";
+/* ./Encamera/AuthenticationView/PasswordEntry.swift */
+"Password" = "Password";
+"Invalid Password" = "Invalid Password";
+/* ./Encamera/AuthenticationView/AuthenticationView.swift */
+"Missing password" = "Missing password";
+"Password incorrect" = "Password incorrect";
+"Biometrics failed" = "Biometrics failed";
+"Biometrics unavailable" = "Biometrics unavailable";
+"Unlock with %@" = "Unlock with %@";
+/* ./Encamera/InAppPurchase/PurchasePhotoSubscriptionOverlay.swift */
+"Upgrade to view unlimited photos" = "Upgrade to view unlimited photos";
+"Tap to Upgrade" = "Tap to Upgrade";
+/* ./Encamera/ImageViewing/GalleryHorizontalScrollView.swift */
+"Delete this image?" = "Delete this image?";
+"Delete" = "Delete";
+"Share Image" = "Share Image";
+"Share this image?" = "Share this image?";
+"Share Encrypted" = "Share Encrypted";
+"Share Decrypted" = "Share Decrypted";
+/* ./Encamera/ImageViewing/DecryptErrorExplanation.swift */
+"The media you tried to open could not be decrypted." = "The media you tried to open could not be decrypted.";
+"Check that the same key that was used to encrypt this media is set as the active key." = "Check that the same key that was used to encrypt this media is set as the active key.";
+"Tap the " = "Tap the ";
+" icon in the camera view to change the active key." = " icon in the camera view to change the active key.";
+/* ./Encamera/ImageViewing/GalleryScrollViewItem.swift */
+/* ./Encamera/ImageViewing/GalleryGridView.swift */
+"Hide" = "Hide";
+/* ./Encamera/ImageViewing/ImageViewing.swift */
+"No key available." = "No key available.";
+"No file access available." = "No file access available.";
+"Decryption error: %@" = "Decryption error: %@";
+"Decryption error: %@" = "Decryption error: %@";
+/* ./Encamera/ImageViewing/MovieViewing.swift */
+"Could not decrypt movie: %@" = "Could not decrypt movie: %@";
+"Decrypting..." = "Decrypting...";
+/* ./Encamera/ImageViewing/PhotoInfoView.swift */
+"No info available" = "No info available";
+/* ./Encamera/Onboarding/MainOnboardingView.swift */
+"Next" = "Next";
+"Ready to take back your media? 📸" = "Ready to take back your media? 📸";
+"Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy.";
+"Key-based encryption 🔑" = "Key-based encryption 🔑";
+"Your media is safely secured behind a key and stored locally on your device or cloud of choice." = "Your media is safely secured behind a key and stored locally on your device or cloud of choice.";
+"For your eyes only 👀" = "For your eyes only 👀";
+"No tracking, no funny business. Take control of what’s rightfully yours, your media, your data, your privacy." = "No tracking, no funny business. Take control of what’s rightfully yours, your media, your data, your privacy.";
+"Enter Password" = "Enter Password";
+"You have an existing password for this device." = "You have an existing password for this device.";
+"Next" = "Next";
+"Erase Device Data" = "Erase Device Data";
+"Set Password" = "Set Password";
+"Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅" = "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅";
+"Storage location onboarding" = "Where do you want to store your media? Each key will store data in its own directory once encrypted. 💾";
+"Set Password" = "Set Password";
+"Password" = "Password";
+"Repeat Password" = "Repeat Password";
+"Use %@?" = "Use %@?";
+"Enable %@ to quickly and securely gain access to the app." = "Enable %@ to quickly and securely gain access to the app.";
+"Next" = "Next";
+"Enable %@" = "Enable %@";
+"Encryption Key" = "Encryption Key";
+"New Key Subheading" = "Set the name for this key.\n\nYou can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".";
+"Next" = "Next";
+"Key Name" = "Key Name";
+"Key Value" = "Key Value";
+"If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe." = "If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe.";
+"Select Storage" = "Select Storage";
+"Next" = "Next";
+"Please select a storage location." = "Please select a storage location.";
+"DoneOnboarding" = "Done!";
+"Done" = "Done";
+"AllSetupOnboarding" = "Looks like you’re all set up! 🎊 Enjoy taking photos securely with Encamera’s top-notch encryption. 💪🔐";
+/* ./Encamera/Onboarding/StorageSettingView.swift */
+/* ./Encamera/Onboarding/OnboardingView.swift */
+"Next" = "Next";
+/* ./Encamera/Store/PurchaseUpgradeHeaderView.swift */
+"View unlimited photos for each key." = "View unlimited photos for each key.";
+"Create an unlimited number of keys." = "Create an unlimited number of keys.";
+"Support privacy-focused development." = "Support privacy-focused development.";
+/* ./Encamera/Store/SubscriptionView.swift */
+"View unlimited photos for each key." = "View unlimited photos for each key.";
+"Create an unlimited number of keys." = "Create an unlimited number of keys.";
+"Support privacy-focused development." = "Support privacy-focused development.";
+"Restore Purchases" = "Restore Purchases";
+"Enter Promo Code" = "Enter Promo Code";
+"Start trial offer" = "Start trial offer";
+"Subscribe" = "Subscribe";
+/* ./Encamera/Store/SubscriptionOptionView.swift */
+"Subscribed" = "Subscribed";
+"SaveAmount %@ $@" = "%@ (Save %@)";
+/* ./Encamera/Store/PurchaseUpgradeOptionsListView.swift */
+"**Purchased: %@**" = "**Purchased: %@**";
+"Thank you for your support!" = "Thank you for your support!";
+"premium" = "premium";
+"Subscription" = "Subscription";
+"One-Time Purchase" = "One-Time Purchase";
+/* ./Encamera/Store/PurchaseUpgradeView.swift */
+"Start trial offer" = "Start trial offer";
+"Subscribe" = "Subscribe";
