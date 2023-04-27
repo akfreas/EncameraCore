@@ -24,6 +24,13 @@ let package = Package(
                 .product(name: "Sodium", package: "swift-sodium")
             ],
             resources: [.process("Resources")]
+        ),
+        .testTarget(
+            name: "EncameraCoreTests",
+            dependencies: [
+                "EncameraCore",
+                .product(name: "Sodium", package: "swift-sodium")
+            ]
         )
     ]
 )

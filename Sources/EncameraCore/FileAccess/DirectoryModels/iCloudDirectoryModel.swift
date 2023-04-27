@@ -59,6 +59,9 @@ public class iCloudStorageModel: DataStorageModel {
 
         return try await withCheckedThrowingContinuation { [weak self] continuation in
             
+            guard let `self` = self else {
+                return
+            }
             let timer = Timer.publish(every: 1, on: .main, in: .default)
                 .autoconnect()
             var attempts = 0
@@ -68,7 +71,7 @@ public class iCloudStorageModel: DataStorageModel {
                 .sink { out in
                     attempts += 1
                     do {
-                        if let downloaded = try self?.resolveDownloadedMedia(media: media) {
+                        if let downloaded = try self.resolveDownloadedMedia(media: media) {
 
                             continuation.resume(returning: downloaded)
                             timer.upstream.connect().cancel()
@@ -79,7 +82,7 @@ public class iCloudStorageModel: DataStorageModel {
                     if attempts > 20 {
                         timer.upstream.connect().cancel()
                     }
-                }.store(in: &localCancellables)
+                }.store(in: &self.localCancellables)
         }
 
         

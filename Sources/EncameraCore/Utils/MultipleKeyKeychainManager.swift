@@ -73,7 +73,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         print("Keychain data cleared")
     }
     
-    @discardableResult public func generateNewKey(name: String, storageType: StorageType, backupToiCloud: Bool) throws -> PrivateKey {
+    @discardableResult public func generateNewKey(name: String, storageType: StorageType, backupToiCloud: Bool = false) throws -> PrivateKey {
         
         try checkAuthenticated()
         
