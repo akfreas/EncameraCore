@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "EncameraCore",
     platforms: [
-        .iOS(.v16)
+        .iOS("15.6")
     ],
     products: [
         .library(
