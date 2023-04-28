@@ -60,8 +60,10 @@ extension SecretFileHandlerInt {
             var headerBuffer = [UInt8](repeating: 0, count: headerBytesCount)
             headerBytes?.copyBytes(to: &headerBuffer, count: headerBytesCount)
             
-            let blockSizeInfo = try fileHandler.read(upToCount: 8)
-            let blockSize: UInt32 = blockSizeInfo!.withUnsafeBytes({ $0.load(as: UInt32.self)
+            guard let blockSizeInfo = try fileHandler.read(upToCount: 8) else {
+                throw SecretFilesError.decryptError
+            }
+            let blockSize: UInt32 = blockSizeInfo.withUnsafeBytes({ $0.load(as: UInt32.self)
             })
             
             guard let streamDec = sodium.secretStream.xchacha20poly1305.initPull(secretKey: keyBytes, header: headerBuffer) else {

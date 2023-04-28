@@ -385,6 +385,8 @@ public enum L10n {
   public static let supportPrivacyFocusedDevelopmentByUpgrading = L10n.tr("Localizable", "Support privacy-focused development by upgrading!", fallback: "Support privacy-focused development by upgrading!")
   /// Support privacy-focused development.
   public static let supportPrivacyFocusedDevelopment = L10n.tr("Localizable", "Support privacy-focused development.", fallback: "Support privacy-focused development.")
+  /// Take a Photo!
+  public static let takeAPhoto = L10n.tr("Localizable", "Take a Photo!", fallback: "Take a Photo!")
   /// Tap the 
   public static let tapThe = L10n.tr("Localizable", "Tap the ", fallback: "Tap the ")
   /// Tap to Upgrade
@@ -409,6 +411,8 @@ public enum L10n {
   }
   /// ./Encamera/InAppPurchase/PurchasePhotoSubscriptionOverlay.swift
   public static let upgradeToViewUnlimitedPhotos = L10n.tr("Localizable", "Upgrade to view unlimited photos", fallback: "Upgrade to view unlimited photos")
+  /// Upgrade Today!
+  public static let upgradeToday = L10n.tr("Localizable", "Upgrade Today!", fallback: "Upgrade Today!")
   /// Use %@?
   public static func use(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Use %@?", String(describing: p1), fallback: "Use %@?")
@@ -435,6 +439,8 @@ public enum L10n {
   public static let youHaveAnExistingPasswordForThisDevice = L10n.tr("Localizable", "You have an existing password for this device.", fallback: "You have an existing password for this device.")
   /// You took your first photo! 📸 🥳
   public static let youTookYourFirstPhoto📸🥳 = L10n.tr("Localizable", "You took your first photo! 📸 🥳", fallback: "You took your first photo! 📸 🥳")
+  /// Your Keys
+  public static let yourKeys = L10n.tr("Localizable", "Your Keys", fallback: "Your Keys")
   /// Your media is safely secured behind a key and stored locally on your device or cloud of choice.
   public static let yourMediaIsSafelySecuredBehindAKeyAndStoredLocallyOnYourDeviceOrCloudOfChoice = L10n.tr("Localizable", "Your media is safely secured behind a key and stored locally on your device or cloud of choice.", fallback: "Your media is safely secured behind a key and stored locally on your device or cloud of choice.")
   public enum EnterTheNameOfTheKeyToDeleteItForever {

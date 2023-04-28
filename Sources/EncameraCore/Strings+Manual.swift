@@ -19,11 +19,17 @@ private final class BundleToken {
 
 extension L10n {
     private static func tr(_ table: String, _ key: String, _ args: CVarArg..., fallback value: String) -> String {
-      let format = BundleToken.bundle.localizedString(forKey: key, value: value, table: table)
-      return String(format: format, locale: Locale.current, arguments: args)
+        let format = BundleToken.bundle.localizedString(forKey: key, value: value, table: table)
+        return String(format: format,
+                      locale: Locale.current,
+                      arguments: args)
     }
-
+    
     public static func imageS(_ p1: Int) -> String {
-      return L10n.tr("Localizable", "%@ image(s)", p1, fallback: "%@ image(s)")
+        return L10n.tr("Localizable", "%@ image(s)", p1, fallback: "%@ image(s)")
+    }
+    
+    public static func photoSLeft(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "%@ Photos Left", p1, fallback: "%@ Photo(s) Left")
     }
 }

@@ -83,7 +83,7 @@ extension DiskFileAccess: FileReader {
         
         do {
             let existingPreview = try await loadMediaInMemory(media: preview) { _ in }
-            return PreviewModel(source: existingPreview)
+            return try PreviewModel(source: existingPreview)
         } catch {
             switch media.mediaType {
             case .photo:

@@ -2,6 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>%@ Photo(s) Left</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@photo_count@</string>
+		<key>photo_count</key>
+		<dict>
+			<key>other</key>
+			<string>%d Photos Left</string>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>One Photo Left</string>
+			<key>zero</key>
+			<string>No Photos Left</string>
+		</dict>
+	</dict>
 	<key>%@ image(s)</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>

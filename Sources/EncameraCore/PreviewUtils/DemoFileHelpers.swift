@@ -72,10 +72,10 @@ public class DemoFileEnumerator: FileAccess {
     public func loadMediaPreview<T: MediaDescribing>(for media: T) async -> PreviewModel {
         guard let source = media.source as? URL,
               let data = try? Data(contentsOf: source) else {
-            return PreviewModel(source: CleartextMedia(source: Data()))
+            return try! PreviewModel(source: CleartextMedia(source: Data()))
         }
         let cleartext = CleartextMedia<Data>(source: data)
-        var preview = PreviewModel(thumbnailMedia: cleartext)
+        let preview = PreviewModel(thumbnailMedia: cleartext)
 //        preview.videoDuration = "0:34"
         return preview
 //        let source = media.source as! URL

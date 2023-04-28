@@ -57,7 +57,8 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     public func clearKeychainData() {
         
         let query: [String: Any] = [
-            kSecClass as String: kSecClassKey
+            kSecClass as String: kSecClassKey,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         let _ = SecItemDelete(query as CFDictionary)
@@ -89,7 +90,10 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         } catch {
             setNewKeyToCurrent = true
         }
-        try save(key: key, storageType: storageType, setNewKeyToCurrent: setNewKeyToCurrent, backupToiCloud: backupToiCloud)
+        try save(key: key,
+                 storageType: storageType,
+                 setNewKeyToCurrent: setNewKeyToCurrent,
+                 backupToiCloud: backupToiCloud)
         return key
     }
     
@@ -129,7 +133,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     public func update(key: PrivateKey, backupToiCloud: Bool) throws {
         try checkAuthenticated()
         let updateDict = createKeychainQueryForWrite(with: key, backupToiCloud: backupToiCloud)
-        let query = updateKeyQuery(for: key.name)
+        let query = try updateKeyQuery(for: key.name)
         let status = SecItemUpdate(query, updateDict)
         try checkStatus(status: status)
     }
@@ -205,7 +209,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
         try checkAuthenticated()
         
-        let query = getKeyQuery(for: keyName)
+        let query = try getKeyQuery(for: keyName)
         
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
@@ -349,22 +353,28 @@ private extension MultipleKeyKeychainManager {
         try setActiveKey(keyObject.name)
     }
     
-    private func getKeyQuery(for keyName: KeyName) -> CFDictionary {
+    private func getKeyQuery(for keyName: KeyName) throws -> CFDictionary {
+        guard let keyData = keyName.data(using: .utf8) else {
+            throw KeyManagerError.dataError
+        }
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecMatchLimit as String: kSecMatchLimitOne,
             kSecReturnData as String: true,
             kSecReturnAttributes as String: true,
-            kSecAttrLabel as String: keyName,
+            kSecAttrLabel as String: keyData,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         return query as CFDictionary
     }
     
-    private func updateKeyQuery(for keyName: KeyName) -> CFDictionary {
+    private func updateKeyQuery(for keyName: KeyName) throws -> CFDictionary {
+        guard let keyData = keyName.data(using: .utf8) else {
+            throw KeyManagerError.dataError
+        }
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
-            kSecAttrLabel as String: keyName,
+            kSecAttrLabel as String: keyData,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         return query as CFDictionary
@@ -372,7 +382,7 @@ private extension MultipleKeyKeychainManager {
     }
     
     private func createKeychainQueryForWrite(with key: PrivateKey, backupToiCloud: Bool) -> CFDictionary {
-        var query = [String: Any]()//= key.keychainQueryDictForKeychain
+        var query = key.keychainQueryDictForKeychain
         if backupToiCloud {
             query[kSecAttrSynchronizable as String] = kCFBooleanTrue
         } else {
@@ -394,7 +404,8 @@ private extension PrivateKey {
     var keychainQueryDict: [String: Any] {
         [
             kSecClass as String: kSecClassKey,
-            kSecAttrLabel as String: name,
+            kSecAttrLabel as String: name.data(using: .utf8)!,
+            kSecAttrCreationDate as String: creationDate,
             kSecValueData as String: Data(keyBytes)
         ]
     }

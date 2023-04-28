@@ -16,8 +16,8 @@ public struct PreviewModel: Codable {
     }
     public var videoDuration: String?
     
-    init(source: CleartextMedia<Data>) {
-        let decoded = try! JSONDecoder().decode(PreviewModel.self, from: source.source)
+    init(source: CleartextMedia<Data>) throws {
+        let decoded = try JSONDecoder().decode(PreviewModel.self, from: source.source)
         self.id = decoded.id
         self.thumbnailMedia = decoded.thumbnailMedia
         self.videoDuration = decoded.videoDuration

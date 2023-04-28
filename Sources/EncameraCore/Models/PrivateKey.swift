@@ -48,6 +48,10 @@ public struct PrivateKey: Codable {
             let keyData = keychainItem[kSecValueData as String] as? Data,
             let nameData = keychainItem[kSecAttrLabel as String] as? Data,
             let creationDate = keychainItem[kSecAttrCreationDate as String] as? Date else {
+            debugPrint("\(keychainItem[kSecValueData as String] as? Data)")
+            debugPrint("\(keychainItem[kSecAttrLabel as String] as? Data)")
+            debugPrint("\(keychainItem[kSecAttrCreationDate as String] as? Data)")
+            debugPrint("init(keychainItem:), missing params")
             throw ImageKeyEncodingError.invalidKeychainItemData
         }
         let name = PrivateKey.keyName(from: nameData)
@@ -59,12 +63,6 @@ public struct PrivateKey: Codable {
         if let synced = keychainItem[kSecAttrSynchronizable as String] as? Bool, synced == true {
             self.savedToiCloud = true
         }
-    }
-    
-    
-    
-    static func keychainNameEntry(keyName: String) -> String {
-        return "\(keyPrefix)\(keyName)"
     }
     
     private static func keyName(from entry: Data) -> String {

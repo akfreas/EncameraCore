@@ -30,6 +30,9 @@ let package = Package(
             dependencies: [
                 "EncameraCore",
                 .product(name: "Sodium", package: "swift-sodium")
+            ],
+            resources: [
+                .copy("Resources/test.mov")
             ]
         )
     ]
