@@ -43,7 +43,7 @@ public class DemoFileEnumerator: FileAccess {
         []
     }
     
-    public func deleteMedia(for key: PrivateKey) async throws {
+    public func deleteMediaForKey() async throws {
         
     }
     

@@ -16,7 +16,6 @@ private final class BundleToken {
     #endif
   }()
 }
-
 extension L10n {
     private static func tr(_ table: String, _ key: String, _ args: CVarArg..., fallback value: String) -> String {
         let format = BundleToken.bundle.localizedString(forKey: key, value: value, table: table)
@@ -30,6 +29,7 @@ extension L10n {
     }
     
     public static func photoSLeft(_ p1: Int) -> String {
-        return L10n.tr("Localizable", "%@ Photos Left", p1, fallback: "%@ Photo(s) Left")
+        return L10n.tr("Localizable", "%@ Photo(s) Left", p1, fallback: "%@ Photo(s) Left")
     }
 }
+

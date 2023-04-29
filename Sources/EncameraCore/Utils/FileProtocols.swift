@@ -33,7 +33,7 @@ public protocol FileWriter {
     @discardableResult func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel
     func copy(media: EncryptedMedia) async throws
     func delete(media: EncryptedMedia) async throws
-    func deleteMedia(for key: PrivateKey) async throws
+    func deleteMediaForKey() async throws
     func moveAllMedia(for keyName: KeyName, toRenamedKey newKeyName: KeyName) async throws
     func deleteAllMedia() async throws
 }

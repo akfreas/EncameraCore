@@ -332,11 +332,12 @@ extension DiskFileAccess: FileWriter {
         
     }
     
-    public func deleteMedia(for key: PrivateKey) async throws {
+    public func deleteMediaForKey() async throws {
         
         guard let url = directoryModel?.baseURL else {
             throw FileAccessError.missingPrivateKey
         }
+        
         try FileManager.default.removeItem(at: url)
     }
     public func deleteAllMedia() async throws {

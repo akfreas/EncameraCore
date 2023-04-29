@@ -45,7 +45,7 @@ public struct EraserUtils {
     }
     
     private func eraseUserDefaults() {
-        
+        UserDefaultUtils.removeAll()
     }
     
 }

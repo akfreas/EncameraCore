@@ -30,12 +30,16 @@ public final class StoreSubscriptionController: ObservableObject {
     var nextSubscription: ServiceSubscription? {
         subscriptions.first { $0.id == autoRenewPreference }
     }
-    
+    private var cancellables = Set<AnyCancellable>()
+
     internal nonisolated init(productIDs: [String]) {
         self.productIDs = productIDs
         Task { @MainActor in
             await self.updateEntitlement()
+            
         }
+        
+        
     }
     
     
@@ -117,6 +121,7 @@ public final class StoreSubscriptionController: ObservableObject {
                 """)
                 continue
             }
+
             if status.state == .subscribed || status.state == .inGracePeriod {
                 entitledSubscriptionID = renewalInfo.currentProductID
                 autoRenewPreference = renewalInfo.autoRenewPreference

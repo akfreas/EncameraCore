@@ -287,3 +287,5 @@
 "Tap to Upgrade" = "Tap to Upgrade";
 "Take a Photo!" = "Take a Photo!";
 "Your Keys" = "Your Keys";
+"KeyTutorialText" = "Each key functions as an album, and each album uses a different key to encrypt media.\n\nBackup these keys! If you lose the key or your device, and don't select iCloud backup, your media cannot be recovered.";
+"KeyTutorialTitle" = "Introducing: Your Encryption Keys 🔑";

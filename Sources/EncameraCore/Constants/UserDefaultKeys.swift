@@ -20,6 +20,7 @@ public enum UserDefaultKey {
     case viewGalleryCount
     case lastVersionReviewRequested
     case hasOpenedKeySelection
+    case keyTutorialClosed
     
     var rawValue: String {
         switch self {

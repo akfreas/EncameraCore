@@ -13,7 +13,7 @@ import Combine
 public final class StoreProductController: ObservableObject {
     @Published public var products: [OneTimePurchase] = []
     @Published public var purchasedProducts: [OneTimePurchase] = []
-    @Published private(set) var isEntitled: Bool = false
+    @Published private(set) public var isEntitled: Bool = false
     @Published private(set) var purchaseError: (any LocalizedError)?
     
     private let productIDs: [String]

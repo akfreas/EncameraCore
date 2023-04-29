@@ -73,7 +73,6 @@ public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, Observabl
     public init() {
     }
     
-    
     @MainActor
     public func isAllowedAccess(feature: AppFeature) -> Bool {
         switch feature {

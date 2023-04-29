@@ -32,30 +32,30 @@ public enum L10n {
   public static let addExistingKey = L10n.tr("Localizable", "Add Existing Key", fallback: "Add Existing Key")
   /// ./Encamera/KeyManagement/KeyOperationCell.swift
   public static let addKey = L10n.tr("Localizable", "Add Key", fallback: "Add Key")
-  /// Are you sure you want to erase __all__ app data?
+  /// Are you sure you want to erase ALL ENCAMERA DATA?
   /// 
-  /// __This will erase:__
+  /// THIS WILL ERASE:
   /// 
-  /// • All your stored keys 🔑
+  /// • ALL your stored keys 🔑
   /// • Your password 🔐
   /// • App settings 🎛
-  /// • Media you have stored locally or on iCloud 💾
+  /// • MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD 💾
   /// 
   /// You can create a backup of your keys from the key management screen.
   /// 
   /// The app will quit after erase is finished.
-  public static let allDataExplanation = L10n.tr("Localizable", "allDataExplanation", fallback: "Are you sure you want to erase __all__ app data?\n\n__This will erase:__\n\n• All your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n• Media you have stored locally or on iCloud 💾\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.")
+  public static let allDataExplanation = L10n.tr("Localizable", "allDataExplanation", fallback: "Are you sure you want to erase ALL ENCAMERA DATA?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n• MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD 💾\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.")
   /// Looks like you’re all set up! 🎊 Enjoy taking photos securely with Encamera’s top-notch encryption. 💪🔐
   public static let allSetupOnboarding = L10n.tr("Localizable", "AllSetupOnboarding", fallback: "Looks like you’re all set up! 🎊 Enjoy taking photos securely with Encamera’s top-notch encryption. 💪🔐")
-  /// Are you sure you want to erase all app data?
+  /// Are you sure you want to erase ALL app data?
   /// 
-  /// __This will erase:__
+  /// THIS WILL ERASE:
   /// 
-  /// • All your stored keys 🔑
+  /// • ALL your stored keys 🔑
   /// • Your password 🔐
   /// • App settings 🎛
   /// 
-  /// __This will not erase:__
+  /// THIS WILL NOT ERASE:
   /// 
   /// • Media you have stored locally or on iCloud 💾
   /// 
@@ -64,7 +64,7 @@ public enum L10n {
   /// The app will quit after erase is finished.
   /// 
   /// 
-  public static let appDataExplanation = L10n.tr("Localizable", "appDataExplanation", fallback: "Are you sure you want to erase all app data?\n\n__This will erase:__\n\n• All your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\n__This will not erase:__\n\n• Media you have stored locally or on iCloud 💾\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n")
+  public static let appDataExplanation = L10n.tr("Localizable", "appDataExplanation", fallback: "Are you sure you want to erase ALL app data?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\nTHIS WILL NOT ERASE:\n\n• Media you have stored locally or on iCloud 💾\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n")
   /// Backup Keys
   public static let backupKeys = L10n.tr("Localizable", "Backup Keys", fallback: "Backup Keys")
   /// Biometrics failed
@@ -239,6 +239,12 @@ public enum L10n {
   public static let keyBasedEncryption🔑 = L10n.tr("Localizable", "Key-based encryption 🔑", fallback: "Key-based encryption 🔑")
   /// Keys
   public static let keys = L10n.tr("Localizable", "Keys", fallback: "Keys")
+  /// Each key functions as an album, and each album uses a different key to encrypt media.
+  /// 
+  /// Backup these keys! If you lose the key or your device, and don't select iCloud backup, your media cannot be recovered.
+  public static let keyTutorialText = L10n.tr("Localizable", "KeyTutorialText", fallback: "Each key functions as an album, and each album uses a different key to encrypt media.\n\nBackup these keys! If you lose the key or your device, and don't select iCloud backup, your media cannot be recovered.")
+  /// Introducing: Your Encryption Keys 🔑
+  public static let keyTutorialTitle = L10n.tr("Localizable", "KeyTutorialTitle", fallback: "Introducing: Your Encryption Keys 🔑")
   /// Local
   public static let local = L10n.tr("Localizable", "Local", fallback: "Local")
   /// ./Encamera/CameraView/CameraView.swift

@@ -14,18 +14,18 @@ import StoreKit
     static public let lifetimeUnlimitedBasic = "purchase.lifetimeunlimitedbasic"
     static public let lifetimeUnlimitedBasicFamily = "purchase.lifetimeunlimitedbasicfamily"
     
-    public static let subscriptionIDs: Set<String> = [
+    public static let subscriptionIDs: Array<String> = [
         unlimitedYearlyID,
         unlimitedMonthlyID
     ]
     
-    public static let productIDs: Set<String> = [
+    public static let productIDs: Array<String> = [
         lifetimeUnlimitedBasic,
         lifetimeUnlimitedBasicFamily
     ]
     
-    public static let allProductIDs: Set<String> = {
-        return subscriptionIDs.union(productIDs)
+    public static let allProductIDs: Array<String> = {
+        return subscriptionIDs + productIDs
     }()
     
     public static let shared = StoreActor()
@@ -43,8 +43,8 @@ import StoreKit
     public nonisolated let productController: StoreProductController
     
     init() {
-        self.subscriptionController = StoreSubscriptionController(productIDs: Array(Self.subscriptionIDs))
-        self.productController = StoreProductController(productIDs: Array(Self.productIDs))
+        self.subscriptionController = StoreSubscriptionController(productIDs: Self.subscriptionIDs)
+        self.productController = StoreProductController(productIDs: Self.productIDs)
         Task(priority: .background) {
             await self.setupListenerTasksIfNecessary()
             await self.loadProducts()
@@ -103,13 +103,18 @@ import StoreKit
         do {
             let products = try await Product.products(for: Self.allProductIDs)
             try Task.checkCancellation()
-            print("Loaded \(products.count) products")
             loadedProducts = products.reduce(into: [:]) {
                 $0[$1.id] = $1
             }
             
             Task(priority: .utility) { @MainActor in
-                self.subscriptionController.subscriptions = products.compactMap({ ServiceSubscription(subscription: $0) })
+                self.subscriptionController.subscriptions = products.compactMap({ ServiceSubscription(subscription: $0) }).sorted { product1, product2 in
+                    if product1.id.contains("yearly") {
+                        return true
+                    } else {
+                        return false
+                    }
+                }
                 await self.subscriptionController.updateEntitlement()
 
                 self.productController.products = products
