@@ -20,9 +20,7 @@ public class FileUtils {
         
     }
         
-    static func createNewMovieFile() throws -> CleartextMedia<URL> {
-        // Hack to get
-        
+    static func createNewMovieFile() throws -> CleartextMedia<URL> {        
         let tempURL = tempFilesManager.createTempURL(for: .video, id: NSUUID().uuidString)
         try! FileManager.default.copyItem(at: createUrl(for: "test.mov"), to: tempURL)
         let sourceMedia = CleartextMedia(source: tempURL)

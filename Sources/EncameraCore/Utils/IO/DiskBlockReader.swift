@@ -18,7 +18,7 @@ class DiskBlockReader: FileLikeBlockReader {
         guard let attributes = try? FileManager.default.attributesOfItem(atPath: source.path) else {
             return 0
         }
-        return attributes[FileAttributeKey.size] as! UInt64
+        return attributes[FileAttributeKey.size] as? UInt64 ?? .zero
     }
 
     init(source: URL, mode: BlockIOMode) throws {

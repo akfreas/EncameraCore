@@ -46,6 +46,7 @@
 "No Key Selected" = "No Key Selected";
 "You don't have an active key selected, select one to continue saving media." = "You don't have an active key selected, select one to continue saving media.";
 "Key Selection" = "Key Selection";
+"OpenSettings" = "Open Settings";
 /* ./Encamera/CameraView/CameraModePicker.swift */
 "PHOTO" = "PHOTO";
 "VIDEO" = "VIDEO";

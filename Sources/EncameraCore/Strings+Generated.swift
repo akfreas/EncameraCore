@@ -293,6 +293,8 @@ public enum L10n {
   public static let openSettingsToAllowCameraAccessPermission = L10n.tr("Localizable", "Open settings to allow camera access permission", fallback: "Open settings to allow camera access permission")
   /// Open Source
   public static let openSource = L10n.tr("Localizable", "Open Source", fallback: "Open Source")
+  /// Open Settings
+  public static let openSettings = L10n.tr("Localizable", "OpenSettings", fallback: "Open Settings")
   /// Password
   public static let password = L10n.tr("Localizable", "Password", fallback: "Password")
   /// Password incorrect
