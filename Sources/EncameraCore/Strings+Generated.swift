@@ -69,6 +69,10 @@ public enum L10n {
   public static let backUpKey = L10n.tr("Localizable", "Back Up Key", fallback: "Back Up Key")
   /// Backup Keys
   public static let backupKeys = L10n.tr("Localizable", "Backup Keys", fallback: "Backup Keys")
+  /// If you lose your key, it is impossible to recover your data. Back up your keys to a password manager after you create them, or save them to iCloud.
+  public static let backUpKeysExplanation = L10n.tr("Localizable", "BackUpKeysExplanation", fallback: "If you lose your key, it is impossible to recover your data. Back up your keys to a password manager after you create them, or save them to iCloud.")
+  /// Back up those keys!
+  public static let backUpKeysHeader = L10n.tr("Localizable", "BackUpKeysHeader", fallback: "Back up those keys!")
   /// Biometrics failed
   public static let biometricsFailed = L10n.tr("Localizable", "Biometrics failed", fallback: "Biometrics failed")
   /// Biometrics unavailable
@@ -151,12 +155,16 @@ public enum L10n {
   public static func enableToQuicklyAndSecurelyGainAccessToTheApp(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Enable %@ to quickly and securely gain access to the app.", String(describing: p1), fallback: "Enable %@ to quickly and securely gain access to the app.")
   }
-  /// Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy.
-  public static let encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy = L10n.tr("Localizable", "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy.", fallback: "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy.")
+  /// Encamera encrypts everything, keeping your media safe from unwanted eyes.
+  public static let encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy = L10n.tr("Localizable", "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy.", fallback: "Encamera encrypts everything, keeping your media safe from unwanted eyes.")
+  /// Open Source 🌎
+  public static let encameraIsOpenSource = L10n.tr("Localizable", "EncameraIsOpenSource", fallback: "Open Source 🌎")
   /// ./Encamera/Styles/ViewModifiers/ButtonViewModifier.swift
   public static let encryptEverything = L10n.tr("Localizable", "Encrypt Everything", fallback: "Encrypt Everything")
   /// Encryption Key
   public static let encryptionKey = L10n.tr("Localizable", "Encryption Key", fallback: "Encryption Key")
+  /// Privacy-first Camera 🔒
+  public static let encryptionExplanation = L10n.tr("Localizable", "EncryptionExplanation", fallback: "Privacy-first Camera 🔒")
   /// Enter Password
   public static let enterPassword = L10n.tr("Localizable", "Enter Password", fallback: "Enter Password")
   /// Enter Promo Code
@@ -189,8 +197,10 @@ public enum L10n {
   public static let faceID = L10n.tr("Localizable", "Face ID", fallback: "Face ID")
   /// ./Encamera/Styles/ViewModifiers/PurchaseOptionViewModifier.swift
   public static let familyShareable = L10n.tr("Localizable", "Family Shareable", fallback: "Family Shareable")
-  /// For your eyes only 👀
-  public static let forYourEyesOnly👀 = L10n.tr("Localizable", "For your eyes only 👀", fallback: "For your eyes only 👀")
+  /// ./Encamera/Settings/SettingsView.swift
+  public static let feedbackRequest = L10n.tr("Localizable", "FeedbackRequest", fallback: "Because Encamera does not track user behavior in any way, and collects no information about you, the user, we rely on your feedback to help us improve the app.")
+  /// No Tracking, No Data Collection 🤫
+  public static let forYourEyesOnly👀 = L10n.tr("Localizable", "For your eyes only 👀", fallback: "No Tracking, No Data Collection 🤫")
   /// Free Trial
   public static let freeTrial = L10n.tr("Localizable", "Free Trial", fallback: "Free Trial")
   /// Got it!
@@ -285,6 +295,8 @@ public enum L10n {
   public static let notAuthenticatedForThisOperation = L10n.tr("Localizable", "Not authenticated for this operation.", fallback: "Not authenticated for this operation.")
   /// ./EncameraCore/Utils/PasswordValidator.swift
   public static let notDetermined = L10n.tr("Localizable", "Not determined.", fallback: "Not determined.")
+  /// No trackers are installed in this app. Encamera doesn't use *any* services except those provided by Apple.
+  public static let noTrackingExplanation = L10n.tr("Localizable", "NoTrackingExplanation", fallback: "No trackers are installed in this app. Encamera doesn't use *any* services except those provided by Apple.")
   /// OK
   public static let ok = L10n.tr("Localizable", "OK", fallback: "OK")
   /// One-Time Purchase
@@ -295,6 +307,8 @@ public enum L10n {
   public static let openSource = L10n.tr("Localizable", "Open Source", fallback: "Open Source")
   /// Open Settings
   public static let openSettings = L10n.tr("Localizable", "OpenSettings", fallback: "Open Settings")
+  /// Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.
+  public static let openSourceExplanation = L10n.tr("Localizable", "OpenSourceExplanation", fallback: "Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.")
   /// Password
   public static let password = L10n.tr("Localizable", "Password", fallback: "Password")
   /// Password incorrect
@@ -325,8 +339,6 @@ public enum L10n {
   public static let premiumSparkles = L10n.tr("Localizable", "premium sparkles", fallback: "✨ Premium ✨")
   /// Privacy Policy
   public static let privacyPolicy = L10n.tr("Localizable", "Privacy Policy", fallback: "Privacy Policy")
-  /// Ready to take back your media? 📸
-  public static let readyToTakeBackYourMedia📸 = L10n.tr("Localizable", "Ready to take back your media? 📸", fallback: "Ready to take back your media? 📸")
   /// Repeat Password
   public static let repeatPassword = L10n.tr("Localizable", "Repeat Password", fallback: "Repeat Password")
   /// Restore Purchases
@@ -383,6 +395,10 @@ public enum L10n {
   public static let storageLocationOnboarding = L10n.tr("Localizable", "Storage location onboarding", fallback: "Where do you want to store your media? Each key will store data in its own directory once encrypted. 💾")
   /// Storage Settings
   public static let storageSettings = L10n.tr("Localizable", "Storage Settings", fallback: "Storage Settings")
+  /// Encamera does not store media to your camera roll. All encrypted media are stored either on this app or on iCloud, depending on your storage choice.
+  public static let storageExplanation = L10n.tr("Localizable", "StorageExplanation", fallback: "Encamera does not store media to your camera roll. All encrypted media are stored either on this app or on iCloud, depending on your storage choice.")
+  /// Where are my photos stored?
+  public static let storageExplanationHeader = L10n.tr("Localizable", "StorageExplanationHeader", fallback: "Where are my photos stored?")
   /// Where do you want to store media for files encrypted with this key?
   /// Each key will store data in its own directory.
   /// 
@@ -439,7 +455,7 @@ public enum L10n {
   public static let viewUnlimitedPhotos😍 = L10n.tr("Localizable", "View unlimited photos 😍 ", fallback: "View unlimited photos 😍 ")
   /// ./Encamera/Tutorial/ExplanationForUpgradeTutorial.swift
   public static let wantMore = L10n.tr("Localizable", "Want more?", fallback: "Want more?")
-  /// ./Encamera/Settings/SettingsView.swift
+  /// What is Encamera?
   public static let whatIsEncamera = L10n.tr("Localizable", "What is Encamera?", fallback: "What is Encamera?")
   /// Where do you want to save this key's media?
   public static let whereDoYouWantToSaveThisKeySMedia = L10n.tr("Localizable", "Where do you want to save this key's media?", fallback: "Where do you want to save this key's media?")
@@ -470,10 +486,6 @@ public enum L10n {
   public enum KeyCopiedToClipboard {
     /// Key copied to clipboard. Store this in a password manager or other secure place.
     public static let storeThisInAPasswordManagerOrOtherSecurePlace = L10n.tr("Localizable", "Key copied to clipboard. Store this in a password manager or other secure place.", fallback: "Key copied to clipboard. Store this in a password manager or other secure place.")
-  }
-  public enum NoTrackingNoFunnyBusiness {
-    /// No tracking, no funny business. Take control of what’s rightfully yours, your media, your data, your privacy.
-    public static let takeControlOfWhatSRightfullyYoursYourMediaYourDataYourPrivacy = L10n.tr("Localizable", "No tracking, no funny business. Take control of what’s rightfully yours, your media, your data, your privacy.", fallback: "No tracking, no funny business. Take control of what’s rightfully yours, your media, your data, your privacy.")
   }
   public enum SetAPasswordToAccessTheApp {
     public enum BeSureToStoreItInASafePlaceYouCannotRecoverItLater {

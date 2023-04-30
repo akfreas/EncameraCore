@@ -54,6 +54,7 @@
 "Shared Media" = "Shared Media";
 "Save" = "Save";
 /* ./Encamera/Settings/SettingsView.swift */
+"FeedbackRequest" = "Because Encamera does not track user behavior in any way, and collects no information about you, the user, we rely on your feedback to help us improve the app.";
 "What is Encamera?" = "What is Encamera?";
 "Why Encrypt Media?" = "Why Encrypt Media?";
 "Open Source" = "Open Source";
@@ -224,12 +225,15 @@
 "No info available" = "No info available";
 /* ./Encamera/Onboarding/MainOnboardingView.swift */
 "Next" = "Next";
-"Ready to take back your media? 📸" = "Ready to take back your media? 📸";
-"Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy.";
+"EncryptionExplanation" = "Privacy-first Camera 🔒";
+"Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera encrypts everything, keeping your media safe from unwanted eyes.";
 "Key-based encryption 🔑" = "Key-based encryption 🔑";
 "Your media is safely secured behind a key and stored locally on your device or cloud of choice." = "Your media is safely secured behind a key and stored locally on your device or cloud of choice.";
-"For your eyes only 👀" = "For your eyes only 👀";
-"No tracking, no funny business. Take control of what’s rightfully yours, your media, your data, your privacy." = "No tracking, no funny business. Take control of what’s rightfully yours, your media, your data, your privacy.";
+"For your eyes only 👀" = "No Tracking, No Data Collection 🤫";
+"NoTrackingExplanation" = "No trackers are installed in this app. Encamera doesn't use *any* services except those provided by Apple.";
+"EncameraIsOpenSource" = "Open Source 🌎";
+"OpenSourceExplanation" = "Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.";
+
 "Enter Password" = "Enter Password";
 "You have an existing password for this device." = "You have an existing password for this device.";
 "Next" = "Next";
@@ -238,6 +242,10 @@
 "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅" = "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅";
 "Storage location onboarding" = "Where do you want to store your media? Each key will store data in its own directory once encrypted. 💾";
 "Set Password" = "Set Password";
+"StorageExplanationHeader" = "Where are my photos stored?";
+"StorageExplanation" = "Encamera does not store media to your camera roll. All encrypted media are stored either on this app or on iCloud, depending on your storage choice.";
+"BackUpKeysHeader" = "Back up those keys!";
+"BackUpKeysExplanation" = "If you lose your key, it is impossible to recover your data. Back up your keys to a password manager after you create them, or save them to iCloud.";
 "Password" = "Password";
 "Repeat Password" = "Repeat Password";
 "Use %@?" = "Use %@?";

@@ -30,16 +30,20 @@ public class AskForReviewUtil {
         if count >= AppConstants.numberOfGalleryViewsBeforePromptingForReview && currentVersion != lastVersionPromptedForReview {
             Task {
                 try? await Task.sleep(nanoseconds: UInt64(2e9))
-                guard let currentScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene else {
-                    return
-                }
                 
-                await MainActor.run {
-                    SKStoreReviewController.requestReview(in: currentScene)
-                }
+                await requestReview()
                 
                 UserDefaultUtils.set(currentVersion, forKey: .lastVersionReviewRequested)
             }
         }
+    }
+    @MainActor
+    public static func requestReview() {
+        guard let currentScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+            return
+        }
+        
+        SKStoreReviewController.requestReview(in: currentScene)
+        
     }
 }
