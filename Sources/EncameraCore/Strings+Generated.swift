@@ -163,8 +163,8 @@ public enum L10n {
   public static let encryptEverything = L10n.tr("Localizable", "Encrypt Everything", fallback: "Encrypt Everything")
   /// Encryption Key
   public static let encryptionKey = L10n.tr("Localizable", "Encryption Key", fallback: "Encryption Key")
-  /// Privacy-first Camera 🔒
-  public static let encryptionExplanation = L10n.tr("Localizable", "EncryptionExplanation", fallback: "Privacy-first Camera 🔒")
+  /// Privacy-First Camera 🔒
+  public static let encryptionExplanation = L10n.tr("Localizable", "EncryptionExplanation", fallback: "Privacy-First Camera 🔒")
   /// Enter Password
   public static let enterPassword = L10n.tr("Localizable", "Enter Password", fallback: "Enter Password")
   /// Enter Promo Code
@@ -215,6 +215,8 @@ public enum L10n {
   public static let iCloud = L10n.tr("Localizable", "iCloud", fallback: "iCloud")
   /// If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe.
   public static let ifYouDonTUseICloudBackupItSHighlyRecommendedThatYouBackupYourKeysToAPasswordManagerOrSomewhereElseSafe = L10n.tr("Localizable", "If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe.", fallback: "If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe.")
+  /// Your media is safely secured behind a key and stored locally on your device on iCloud.
+  public static let introStorageExplanation = L10n.tr("Localizable", "IntroStorageExplanation", fallback: "Your media is safely secured behind a key and stored locally on your device on iCloud.")
   /// Invalid Password
   public static let invalidPassword = L10n.tr("Localizable", "Invalid Password", fallback: "Invalid Password")
   /// Keep your encrypted data safe by using %@.
@@ -245,8 +247,8 @@ public enum L10n {
   public static let keySelection = L10n.tr("Localizable", "Key Selection", fallback: "Key Selection")
   /// Key Value
   public static let keyValue = L10n.tr("Localizable", "Key Value", fallback: "Key Value")
-  /// Key-based encryption 🔑
-  public static let keyBasedEncryption🔑 = L10n.tr("Localizable", "Key-based encryption 🔑", fallback: "Key-based encryption 🔑")
+  /// Key-Based Encryption 🔑
+  public static let keyBasedEncryption = L10n.tr("Localizable", "KeyBasedEncryption", fallback: "Key-Based Encryption 🔑")
   /// Keys
   public static let keys = L10n.tr("Localizable", "Keys", fallback: "Keys")
   /// Each key functions as an album, and each album uses a different key to encrypt media.
@@ -255,6 +257,8 @@ public enum L10n {
   public static let keyTutorialText = L10n.tr("Localizable", "KeyTutorialText", fallback: "Each key functions as an album, and each album uses a different key to encrypt media.\n\nBackup these keys! If you lose the key or your device, and don't select iCloud backup, your media cannot be recovered.")
   /// Introducing: Your Encryption Keys 🔑
   public static let keyTutorialTitle = L10n.tr("Localizable", "KeyTutorialTitle", fallback: "Introducing: Your Encryption Keys 🔑")
+  /// Leave a Review
+  public static let leaveAReview = L10n.tr("Localizable", "Leave a Review", fallback: "Leave a Review")
   /// Local
   public static let local = L10n.tr("Localizable", "Local", fallback: "Local")
   /// ./Encamera/CameraView/CameraView.swift
@@ -469,8 +473,6 @@ public enum L10n {
   public static let youTookYourFirstPhoto📸🥳 = L10n.tr("Localizable", "You took your first photo! 📸 🥳", fallback: "You took your first photo! 📸 🥳")
   /// Your Keys
   public static let yourKeys = L10n.tr("Localizable", "Your Keys", fallback: "Your Keys")
-  /// Your media is safely secured behind a key and stored locally on your device or cloud of choice.
-  public static let yourMediaIsSafelySecuredBehindAKeyAndStoredLocallyOnYourDeviceOrCloudOfChoice = L10n.tr("Localizable", "Your media is safely secured behind a key and stored locally on your device or cloud of choice.", fallback: "Your media is safely secured behind a key and stored locally on your device or cloud of choice.")
   public enum EnterTheNameOfTheKeyToDeleteItForever {
     /// Enter the name of the key to delete it forever. All media will remain saved.
     public static let allMediaWillRemainSaved = L10n.tr("Localizable", "Enter the name of the key to delete it forever. All media will remain saved.", fallback: "Enter the name of the key to delete it forever. All media will remain saved.")

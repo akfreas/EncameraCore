@@ -58,6 +58,7 @@
 "What is Encamera?" = "What is Encamera?";
 "Why Encrypt Media?" = "Why Encrypt Media?";
 "Open Source" = "Open Source";
+"Leave a Review" = "Leave a Review";
 "Password successfully changed" = "Password successfully changed";
 "premium sparkles" = "✨ Premium ✨";
 "Restore Purchases" = "Restore Purchases";
@@ -225,10 +226,10 @@
 "No info available" = "No info available";
 /* ./Encamera/Onboarding/MainOnboardingView.swift */
 "Next" = "Next";
-"EncryptionExplanation" = "Privacy-first Camera 🔒";
+"EncryptionExplanation" = "Privacy-First Camera 🔒";
 "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera encrypts everything, keeping your media safe from unwanted eyes.";
-"Key-based encryption 🔑" = "Key-based encryption 🔑";
-"Your media is safely secured behind a key and stored locally on your device or cloud of choice." = "Your media is safely secured behind a key and stored locally on your device or cloud of choice.";
+"KeyBasedEncryption" = "Key-Based Encryption 🔑";
+"IntroStorageExplanation" = "Your media is safely secured behind a key and stored locally on your device on iCloud.";
 "For your eyes only 👀" = "No Tracking, No Data Collection 🤫";
 "NoTrackingExplanation" = "No trackers are installed in this app. Encamera doesn't use *any* services except those provided by Apple.";
 "EncameraIsOpenSource" = "Open Source 🌎";
