@@ -65,6 +65,8 @@ public enum L10n {
   /// 
   /// 
   public static let appDataExplanation = L10n.tr("Localizable", "appDataExplanation", fallback: "Are you sure you want to erase ALL app data?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\nTHIS WILL NOT ERASE:\n\n• Media you have stored locally or on iCloud 💾\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n")
+  /// Back Up Key
+  public static let backUpKey = L10n.tr("Localizable", "Back Up Key", fallback: "Back Up Key")
   /// Backup Keys
   public static let backupKeys = L10n.tr("Localizable", "Backup Keys", fallback: "Backup Keys")
   /// Biometrics failed
@@ -87,8 +89,6 @@ public enum L10n {
   public static let contact = L10n.tr("Localizable", "Contact", fallback: "Contact")
   /// Copied to Clipboard
   public static let copiedToClipboard = L10n.tr("Localizable", "Copied to Clipboard", fallback: "Copied to Clipboard")
-  /// Copy to clipboard
-  public static let copyToClipboard = L10n.tr("Localizable", "Copy to clipboard", fallback: "Copy to clipboard")
   /// ./Encamera/ImageViewing/MovieViewing.swift
   public static func couldNotDecryptMovie(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Could not decrypt movie: %@", String(describing: p1), fallback: "Could not decrypt movie: %@")
@@ -123,8 +123,8 @@ public enum L10n {
   public static let delete = L10n.tr("Localizable", "Delete", fallback: "Delete")
   /// Delete All Associated Data?
   public static let deleteAllAssociatedData = L10n.tr("Localizable", "Delete All Associated Data?", fallback: "Delete All Associated Data?")
-  /// Delete All Key Data
-  public static let deleteAllKeyData = L10n.tr("Localizable", "Delete All Key Data", fallback: "Delete All Key Data")
+  /// Delete Media & Key
+  public static let deleteAllKeyData = L10n.tr("Localizable", "Delete All Key Data", fallback: "Delete Media & Key")
   /// Delete Everything
   public static let deleteEverything = L10n.tr("Localizable", "Delete Everything", fallback: "Delete Everything")
   /// Delete Key
@@ -345,6 +345,8 @@ public enum L10n {
   public static let savesEncryptedFilesToICloudDrive = L10n.tr("Localizable", "Saves encrypted files to iCloud Drive.", fallback: "Saves encrypted files to iCloud Drive.")
   /// Saves encrypted files to this device.
   public static let savesEncryptedFilesToThisDevice = L10n.tr("Localizable", "Saves encrypted files to this device.", fallback: "Saves encrypted files to this device.")
+  /// Scan with Encamera app
+  public static let scanWithEncameraApp = L10n.tr("Localizable", "Scan with Encamera app", fallback: "Scan with Encamera app")
   /// See the photos that belong to a key by tapping the 
   public static let seeThePhotosThatBelongToAKeyByTappingThe = L10n.tr("Localizable", "See the photos that belong to a key by tapping the ", fallback: "See the photos that belong to a key by tapping the ")
   /// Select a place to keep media for this key.
@@ -371,6 +373,8 @@ public enum L10n {
   public static let shareThisImage = L10n.tr("Localizable", "Share this image?", fallback: "Share this image?")
   /// ./Encamera/ShareHandling/ShareHandling.swift
   public static let sharedMedia = L10n.tr("Localizable", "Shared Media", fallback: "Shared Media")
+  /// ./Encamera/KeyManagement/KeyExchange.swift
+  public static let shareKeyExplanation = L10n.tr("Localizable", "ShareKeyExplanation", fallback: "Share your encryption key with someone you trust.\n\nSharing it with them means they can decrypt any media you share with them that is encrypted with this key.")
   /// ./Encamera/Store/PurchaseUpgradeView.swift
   public static let startTrialOffer = L10n.tr("Localizable", "Start trial offer", fallback: "Start trial offer")
   /// Where do you want to store your media? Each key will store data in its own directory once encrypted. 💾
@@ -474,10 +478,6 @@ public enum L10n {
       /// Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅
       public static let 🙅 = L10n.tr("Localizable", "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅", fallback: "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅")
     }
-  }
-  public enum ShareYourEncryptionKeyWithSomeoneYouTrust {
-    /// ./Encamera/KeyManagement/KeyExchange.swift
-    public static let sharingItWithThemMeansTheyCanDecryptAnyMediaYouShareWithThemThatIsEncryptedWithThisKey = L10n.tr("Localizable", "Share your encryption key with someone you trust.\n\nSharing it with them means they can decrypt any media you share with them that is encrypted with this key.", fallback: "Share your encryption key with someone you trust.\n\nSharing it with them means they can decrypt any media you share with them that is encrypted with this key.")
   }
 }
 // swiftlint:enable explicit_type_interface function_parameter_count identifier_name line_length

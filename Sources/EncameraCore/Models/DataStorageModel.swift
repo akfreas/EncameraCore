@@ -81,7 +81,7 @@ extension DataStorageModel {
         }
         return mapped
     }
-    //TODO: This should take a MediaType, not a String. It should search for .icloud as well
+    
     public func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.fileExtension]) -> Int {
         return enumeratorForStorageDirectory(resourceKeys: Set(), fileExtensionFilter: matchingFileExtension).count
     }

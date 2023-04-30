@@ -104,7 +104,8 @@
 /* ./Encamera/KeyManagement/KeyOperationCell.swift */
 "Add Key" = "Add Key";
 /* ./Encamera/KeyManagement/KeyExchange.swift */
-"Share your encryption key with someone you trust.\n\nSharing it with them means they can decrypt any media you share with them that is encrypted with this key." = "Share your encryption key with someone you trust.\n\nSharing it with them means they can decrypt any media you share with them that is encrypted with this key.";
+"ShareKeyExplanation" = "Share your encryption key with someone you trust.\n\nSharing it with them means they can decrypt any media you share with them that is encrypted with this key.";
+"Scan with Encamera app" = "Scan with Encamera app";
 "Hold to reveal" = "Hold to reveal";
 "Share Key" = "Share Key";
 /* ./Encamera/KeyManagement/KeyDetailView.swift */
@@ -115,9 +116,9 @@
 "Set as Active Key" = "Set as Active Key";
 "Key Info" = "Key Info";
 "Share Key" = "Share Key";
-"Copy to clipboard" = "Copy to clipboard";
+"Back Up Key" = "Back Up Key";
 "Delete Key" = "Delete Key";
-"Delete All Key Data" = "Delete All Key Data";
+"Delete All Key Data" = "Delete Media & Key";
 "Save Key to iCloud" = "Save Key to iCloud";
 "Copied to Clipboard" = "Copied to Clipboard";
 "OK" = "OK";
