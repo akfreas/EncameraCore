@@ -336,4 +336,7 @@ public class DemoPurchasedPermissionManaging: PurchasedPermissionManaging {
     func beginPurchase(for feature: EncameraSubscription) async {
         
     }
+    public func hasEntitlement() -> Bool {
+        return false
+    }
 }

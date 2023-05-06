@@ -80,8 +80,14 @@ public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, Observabl
             .createKey(let count) where count < AppConstants.maxPhotoCountBeforePurchase:
             return true
         default:
-            return subscriptionController.entitledSubscriptionID != nil || purchaseController.isEntitled
+            return hasEntitlement()
         }
+    }
+    
+    @MainActor
+    public func hasEntitlement() -> Bool {
+        return subscriptionController.entitledSubscriptionID != nil || purchaseController.isEntitled
+
     }
 }
 
