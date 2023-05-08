@@ -14,9 +14,17 @@ public enum L10n {
   public static let iconInTheCameraViewToChangeTheActiveKey = L10n.tr("Localizable", " icon in the camera view to change the active key.", fallback: " icon in the camera view to change the active key.")
   ///  icon on the top left of the screen.
   public static let iconOnTheTopLeftOfTheScreen = L10n.tr("Localizable", " icon on the top left of the screen.", fallback: " icon on the top left of the screen.")
+  /// Plural format key: "%#@image_count@"
+  public static func imageS(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "%@ image(s)", p1, fallback: "Plural format key: \"%#@image_count@\"")
+  }
   /// ./EncameraCore/Utils/SettingsManager.swift
   public static func mustBeSet(_ p1: Any) -> String {
     return L10n.tr("Localizable", "%@ must be set", String(describing: p1), fallback: "%@ must be set")
+  }
+  /// Plural format key: "%#@photo_count@"
+  public static func photoSLeft(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "%@ Photo(s) Left", p1, fallback: "Plural format key: \"%#@photo_count@\"")
   }
   /// ./Encamera/Store/PurchaseUpgradeOptionsListView.swift
   public static func purchased(_ p1: Any) -> String {

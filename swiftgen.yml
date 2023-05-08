@@ -12,7 +12,8 @@
 ##   SwiftGen will parse all `.strings` files found in that folder.
  strings:
    inputs:
-     - Sources/EncameraCore/Resources/Localizable.strings
+     - Sources/EncameraCore/Resources/en.lproj
+
    outputs:
      - templateName: structured-swift5
        output: Sources/EncameraCore/Strings+Generated.swift

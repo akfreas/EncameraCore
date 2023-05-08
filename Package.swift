@@ -5,6 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "EncameraCore",
+    defaultLocalization: "en",
     platforms: [
         .iOS("15.6")
     ],

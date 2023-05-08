@@ -64,6 +64,7 @@ public enum AppFeature {
 
 public protocol PurchasedPermissionManaging {
     func isAllowedAccess(feature: AppFeature) -> Bool
+    func hasEntitlement() -> Bool
 }
 
 public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, ObservableObject {
