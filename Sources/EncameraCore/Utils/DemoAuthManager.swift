@@ -41,6 +41,7 @@ public class DemoAuthManager: AuthManager {
     public func authorizeWithBiometrics() async throws {
         
     }
+    public var useBiometricsForAuth: Bool = true
     
     
 }

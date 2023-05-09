@@ -1,0 +1,304 @@
+/* 
+  Localizable.strings
+  
+
+  Created by Alexander Freas on 09.05.23.
+  
+*/
+/* ./EncameraCore/Constants/AppConstants.swift */
+"DefaultKey" = "DefaultKey";
+// $'"n"n"nnCopia el código en el "n" formulario en la aplicación para usarlo de nuevo."' = $'"n"n"nnCopia el código en el "n" formulario en la aplicación para usarlo de nuevo."';
+/* ./EncameraCore/Utils/KeyManager.swift */
+"Could not delete keychain items." = "No se pudieron eliminar los elementos del llavero.";
+"Unhandled error." = "Error no controlado.";
+"Not authenticated for this operation." = "No autenticado para esta operación.";
+"Key name is invalid, must be more than two characters" = "El nombre de la clave no es válido, debe tener más de dos caracteres";
+"Key not found." = "Clave no encontrada.";
+"Error coding keychain data." = "Error al codificar los datos del llavero.";
+"A key with this name already exists." = "Ya existe una clave con este nombre.";
+/* ./EncameraCore/Utils/AuthManager.swift */
+"Touch ID" = "Touch ID";
+"Face ID" = "Face ID";
+"Password" = "Contraseña";
+"Use Password" = "Usar contraseña";
+"Keep your encrypted data safe by using %@." = "Mantén tus datos cifrados seguros usando %@.";
+/* ./EncameraCore/Utils/PasswordValidator.swift */
+"Not determined." = "No determinado.";
+"Password is valid." = "La contraseña es válida.";
+"Password is too short, <%@" = "La contraseña es demasiado corta, <%@";
+"Passwords do not match." = "Las contraseñas no coinciden.";
+"Password is too long, >%@" = "La contraseña es demasiado larga, >%@";
+/* ./EncameraCore/Utils/DataStorageUserDefaultsSetting.swift */
+"No iCloud account found on this device." = "No se encontró una cuenta de iCloud en este dispositivo.";
+/* ./EncameraCore/Utils/SettingsManager.swift */
+"%@ must be set" = "%@ debe establecerse";
+/* ./EncameraCore/Models/StorageType.swift */
+"iCloud" = "iCloud";
+"Local" = "Local";
+"Saves encrypted files to iCloud Drive." = "Guarda archivos cifrados en iCloud Drive.";
+"Saves encrypted files to this device." = "Guarda archivos cifrados en este dispositivo.";
+
+/* Encamera App */
+/* ./Encamera/CameraView/CameraView.swift */
+"Missing camera access." = "Falta acceso a la cámara.";
+"Open settings to allow camera access permission" = "Abre configuración para permitir el acceso a la cámara";
+"No Key" = "Sin clave";
+"No Key Selected" = "Ninguna clave seleccionada";
+"You don't have an active key selected, select one to continue saving media." = "No tienes una clave activa seleccionada, selecciona una para continuar guardando contenido multimedia.";
+"Key Selection" = "Selección de clave";
+"OpenSettings" = "Abrir configuración";
+/* ./Encamera/CameraView/CameraModePicker.swift */
+"PHOTO" = "FOTO";
+"VIDEO" = "VIDEO";
+/* ./Encamera/ShareHandling/ShareHandling.swift */
+"Shared Media" = "Contenido compartido";
+"Save" = "Guardar";
+/* ./Encamera/Settings/SettingsView.swift */
+"FeedbackRequest" = "Dado que Encamera no rastrea el comportamiento del usuario de ninguna manera y no recopila información sobre ti, el usuario, dependemos de tus comentarios para ayudarnos a mejorar la aplicación.";
+"What is Encamera?" = "¿Qué es Encamera?";
+"Why Encrypt Media?" = "¿Por qué cifrar contenido multimedia?";
+"Open Source" = "Código abierto";
+"Leave a Review" = "Dejar una reseña";
+"Password successfully changed" = "Contraseña cambiada con éxito";
+"premium sparkles" = "✨ Premium ✨";
+"Restore Purchases" = "Restaurar compras";
+"Settings" = "Configuración";
+"Contact" = "Contacto";
+"Privacy Policy" = "Política de privacidad";
+"Terms of Use" = "Términos de uso";
+"Erase" = "Borrar";
+"Erase keychain data" = "Borrar datos del llavero";
+"Erase all data" = "Borrar todos los datos";
+"allDataExplanation" = "¿Estás seguro de que quieres borrar TODOS LOS DATOS DE ENCAMERA?\n\nESTO BORRARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Configuración de la aplicación 🎛\n• CONTENIDO MULTIMEDIA ALMACENADO LOCALMENTE O EN iCLOUD 💾\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de administración de claves.\n\nLa aplicación se cerrará después de que se complete el borrado.";
+"appDataExplanation" = "¿Estás seguro de que quieres borrar TODOS los datos de la aplicación?\n\nESTO BORRARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Configuración de la aplicación 🎛\n\nESTO NO BORRARÁ:\n\n• Contenido multimedia almacenado localmente o en iCloud 💾\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de administración de claves.\n\nLa aplicación se cerrará después de que se complete el borrado.\n\n";
+
+"Erase" = "Borrar";
+"Change Password" = "Cambiar contraseña";
+"Current Password" = "Contraseña actual";
+"New Password" = "Nueva contraseña";
+"Repeat Password" = "Repetir contraseña";
+"Save" = "Guardar";
+"Change Password" = "Cambiar contraseña";
+/* ./Encamera/Settings/PromptToErase.swift */
+"Hold to erase" = "Mantén presionado para borrar";
+"Erase app data" = "Borrar datos de la aplicación";
+"Erasing in %@" = "Borrando en %@";
+/* ./Encamera/Tutorial/FirstPhotoTakenTutorial.swift */
+"Congratulations!" = "¡Felicidades!";
+"You took your first photo! 📸 🥳"= "¡Tomaste tu primera foto! 📸 🥳";
+"See the photos that belong to a key by tapping the " = "Ve las fotos que pertenecen a una clave tocando el ";
+" icon on the top left of the screen." = " icono en la parte superior izquierda de la pantalla.";
+"Got it!" = "¡Entendido!";
+/* ./Encamera/Tutorial/ExplanationForUpgradeTutorial.swift */
+"Want more?" = "¿Quieres más?";
+"Support privacy-focused development by upgrading!" = "¡Apoya el desarrollo centrado en la privacidad mejorando!";
+"View unlimited photos 😍 " = "Ver fotos ilimitadas 😍 ";
+"Create unlimited keys 🔑 " = "Crear claves ilimitadas 🔑 ";
+"Free Trial" = "Prueba gratuita";
+"No, thanks" = "No, gracias";
+/* ./Encamera/Camera/CameraConfigurationService.swift */
+/* ./Encamera/Camera/AlertError.swift */
+"Accept" = "Aceptar";
+/* ./Encamera/KeyManagement/KeySelectionGridItem.swift */
+"Active" = "Activa";
+"Create New Key" = "Crear nueva clave";
+"Add Existing Key" = "Agregar clave existente";
+"My Keys" = "Mis claves";
+/* ./Encamera/KeyManagement/KeyOperationCell.swift */
+"Add Key" = "Agregar clave";
+/* ./Encamera/KeyManagement/KeyExchange.swift */
+"ShareKeyExplanation" = "Comparte tu clave de cifrado con alguien en quien confíes.\n\nCompartir la clave con ellos significa que pueden descifrar cualquier contenido multimedia que compartas con ellos que esté cifrado con esta clave.";
+"Scan with Encamera app" = "Escanear con la aplicación Encamera";
+"Hold to reveal" = "Mantén presionado para revelar";
+"Share Key" = "Compartir clave";
+/* ./Encamera/KeyManagement/KeyDetailView.swift */
+"Error deleting key. Please try again." = "Error al eliminar la clave. Por favor, inténtalo de nuevo.";
+"Error clearing keychain" = "Error al borrar el llavero";
+"Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "Error al eliminar la clave y los archivos asociados. Por favor, inténtalo de nuevo o intenta eliminar archivos manualmente a través de la aplicación Archivos.";
+"Error deleting all files" = "Error al eliminar todos los archivos";
+"Set as Active Key" = "Establecer como clave activa";
+"Key Info" = "Información de la clave";
+"Share Key" = "Compartir clave";
+"Back Up Key" = "Respaldar clave";
+"Delete Key" = "Eliminar clave";
+"Delete" = "Eliminar";
+"Delete All Key Data" = "Eliminar contenido multimedia y clave";
+"Save Key to iCloud" = "Guardar clave en iCloud";
+"Copied to Clipboard" = "Copiado al portapapeles";
+"OK" = "OK";
+"Key copied to clipboard. Store this in a password manager or other secure place." = "Clave copiada al portapapeles. Guárdala en un gestor de contraseñas u otro lugar seguro.";
+"Delete All Associated Data?" = "¿Eliminar todos los datos asociados?";
+"Delete Everything" = "Eliminar todo";
+"Cancel" = "Cancelar";
+"Enter the name of the key to delete all its data, including saved media, forever." = "Ingresa el nombre de la clave para eliminar todos sus datos, incluidos los medios guardados, para siempre.";
+"Do you want to delete this key and all media associated with it forever?" = "¿Quieres eliminar esta clave y todos los medios asociados con ella para siempre?";
+"Delete Key question" = "¿Eliminar clave?";
+"Delete" = "Eliminar";
+"Cancel" = "Cancelar";
+"Enter the name of the key to delete it forever. All media will remain saved." = "Ingresa el nombre de la clave para eliminarla para siempre. Todos los medios seguirán guardados.";
+"Do you want to delete this key forever? All media will remain saved." = "¿Quieres eliminar esta clave para siempre? Todos los medios seguirán guardados.";
+"Deletion Error" = "Error de eliminación";
+"OK" = "OK";
+/* ./Encamera/KeyManagement/KeySelectionCell.swift */
+"Active" = "Activa";
+/* ./Encamera/KeyManagement/KeyInformation.swift */
+"Created %@" = "Creada %@";
+"Key length: %@" = "Longitud de la clave: %@";
+/* ./Encamera/KeyManagement/KeySelectionList.swift */
+"Create New Key" = "Crear nueva clave";
+"Add Existing Key" = "Agregar clave existente";
+"Backup Keys" = "Respaldar claves";
+"Keys" = "Claves";
+"Key Management" = "Gestión de claves";
+"Active" = "Activa";
+/* ./Encamera/KeyManagement/AddExchangedKeyConfirmation.swift */
+"Key Name: %@" = "Nombre de la clave: %@";
+"Creation Date: %@" = "Fecha de creación: %@";
+"Save Key" = "Guardar clave";
+"Confirm adding key" = "Confirmar agregar clave";
+/* ./Encamera/KeyManagement/KeyEntry.swift */
+"Error saving key" = "Error al guardar la clave";
+"Paste the private key here." = "Pega la clave privada aquí.";
+"Where do you want to save this key's media?" = "¿Dónde quieres guardar los medios de esta clave?";
+"Save" = "Guardar";
+"Key Entry" = "Entrada de clave";
+"Cancel" = "Cancelar";
+"Save Key" = "Guardar clave";
+/* ./Encamera/KeyManagement/KeyGeneration.swift */
+"" = "";
+"StorageSettingsSubheading" = "¿Dónde quieres almacenar los medios de los archivos cifrados con esta clave?\nCada clave almacenará datos en su propio directorio.\n";
+
+"New Key" = "Nueva clave";
+"MultipleKeysForMultiplePurposesExplanation" = "Puedes tener múltiples claves para diferentes propósitos, por ejemplo, una llamada \"Documentos\" y otra \"Personal\".";
+"Next" = "Siguiente";
+"Storage Settings" = "Configuración de almacenamiento";
+"Save Key" = "Guardar clave";
+"Select a place to keep media for this key." = "Selecciona un lugar para guardar los medios de esta clave.";
+/* ./Encamera/Styles/ViewModifiers/PurchaseOptionViewModifier.swift */
+"Family Shareable" = "Compartible en familia";
+"Free Trial" = "Prueba gratuita";
+/* ./Encamera/Styles/ViewModifiers/ButtonViewModifier.swift */
+"Encrypt Everything" = "Cifrar todo";
+"Unlock" = "Desbloquear";
+"Share" = "Compartir";
+/* ./Encamera/EncameraApp.swift */
+"No private key or media found." = "No se encontró clave privada ni medios.";
+"Close" = "Cerrar";
+"Save this media?" = "¿Guardar este medio?";
+"This will save the media to your library." = "Esto guardará el medio en tu biblioteca.";
+"Cancel" = "Cancelar";
+"Save" = "Guardar";
+/* ./Encamera/AuthenticationView/PasswordEntry.swift */
+"Password" = "Contraseña";
+"Invalid Password" = "Contraseña inválida";
+/* ./Encamera/AuthenticationView/AuthenticationView.swift */
+"Missing password" = "Falta contraseña";
+"Password incorrect" = "Contraseña incorrecta";
+"Biometrics failed" = "Biometría fallida";
+"Biometrics unavailable" = "Biometría no disponible";
+"Unlock with %@" = "Desbloquear con %@";
+/* ./Encamera/InAppPurchase/PurchasePhotoSubscriptionOverlay.swift */
+"Upgrade to view unlimited photos" = "Actualiza para ver fotos ilimitadas";
+"Tap to Upgrade" = "Toca para actualizar";
+/* ./Encamera/ImageViewing/GalleryHorizontalScrollView.swift */
+"Delete this image?" = "¿Eliminar esta imagen?";
+"Delete" = "Eliminar";
+"Share Image" = "Compartir imagen";
+"Share this image?" = "¿Compartir esta imagen?";
+"Share Encrypted" = "Compartir cifrado";
+"Share Decrypted" = "Compartir descifrado";
+/* ./Encamera/ImageViewing/DecryptErrorExplanation.swift */
+"The media you tried to open could not be decrypted." = "No se pudo descifrar el medio que intentaste abrir.";
+"Check that the same key that was used to encrypt this media is set as the active key." = "Verifica que la misma clave que se usó para cifrar este medio esté configurada como clave activa.";
+"Tap the " = "Toca el ";
+" icon in the camera view to change the active key." = " ícono en la vista de la cámara para cambiar la clave activa.";
+/* ./Encamera/ImageViewing/GalleryScrollViewItem.swift */
+/* ./Encamera/ImageViewing/GalleryGridView.swift */
+"Hide" = "Ocultar";
+/* ./Encamera/ImageViewing/ImageViewing.swift */
+"No key available." = "No hay clave disponible.";
+"No file access available." = "No hay acceso a archivos disponible.";
+"Decryption error: %@" = "Error de descifrado: %@";
+"Decryption error: %@" = "Error de descifrado: %@";
+/* ./Encamera/ImageViewing/MovieViewing.swift */
+"Could not decrypt movie: %@" = "No se pudo descifrar la película: %@";
+"Decrypting..." = "Descifrando...";
+/* ./Encamera/ImageViewing/PhotoInfoView.swift */
+"No info available" = "No hay información disponible";
+/* ./Encamera/Onboarding/MainOnboardingView.swift */
+"Next" = "Siguiente";
+"EncryptionExplanation" = "Cámara enfocada en la privacidad 🔒";
+"Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera cifra todo, manteniendo tus medios a salvo de miradas indiscretas.";
+"KeyBasedEncryption" = "Cifrado basado en claves 🔑";
+"IntroStorageExplanation" = "Tus medios están seguros detrás de una clave y se almacenan localmente en tu dispositivo o en iCloud.";
+"For your eyes only 👀" = "Sin seguimiento, sin recopilación de datos 🤫";
+"NoTrackingExplanation" = "No se instalan rastreadores en esta aplicación. Encamera no utiliza *ningún* servicio, excepto los proporcionados por Apple.";
+"EncameraIsOpenSource" = "Código abierto 🌎";
+"OpenSourceExplanation" = "La funcionalidad principal de Encamera es de código abierto, lo que significa que puedes ver el código que protege tus fotos.";
+
+"Enter Password" = "Introduce la contraseña";
+"You have an existing password for this device." = "Ya tienes una contraseña para este dispositivo.";
+"Next" = "Siguiente";
+"Erase Device Data" = "Borrar datos del dispositivo";
+"Set Password" = "Establecer contraseña";
+"Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅" = "Establece una contraseña para acceder a la aplicación. Asegúrate de guardarla en un lugar seguro, no podrás recuperarla más tarde. 🙅";
+"Storage location onboarding" = "¿Dónde quieres almacenar tus medios? Cada clave almacenará datos en su propio directorio una vez cifrados. 💾";
+"Set Password" = "Contraseña";
+"StorageExplanationHeader" = "¿Dónde se almacenan mis fotos?";
+"StorageExplanation" = "Encamera no guarda los medios en tu carrete. Todos los medios cifrados se almacenan en esta aplicación o en iCloud, dependiendo de tu elección de almacenamiento.";
+"BackUpKeysHeader" = "¡Haz copia de seguridad de tus claves!";
+"BackUpKeysExplanation" = "Si pierdes tu clave, será imposible recuperar tus datos. Haz una copia de seguridad de tus claves en un administrador de contraseñas después de crearlas o guárdalas en iCloud.";
+"Password" = "Contraseña";
+"Repeat Password" = "Repite la contraseña";
+"Use %@?" = "¿Usar %@?";
+"Enable %@ to quickly and securely gain access to the app." = "Habilita %@ para acceder rápidamente y de forma segura a la aplicación.";
+"Next" = "Siguiente";
+"Enable %@" = "Habilitar %@";
+"Encryption Key" = "Clave de cifrado";
+"New Key Subheading" = "Establece el nombre para esta clave.\n\nPuedes tener varias claves para diferentes propósitos, por ejemplo, una llamada \"Documentos\" y otra \"Personal\".";
+"Next" = "Siguiente";
+"Key Name" = "Nombre de la clave";
+"Key Value" = "Valor de la clave";
+"If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe." = "Si no usas la copia de seguridad de iCloud, se recomienda encarecidamente que hagas una copia de seguridad de tus claves en un administrador de contraseñas o en otro lugar seguro.";
+"Select Storage" = "Seleccionar almacenamiento";
+"Next" = "Siguiente";
+"Please select a storage location." = "Por favor, selecciona una ubicación de almacenamiento.";
+"DoneOnboarding" = "¡Terminado!";
+"Done" = "OK";
+"AllSetupOnboarding" = "¡Parece que ya está todo listo! 🎊 Disfruta tomando fotos de forma segura con el cifrado de alta calidad de Encamera. 💪🔐";
+/* ./Encamera/Onboarding/StorageSettingView.swift */
+/* ./Encamera/Onboarding/OnboardingView.swift */
+"Next" = "Siguiente";
+/* ./Encamera/Store/PurchaseUpgradeHeaderView.swift */
+"View unlimited photos for each key." = "Ver fotos ilimitadas para cada clave.";
+"Create an unlimited number of keys." = "Crear un número ilimitado de claves.";
+"Support privacy-focused development." = "Apoyar el desarrollo centrado en la privacidad.";
+/* ./Encamera/Store/SubscriptionView.swift */
+"View unlimited photos for each key." = "Ver fotos ilimitadas para cada clave.";
+"Create an unlimited number of keys." = "Crear un número ilimitado de claves.";
+"Support privacy-focused development." = "Apoya el desarrollo centrado en la privacidad.";
+"Restore Purchases" = "Restaurar compras";
+"Enter Promo Code" = "Introducir código promocional";
+"Start trial offer" = "Iniciar oferta de prueba";
+"Subscribe" = "Suscribirse";
+/* ./Encamera/Store/SubscriptionOptionView.swift */
+"Subscribed" = "Suscrito";
+"SaveAmount %@ $@" = "%@ (Ahorra %@)";
+/* ./Encamera/Store/PurchaseUpgradeOptionsListView.swift */
+"**Purchased: %@**" = "**Comprado: %@**";
+"Thank you for your support!" = "¡Gracias por tu apoyo!";
+"premium" = "premium";
+"Subscription" = "Suscripción";
+"One-Time Purchase" = "Compra única";
+/* ./Encamera/Store/PurchaseUpgradeView.swift */
+"Start trial offer" = "Iniciar oferta de prueba";
+"Subscribe" = "Suscribirse";
+"Upgrade Today!" = "¡Actualiza hoy!";
+"Tap to Upgrade" = "Toca para actualizar";
+"Take a Photo!" = "¡Toma una foto!";
+"Your Keys" = "Tus claves";
+"KeyTutorialText" = "Cada clave funciona como un álbum, y cada álbum utiliza una clave diferente para cifrar los medios.\n\n¡Haz copias de seguridad de estas claves! Si pierdes la clave o tu dispositivo, y no seleccionas la copia de seguridad en iCloud, tus medios no podrán ser recuperados.";
+"KeyTutorialTitle" = "Te presentamos: Tus claves de cifrado 🔑";
+
+
+

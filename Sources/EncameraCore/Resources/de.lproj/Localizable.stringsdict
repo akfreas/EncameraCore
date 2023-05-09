@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@ Photo(s) Left</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@photo_count@</string>
+		<key>photo_count</key>
+		<dict>
+			<key>other</key>
+			<string>Fotos übrig</string>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Foto übrig</string>
+			<key>zero</key>
+			<string>Fotos übrig</string>
+		</dict>
+	</dict>
+	<key>%@ image(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@image_count@</string>
+		<key>image_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>Bilder</string>
+			<key>one</key>
+			<string>Bild</string>
+			<key>other</key>
+			<string>%d Bilder</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

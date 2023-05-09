@@ -77,6 +77,7 @@ public protocol AuthManager {
     var isAuthenticatedPublisher: AnyPublisher<Bool, Never> { get }
     var isAuthenticated: Bool { get }
     var availableBiometric: AuthenticationMethod? { get }
+    var useBiometricsForAuth: Bool { get set }
     var canAuthenticateWithBiometrics: Bool { get }
     func deauthorize()
     func checkAuthorizationWithCurrentPolicy() async throws
@@ -99,11 +100,30 @@ public class DeviceAuthManager: AuthManager {
         if let _availableBiometric = _availableBiometric {
             return _availableBiometric
         }
+        
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else {
             return .none
         }
         _availableBiometric = AuthenticationMethod.methodFrom(biometryType: context.biometryType)
         return _availableBiometric
+    }
+    var _useBiometricsForAuth: Bool?
+    public var useBiometricsForAuth: Bool {
+        get {
+            if let _useBiometricsForAuth = self._useBiometricsForAuth {
+                return _useBiometricsForAuth
+            }
+            guard let settings = try? settingsManager.loadSettings(),
+                  let useBiometrics = settings.useBiometricsForAuth else {
+                return false
+            }
+            self._useBiometricsForAuth = useBiometrics
+            return useBiometrics
+        }
+        set(value) {
+            self._useBiometricsForAuth = value
+            try? settingsManager.saveSettings(SavedSettings(useBiometricsForAuth: value))
+        }
     }
     
     public var isAuthenticatedPublisher: AnyPublisher<Bool, Never> {
