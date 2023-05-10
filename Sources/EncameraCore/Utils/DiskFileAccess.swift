@@ -187,20 +187,6 @@ extension DiskFileAccess: FileReader {
         sourceURL.stopAccessingSecurityScopedResource()
         return decrypted
     }
-    private func generateThumbnailFromVideo(at path: URL) -> UIImage? {
-        do {
-            let asset = AVURLAsset(url: path, options: nil)
-            let imgGenerator = AVAssetImageGenerator(asset: asset)
-            imgGenerator.appliesPreferredTrackTransform = true
-            let cgImage = try imgGenerator.copyCGImage(at: CMTimeMake(value: 0, timescale: 1), actualTime: nil)
-            
-            let thumbnail = UIImage(cgImage: cgImage)
-            return thumbnail
-        } catch let error {
-            debugPrint("Error generating thumbnail at path \(path): \(error.localizedDescription)")
-            return nil
-        }
-    }
     
     @discardableResult public func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
         
@@ -240,7 +226,7 @@ extension DiskFileAccess: FileReader {
                 
             case .video:
                 let decrypted: CleartextMedia<URL> = try await self.decryptMedia(encrypted: encrypted) { _ in }
-                guard let thumb = self.generateThumbnailFromVideo(at: decrypted.source),
+                guard let thumb = MovieUtils.generateThumbnailFromVideo(at: decrypted.source),
                       let data = thumb.pngData() else {
                     throw SecretFilesError.createVideoThumbnailError
                 }
@@ -253,7 +239,7 @@ extension DiskFileAccess: FileReader {
             case .photo:
                 thumbnailSourceData = try Data(contentsOf: cleartext.source)
             case .video:
-                guard let thumb = self.generateThumbnailFromVideo(at: cleartext.source),
+                guard let thumb = MovieUtils.generateThumbnailFromVideo(at: cleartext.source),
                       let data = thumb.pngData() else {
                     throw SecretFilesError.createVideoThumbnailError
                 }
