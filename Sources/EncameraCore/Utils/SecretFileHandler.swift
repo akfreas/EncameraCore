@@ -129,7 +129,7 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
         do {
             let destinationHandler = try FileLikeHandler(media: destinationMedia, mode: .writing)
             let sourceHandler = try FileLikeHandler(media: sourceMedia, mode: .reading)
-
+            
             try destinationHandler.prepareIfDoesNotExist()
             let header = streamEnc.header()
             try destinationHandler.write(contentsOf: Data(header))

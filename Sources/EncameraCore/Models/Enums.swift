@@ -17,7 +17,11 @@ public enum MediaType: Int, CaseIterable, Codable {
     case preview
     
     public static var supportedMediaFileExtensions: [String] {
-        supportedMovieFileExtensions + supportedMovieFileExtensions
+        supportedMovieFileExtensions + supportedPhotoFileExtensions
+    }
+    
+    public static var supportedMovieFileExtensions: [String] {
+        supportedMovieFileTypes.map({$0.preferredFilenameExtension}).compactMap({$0})
     }
     
     public static var supportedPhotoFileExtensions: [String] {
@@ -28,15 +32,11 @@ public enum MediaType: Int, CaseIterable, Codable {
             UTType.image,
             UTType.jpeg,
             UTType.png,
-            UTType(filenameExtension: "jpg")!
+            UTType(filenameExtension: "JPG")!
         ]
     }
     
     
-    
-    public static var supportedMovieFileExtensions: [String] {
-        supportedMovieFileTypes.map({$0.preferredFilenameExtension}).compactMap({$0})
-    }
     
     public static var supportedMovieFileTypes: [UTType] {
         [

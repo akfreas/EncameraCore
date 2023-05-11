@@ -259,6 +259,7 @@ extension DiskFileAccess: FileWriter {
         let cleartextPreview = CleartextMedia(source: data, mediaType: .preview, id: sourceMedia.id)
         
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, targetURL: destinationURL)
+        
         try await fileHandler.encrypt()
         return cleartextPreview
     }
@@ -269,6 +270,12 @@ extension DiskFileAccess: FileWriter {
         }
         let destinationURL = directoryModel?.driveURLForNewMedia(media)
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
+        fileHandler.progress
+            .receive(on: DispatchQueue.main)
+            .sink { percent in
+                progress(percent)
+            }.store(in: &cancellables)
+
         let encrypted = try await fileHandler.encrypt()
         try await createPreview(for: media)
         operationBus.didCreate(encrypted)

@@ -105,6 +105,11 @@ extension AppGroupFileReader: FileEnumerator {
             let mapped: [CleartextMedia<URL>] = filteredMediaFiles.map { url in
                 CleartextMedia(source: url)
             }
+            // if there are other file types that were shared to
+            // our app group that we don't support, delete them
+            if mapped.count == 0 {
+                try await deleteAllMedia()
+            }
             return mapped as! [T]
         } catch {
             debugPrint("Could not list contents of directory at url", containerUrl)
@@ -119,7 +124,7 @@ extension AppGroupFileReader: FileWriter {
     
     @discardableResult public func save<T>(media: CleartextMedia<T>, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? where T : MediaSourcing {
         if let cleartext = media as? CleartextMedia<Data>, let url = directoryModel?.baseURL {
-            let filename = "\(media.id).jpg"
+            let filename = "\(media.id).jpeg"
             let url = url.appendingPathComponent(filename)
 
             print("new url", url)
@@ -133,8 +138,8 @@ extension AppGroupFileReader: FileWriter {
             
     
             let fileName = url.lastPathComponent
-            let destinationURL = containerUrl.appendingPathComponent(fileName)
-            
+            let destinationURL = containerUrl.appendingPathComponent(fileName.replacingOccurrences(of: "JPG", with: "jpeg"))
+
             do {
                 try FileManager.default.copyItem(at: url, to: destinationURL)
             } catch {
