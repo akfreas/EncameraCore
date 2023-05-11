@@ -105,6 +105,7 @@ extension AppGroupFileReader: FileEnumerator {
             let mapped: [CleartextMedia<URL>] = filteredMediaFiles.map { url in
                 CleartextMedia(source: url)
             }
+            debugPrint("Files from app group", mediaFiles, filteredMediaFiles, mapped)
             // if there are other file types that were shared to
             // our app group that we don't support, delete them
             if mapped.count == 0 {
@@ -139,7 +140,6 @@ extension AppGroupFileReader: FileWriter {
     
             let fileName = url.lastPathComponent
             let destinationURL = containerUrl.appendingPathComponent(fileName.replacingOccurrences(of: "JPG", with: "jpeg"))
-
             do {
                 try FileManager.default.copyItem(at: url, to: destinationURL)
             } catch {

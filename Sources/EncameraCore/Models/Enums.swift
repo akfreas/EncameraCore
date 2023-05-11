@@ -32,6 +32,7 @@ public enum MediaType: Int, CaseIterable, Codable {
             UTType.image,
             UTType.jpeg,
             UTType.png,
+            UTType.heic,
             UTType(filenameExtension: "JPG")!
         ]
     }
