@@ -299,3 +299,15 @@
 "Your Keys" = "Your Keys";
 "KeyTutorialText" = "Each key functions as an album, and each album uses a different key to encrypt media.\n\nBackup these keys! If you lose the key or your device, and don't select iCloud backup, your media cannot be recovered.";
 "KeyTutorialTitle" = "Introducing: Your Encryption Keys 🔑";
+
+/* ./Encamera/MediaImport/MediaImportView.swift */
+"Select All" = "Select All";
+"Import" = "Import";
+"Import media" = "Import media";
+"ImportSelectedImages" = "Import the selected images to your currently active key album";
+"DeleteImported" = "Delete Images?";
+"DoYouWantToDeleteNotImported" = "Are you done importing images?";
+"NotDoneYet" = "I'm Not Done";
+"Change Key Album" = "I Want to Choose Another Destination Album";
+"IAmDone" = "I'm Done";
+

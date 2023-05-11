@@ -21,7 +21,8 @@ public actor DiskFileAccess: FileEnumerator {
     var key: PrivateKey?
     
     private var cancellables = Set<AnyCancellable>()
-    private var directoryModel: DataStorageModel?
+
+    public var directoryModel: DataStorageModel?
     
     public init() {}
     
@@ -68,6 +69,10 @@ public actor DiskFileAccess: FileEnumerator {
             }
         return imageItems
     }
+    
+}
+
+extension FileReader {
     
 }
 
@@ -215,57 +220,29 @@ extension DiskFileAccess: FileReader {
     @discardableResult private func createThumbnail<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> {
         
         
-        var thumbnailSourceData: Data
+        var thumb: CleartextMedia<Data>
         if let encrypted = media as? EncryptedMedia {
             
             switch encrypted.mediaType {
                 
             case .photo:
                 let decrypted: CleartextMedia<Data> = try await self.decryptMedia(encrypted: encrypted) { _ in }
-                thumbnailSourceData = decrypted.source
+                thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: decrypted)
                 
             case .video:
                 let decrypted: CleartextMedia<URL> = try await self.decryptMedia(encrypted: encrypted) { _ in }
-                guard let thumb = MovieUtils.generateThumbnailFromVideo(at: decrypted.source),
-                      let data = thumb.pngData() else {
-                    throw SecretFilesError.createVideoThumbnailError
-                }
-                thumbnailSourceData = data
+                thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: decrypted)
             default:
                 throw SecretFilesError.fileTypeError
             }
         } else if let cleartext = media as? CleartextMedia<URL> {
-            switch cleartext.mediaType {
-            case .photo:
-                thumbnailSourceData = try Data(contentsOf: cleartext.source)
-            case .video:
-                guard let thumb = MovieUtils.generateThumbnailFromVideo(at: cleartext.source),
-                      let data = thumb.pngData() else {
-                    throw SecretFilesError.createVideoThumbnailError
-                }
-                thumbnailSourceData = data
-            default:
-                throw SecretFilesError.fileTypeError
-            }
+            thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: cleartext)
         } else if let cleartext = media as? CleartextMedia<Data> {
-            switch cleartext.mediaType {
-            case .photo:
-                thumbnailSourceData = cleartext.source
-            default:
-                throw SecretFilesError.fileTypeError
-            }
+            thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: cleartext)
         } else {
             fatalError()
         }
-        let resizer = ImageResizer(targetWidth: AppConstants.thumbnailWidth)
-        guard let thumbnailData = resizer.resize(data: thumbnailSourceData)?.pngData() else {
-            fatalError()
-        }
-        
-        
-        let cleartextThumb = CleartextMedia(source: thumbnailData, mediaType: .photo, id: media.id)
-        return cleartextThumb
-        
+        return thumb
     }
 }
 
@@ -286,7 +263,7 @@ extension DiskFileAccess: FileWriter {
         return cleartextPreview
     }
     
-    @discardableResult public func save<T: MediaSourcing>(media: CleartextMedia<T>) async throws -> EncryptedMedia {
+    @discardableResult public func save<T: MediaSourcing>(media: CleartextMedia<T>, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
         }
@@ -299,6 +276,16 @@ extension DiskFileAccess: FileWriter {
     }
     
     public func copy(media: EncryptedMedia) async throws {
+        guard let destinationURL = directoryModel?.driveURLForNewMedia(media) else {
+            throw FileAccessError.missingDirectoryModel
+        }
+        try FileManager.default.copyItem(at: media.source, to: destinationURL)
+        if let newMedia = EncryptedMedia(source: destinationURL) {
+            operationBus.didCreate(newMedia)
+        }
+    }
+    
+    public func move(media: EncryptedMedia) async throws {
         guard let destinationURL = directoryModel?.driveURLForNewMedia(media) else {
             throw FileAccessError.missingDirectoryModel
         }
@@ -350,32 +337,3 @@ extension DiskFileAccess: FileAccess {
     
 }
 
-extension UIImage {
-    func scalePreservingAspectRatio(targetSize: CGSize) -> UIImage {
-        // Determine the scale factor that preserves aspect ratio
-        let widthRatio = targetSize.width / size.width
-        let heightRatio = targetSize.height / size.height
-        
-        let scaleFactor = min(widthRatio, heightRatio)
-        
-        // Compute the new image size that preserves aspect ratio
-        let scaledImageSize = CGSize(
-            width: size.width * scaleFactor,
-            height: size.height * scaleFactor
-        )
-        
-        // Draw and return the resized UIImage
-        let renderer = UIGraphicsImageRenderer(
-            size: scaledImageSize
-        )
-        
-        let scaledImage = renderer.image { _ in
-            self.draw(in: CGRect(
-                origin: .zero,
-                size: scaledImageSize
-            ))
-        }
-        
-        return scaledImage
-    }
-}

@@ -25,9 +25,6 @@ public class AsyncVideoCaptureProcessor: NSObject {
             .appendingPathExtension("mov")
     }
     
-    
-    
-    
     public var durationPublisher: AnyPublisher<CMTime, Never> {
         durationSubject.eraseToAnyPublisher()
     }
@@ -37,7 +34,6 @@ public class AsyncVideoCaptureProcessor: NSObject {
     }
     
     public func takeVideo() async throws -> CleartextMedia<URL> {
-        try setupDirectory()
         return try await withCheckedThrowingContinuation({ (continuation: VideoCaptureProcessorContinuation) in
             Timer.publish(every: 0.3, on: .main, in: .default).autoconnect().receive(on: DispatchQueue.main).sink { _ in
                 self.durationSubject.send(self.captureOutput.recordedDuration)
@@ -52,13 +48,6 @@ public class AsyncVideoCaptureProcessor: NSObject {
         captureOutput.stopRecording()
     }
     
-    private func setupDirectory() throws {
-        let directoryURL = tempFileUrl.deletingLastPathComponent()
-
-        if !FileManager.default.fileExists(atPath: directoryURL.path) {
-            try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true, attributes: nil)
-        }
-    }
     
 }
 

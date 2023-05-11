@@ -6,12 +6,60 @@
 //
 
 import Foundation
+import UniformTypeIdentifiers
+
 public enum MediaType: Int, CaseIterable, Codable {
+    
     
     case photo
     case video
     case unknown
     case preview
+    
+    public static var supportedMediaFileExtensions: [String] {
+        supportedMovieFileExtensions + supportedMovieFileExtensions
+    }
+    
+    public static var supportedPhotoFileExtensions: [String] {
+        supportedPhotoFileTypes.map({$0.preferredFilenameExtension}).compactMap({$0})
+    }
+    public static var supportedPhotoFileTypes: [UTType] {
+        [
+            UTType.image,
+            UTType.jpeg,
+            UTType.png,
+            UTType(filenameExtension: "jpg")!
+        ]
+    }
+    
+    
+    
+    public static var supportedMovieFileExtensions: [String] {
+        supportedMovieFileTypes.map({$0.preferredFilenameExtension}).compactMap({$0})
+    }
+    
+    public static var supportedMovieFileTypes: [UTType] {
+        [
+            UTType.quickTimeMovie,
+            UTType.mpeg4Movie,
+            UTType.mpeg2Video
+        ]
+    }
+    
+    public static var mediaTypeMappings: [String: MediaType] {
+        var mapping: [String: MediaType] = [:]
+        
+        for extensionString in supportedPhotoFileExtensions {
+            mapping[extensionString] = .photo
+        }
+        
+        for extensionString in supportedMovieFileExtensions {
+            mapping[extensionString] = .video
+        }
+        
+        
+        return mapping
+    }
     
     public static func typeFromMedia<T: MediaDescribing>(source: T) -> MediaType {
         
@@ -36,7 +84,15 @@ public enum MediaType: Int, CaseIterable, Codable {
     private static func typeFrom(media: CleartextMedia<URL>) -> MediaType {
         // We only support one type of media that we decrypt
         // to a URL, and that is video
-        return .video
+        
+        
+        let pathExtension = media.source.pathExtension.lowercased()
+        
+        guard let mapped = MediaType.mediaTypeMappings[pathExtension] else {
+            return .unknown
+        }
+        
+        return mapped
     }
     
     private static func typeFromURL(_ url: URL) -> MediaType {

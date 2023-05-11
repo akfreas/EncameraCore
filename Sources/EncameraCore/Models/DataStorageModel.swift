@@ -37,6 +37,10 @@ extension DataStorageModel {
             try FileManager.default.createDirectory(atPath: thumbnailDirectory.path, withIntermediateDirectories: true)
         }
         
+        if FileManager.default.fileExists(atPath: URL.tempMediaDirectory.path) == false {
+            try FileManager.default.createDirectory(atPath: URL.tempMediaDirectory.path, withIntermediateDirectories: true)
+        }
+        
         if FileManager.default.fileExists(atPath: baseURL.path) == false {
             try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true, attributes: nil)
         }
@@ -76,7 +80,7 @@ extension DataStorageModel {
                 
                 //Account for .icloud final extension, just take the "middle" extension
                 guard let fileExtension = components[safe: 1] else { return false }
-                return fileExtensionFilter.contains(where: {$0 == fileExtension})
+                return fileExtensionFilter.contains(where: {$0.lowercased() == fileExtension})
             })
         }
         return mapped

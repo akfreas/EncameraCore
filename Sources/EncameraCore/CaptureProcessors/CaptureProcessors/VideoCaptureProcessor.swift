@@ -8,7 +8,6 @@
 import Foundation
 import AVFoundation
 import Combine
-import EncameraCore
 
 class VideoCaptureProcessor: NSObject, CaptureProcessor {
     
@@ -30,7 +29,9 @@ extension VideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
         
         let cleartextVideo = CleartextMedia(source: outputFileURL, mediaType: .video, id: videoId)
         Task {
-            try await fileHandler.save(media: cleartextVideo)
+            try await fileHandler.save(media: cleartextVideo) { progress in
+                debugPrint("Progress saving video:", progress)
+            }
             self.completion(self)
         }
     }

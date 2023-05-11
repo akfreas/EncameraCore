@@ -10,7 +10,7 @@ import Combine
 
 public struct UserDefaultUtils {
     
-    private static var appGroup = "group.me.freas.encamera"
+    static var appGroup = "group.me.freas.encamera"
     
     private static var defaults: UserDefaults {
         UserDefaults(suiteName: appGroup) ?? UserDefaults.standard

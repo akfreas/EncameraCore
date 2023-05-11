@@ -15,12 +15,17 @@ enum DemoError: Error {
 }
 
 public class DemoFileEnumerator: FileAccess {
+    public var directoryModel: DataStorageModel? = DemoDirectoryModel()
+    
    
+    
+    public static var shared = DemoFileEnumerator()
     
     public required init() {
         
         Task {
             mediaList = await enumerateMedia()
+            
         }
     }
     
@@ -33,7 +38,10 @@ public class DemoFileEnumerator: FileAccess {
         
     }
     
-    var mediaList: [EncryptedMedia] = []
+    public func move(media: EncryptedMedia) async throws {
+        
+    }
+    private var mediaList: [EncryptedMedia] = []
     
     public func createPreview<T>(for media: T) async throws -> PreviewModel where T : MediaDescribing {
 
@@ -56,16 +64,48 @@ public class DemoFileEnumerator: FileAccess {
         CleartextMedia(source: URL(fileURLWithPath: ""))
     }
     
-    public func loadMediaInMemory<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+    public static func withUrl() -> CleartextMedia<URL> {
+        guard let url = Bundle.main
+            .url(forResource: "3", withExtension: "JPG") else {
+            fatalError()
+        }
+        return CleartextMedia(source: url)
+    }
+    
+    public static var media: [CleartextMedia<URL>] {
+        (1..<6).map { i in
+            guard let url = Bundle.main
+                .url(forResource: "\(i)", withExtension: "JPG") else {
+                fatalError()
+            }
+            return CleartextMedia(source: url)
+
+        }
+    }
+    
+    public func withUrl() -> CleartextMedia<URL> {
+        guard let url = Bundle(for: type(of: self))
+            .url(forResource: "dog", withExtension: "jpg") else {
+            fatalError()
+        }
+        return CleartextMedia(source: url)
+    }
+    
+    public func data() -> CleartextMedia<Data> {
         guard let url = Bundle(for: type(of: self))
             .url(forResource: "dog", withExtension: "jpg"), let data = try? Data(contentsOf: url) else {
             return CleartextMedia(source: Data())
         }
-
         return CleartextMedia(source: data)
+
     }
     
-    public func save<T>(media: CleartextMedia<T>) async throws -> EncryptedMedia where T : MediaSourcing {
+    public func loadMediaInMemory<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+        return data()
+
+    }
+    
+    public func save<T>(media: CleartextMedia<T>, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? where T : MediaSourcing {
         EncryptedMedia(source: URL(fileURLWithPath: ""), mediaType: .photo, id: "1234")
     }
     
@@ -76,11 +116,7 @@ public class DemoFileEnumerator: FileAccess {
         }
         let cleartext = CleartextMedia<Data>(source: data)
         let preview = PreviewModel(thumbnailMedia: cleartext)
-//        preview.videoDuration = "0:34"
         return preview
-//        let source = media.source as! URL
-//        let data = try! Data(contentsOf: source)
-//        return CleartextMedia<Data>(source: data)
     }
     
     func createTempURL(for mediaType: MediaType, id: String) -> URL {
@@ -91,8 +127,7 @@ public class DemoFileEnumerator: FileAccess {
     
     typealias MediaTypeHandling = Data
     
-    
-    let directoryModel = DemoDirectoryModel()
+
     
     
     
