@@ -132,9 +132,15 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
     public func update(key: PrivateKey, backupToiCloud: Bool) throws {
         try checkAuthenticated()
-        let updateDict = createKeychainQueryForWrite(with: key, backupToiCloud: backupToiCloud)
+        var updateDict: [String: Any] = [:]
+        if backupToiCloud {
+            updateDict[kSecAttrSynchronizable as String] = kCFBooleanTrue
+        } else {
+            updateDict[kSecAttrSynchronizable as String] = kCFBooleanFalse
+        }
         let query = try updateKeyQuery(for: key.name)
-        let status = SecItemUpdate(query, updateDict)
+        
+        let status = SecItemUpdate(query, updateDict as CFDictionary)
         try checkStatus(status: status)
     }
     
