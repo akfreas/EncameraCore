@@ -16,7 +16,7 @@ public enum L10n {
   public static let iconOnTheTopLeftOfTheScreen = L10n.tr("Localizable", " icon on the top left of the screen.", fallback: " icon on the top left of the screen.")
   /// Plural format key: "%#@image_count@"
   public static func imageS(_ p1: Int) -> String {
-    return L10n.tr("Localizable", "%@ image(s)", p1, fallback: "Plural format key: \"%#@image_count@\"")
+    return L10n.tr("Localizable", "%@ Image(s)", p1, fallback: "Plural format key: \"%#@image_count@\"")
   }
   /// ./EncameraCore/Utils/SettingsManager.swift
   public static func mustBeSet(_ p1: Any) -> String {
@@ -25,6 +25,10 @@ public enum L10n {
   /// Plural format key: "%#@photo_count@"
   public static func photoSLeft(_ p1: Int) -> String {
     return L10n.tr("Localizable", "%@ Photo(s) Left", p1, fallback: "Plural format key: \"%#@photo_count@\"")
+  }
+  /// Plural format key: "%#@video_count@"
+  public static func videoS(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "%@ Video(s)", p1, fallback: "Plural format key: \"%#@video_count@\"")
   }
   /// ./Encamera/Store/PurchaseUpgradeOptionsListView.swift
   public static func purchased(_ p1: Any) -> String {
@@ -87,8 +91,10 @@ public enum L10n {
   public static let biometricsUnavailable = L10n.tr("Localizable", "Biometrics unavailable", fallback: "Biometrics unavailable")
   /// Cancel
   public static let cancel = L10n.tr("Localizable", "Cancel", fallback: "Cancel")
-  /// Change Destination Key Album
-  public static let changeKeyAlbum = L10n.tr("Localizable", "Change Key Album", fallback: "Change Destination Key Album")
+  /// ShareViewController.swift
+  public static let cannotHandleMedia = L10n.tr("Localizable", "Cannot handle media", fallback: "Cannot handle media")
+  /// I Want to Choose Another Destination Album
+  public static let changeKeyAlbum = L10n.tr("Localizable", "Change Key Album", fallback: "I Want to Choose Another Destination Album")
   /// Change Password
   public static let changePassword = L10n.tr("Localizable", "Change Password", fallback: "Change Password")
   /// Check that the same key that was used to encrypt this media is set as the active key.
@@ -159,8 +165,8 @@ public enum L10n {
   public static let done = L10n.tr("Localizable", "Done", fallback: "Done")
   /// Done!
   public static let doneOnboarding = L10n.tr("Localizable", "DoneOnboarding", fallback: "Done!")
-  /// Are you done importing these images?
-  public static let doYouWantToDeleteNotImported = L10n.tr("Localizable", "DoYouWantToDeleteNotImported", fallback: "Are you done importing these images?")
+  /// Are you done importing images?
+  public static let doYouWantToDeleteNotImported = L10n.tr("Localizable", "DoYouWantToDeleteNotImported", fallback: "Are you done importing images?")
   /// Enable %@
   public static func enable(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Enable %@", String(describing: p1), fallback: "Enable %@")
@@ -213,10 +219,14 @@ public enum L10n {
   public static let familyShareable = L10n.tr("Localizable", "Family Shareable", fallback: "Family Shareable")
   /// ./Encamera/Settings/SettingsView.swift
   public static let feedbackRequest = L10n.tr("Localizable", "FeedbackRequest", fallback: "Because Encamera does not track user behavior in any way, and collects no information about you, the user, we rely on your feedback to help us improve the app.")
+  /// Follow @encamera_app
+  public static let followUs = L10n.tr("Localizable", "FollowUs", fallback: "Follow @encamera_app")
   /// No Tracking, No Data Collection 🤫
   public static let forYourEyesOnly👀 = L10n.tr("Localizable", "For your eyes only 👀", fallback: "No Tracking, No Data Collection 🤫")
   /// Free Trial
   public static let freeTrial = L10n.tr("Localizable", "Free Trial", fallback: "Free Trial")
+  /// TweetToShareView.swift
+  public static let getOneYearFree = L10n.tr("Localizable", "GetOneYearFree", fallback: "Get 1 Year Free!")
   /// Got it!
   public static let gotIt = L10n.tr("Localizable", "Got it!", fallback: "Got it!")
   /// ./Encamera/ImageViewing/GalleryGridView.swift
@@ -449,6 +459,8 @@ public enum L10n {
   public static let tapThe = L10n.tr("Localizable", "Tap the ", fallback: "Tap the ")
   /// Tap to Upgrade
   public static let tapToUpgrade = L10n.tr("Localizable", "Tap to Upgrade", fallback: "Tap to Upgrade")
+  /// Tap to Tweet!
+  public static let tapToTweet = L10n.tr("Localizable", "TapToTweet", fallback: "Tap to Tweet!")
   /// Terms of Use
   public static let termsOfUse = L10n.tr("Localizable", "Terms of Use", fallback: "Terms of Use")
   /// Thank you for your support!
@@ -459,6 +471,12 @@ public enum L10n {
   public static let thisWillSaveTheMediaToYourLibrary = L10n.tr("Localizable", "This will save the media to your library.", fallback: "This will save the media to your library.")
   /// ./EncameraCore/Utils/AuthManager.swift
   public static let touchID = L10n.tr("Localizable", "Touch ID", fallback: "Touch ID")
+  /// Get 100%% off the $9.99 yearly subscription fee!
+  /// 
+  ///  You only need to do two things:
+  /// 1. Follow @encamera_app
+  /// 2. Tap the link below to tweet about Encamera
+  public static let tweetToRedeemOfferExplanation = L10n.tr("Localizable", "TweetToRedeemOfferExplanation", fallback: "Get 100%% off the $9.99 yearly subscription fee!\n\n You only need to do two things:\n1. Follow @encamera_app\n2. Tap the link below to tweet about Encamera")
   /// Unhandled error.
   public static let unhandledError = L10n.tr("Localizable", "Unhandled error.", fallback: "Unhandled error.")
   /// Unlock
@@ -467,6 +485,8 @@ public enum L10n {
   public static func unlockWith(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Unlock with %@", String(describing: p1), fallback: "Unlock with %@")
   }
+  /// Unlock Unlimited for Free!
+  public static let unlockUnlimitedForFree = L10n.tr("Localizable", "UnlockUnlimitedForFree", fallback: "Unlock Unlimited for Free!")
   /// ./Encamera/InAppPurchase/PurchasePhotoSubscriptionOverlay.swift
   public static let upgradeToViewUnlimitedPhotos = L10n.tr("Localizable", "Upgrade to view unlimited photos", fallback: "Upgrade to view unlimited photos")
   /// Upgrade Today!
@@ -499,6 +519,8 @@ public enum L10n {
   public static let youTookYourFirstPhoto📸🥳 = L10n.tr("Localizable", "You took your first photo! 📸 🥳", fallback: "You took your first photo! 📸 🥳")
   /// Your Keys
   public static let yourKeys = L10n.tr("Localizable", "Your Keys", fallback: "Your Keys")
+  /// Afterwards, you will be sent a promo code via DM that you can redeem in the app.
+  public static let youWillBeSentAPromoCode = L10n.tr("Localizable", "YouWillBeSentAPromoCode", fallback: "Afterwards, you will be sent a promo code via DM that you can redeem in the app.")
   public enum EnterTheNameOfTheKeyToDeleteItForever {
     /// Enter the name of the key to delete it forever. All media will remain saved.
     public static let allMediaWillRemainSaved = L10n.tr("Localizable", "Enter the name of the key to delete it forever. All media will remain saved.", fallback: "Enter the name of the key to delete it forever. All media will remain saved.")

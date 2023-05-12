@@ -302,6 +302,26 @@
 "KeyTutorialText" = "Jeder Schlüssel fungiert als Album, und jedes Album verwendet einen anderen Schlüssel zur Verschlüsselung der Medien.\n\nSichern Sie diese Schlüssel! Wenn Sie den Schlüssel oder Ihr Gerät verlieren und kein iCloud-Backup wählen, können Ihre Medien nicht wiederhergestellt werden.";
 "KeyTutorialTitle" = "Vorstellung: Ihre Verschlüsselungsschlüssel 🔑";
 
+/* ./Encamera/MediaImport/MediaImportView.swift */
+"Select All" = "Alles auswählen";
+"Import" = "Importieren";
+"Import media" = "Medien importieren";
+"ImportSelectedImages" = "Importieren Sie die ausgewählten Bilder in Ihr derzeit aktives Schlüsselalbum";
+"DeleteImported" = "Bilder löschen?";
+"DoYouWantToDeleteNotImported" = "Haben Sie das Importieren von Bildern abgeschlossen?";
+"NotDoneYet" = "Ich bin noch nicht fertig";
+"Change Key Album" = "Ich möchte ein anderes Zielalbum auswählen";
+"IAmDone" = "Ich bin fertig";
+
+/* ShareViewController.swift */
+
+"Cannot handle media" = "Kann Medien nicht verarbeiten";
 
 
 
+/* TweetToShareView.swift */
+"GetOneYearFree" = "1 Jahr kostenlos!";
+"TweetToRedeemOfferExplanation" = "Erhalte 100%% Rabatt auf die jährliche Abonnementgebühr von $9.99!\n\n Du musst nur zwei Dinge tun:\n1. Folge @encamera_app\n2. Tippe auf den untenstehenden Link, um über Encamera zu twittern";
+"FollowUs" = "Folge @encamera_app";
+"TapToTweet" = "Zum Twittern tippen!";
+"YouWillBeSentAPromoCode" = "Danach wird dir ein Promo-Code per DM gesendet, den du in der App einlösen kannst.";

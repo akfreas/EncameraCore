@@ -300,5 +300,25 @@
 "KeyTutorialText" = "Cada clave funciona como un álbum, y cada álbum utiliza una clave diferente para cifrar los medios.\n\n¡Haz copias de seguridad de estas claves! Si pierdes la clave o tu dispositivo, y no seleccionas la copia de seguridad en iCloud, tus medios no podrán ser recuperados.";
 "KeyTutorialTitle" = "Te presentamos: Tus claves de cifrado 🔑";
 
+/* ./Encamera/MediaImport/MediaImportView.swift */
+"Select All" = "Seleccionar todo";
+"Import" = "Importar";
+"Import media" = "Importar medios";
+"ImportSelectedImages" = "Importar las imágenes seleccionadas a tu álbum clave actualmente activo";
+"DeleteImported" = "¿Borrar imágenes?";
+"DoYouWantToDeleteNotImported" = "¿Has terminado de importar imágenes?";
+"NotDoneYet" = "No he terminado";
+"Change Key Album" = "Quiero elegir otro álbum de destino";
+"IAmDone" = "He terminado";
+
+/* ShareViewController.swift */
+
+"Cannot handle media" = "No puede manejar los medios";
 
 
+/* TweetToShareView.swift */
+"GetOneYearFree" = "¡1 año gratis!";
+"TweetToRedeemOfferExplanation" = "¡Obtén un 100%% de descuento en la tarifa de suscripción anual de $9.99!\n\n Solo necesitas hacer dos cosas:\n1. Seguir a @encamera_app\n2. Haz clic en el enlace de abajo para twittear acerca de Encamera";
+"FollowUs" = "Sigue a @encamera_app";
+"TapToTweet" = "¡Haz clic para Twittear!";
+"YouWillBeSentAPromoCode" = "Después, se te enviará un código promocional por DM que puedes canjear en la app.";

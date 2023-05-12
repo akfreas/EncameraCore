@@ -2,6 +2,42 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>%@ Image(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@image_count@</string>
+		<key>image_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>Images</string>
+			<key>one</key>
+			<string>Image</string>
+			<key>other</key>
+			<string>Images</string>
+		</dict>
+	</dict>
+	<key>%@ Video(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@video_count@</string>
+		<key>video_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>Videos</string>
+			<key>one</key>
+			<string>Video</string>
+			<key>other</key>
+			<string>Videos</string>
+		</dict>
+	</dict>
 	<key>%@ Photo(s) Left</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>
@@ -18,24 +54,6 @@
 			<string>Photo Left</string>
 			<key>zero</key>
 			<string>Photos Left</string>
-		</dict>
-	</dict>
-	<key>%@ image(s)</key>
-	<dict>
-		<key>NSStringLocalizedFormatKey</key>
-		<string>%#@image_count@</string>
-		<key>image_count</key>
-		<dict>
-			<key>NSStringFormatSpecTypeKey</key>
-			<string>NSStringPluralRuleType</string>
-			<key>NSStringFormatValueTypeKey</key>
-			<string>d</string>
-			<key>zero</key>
-			<string>images</string>
-			<key>one</key>
-			<string>image</string>
-			<key>other</key>
-			<string>%d images</string>
 		</dict>
 	</dict>
 </dict>
