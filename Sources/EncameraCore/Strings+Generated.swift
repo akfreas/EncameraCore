@@ -181,6 +181,8 @@ public enum L10n {
   public static let encameraIsOpenSource = L10n.tr("Localizable", "EncameraIsOpenSource", fallback: "Open Source 🌎")
   /// ./Encamera/Styles/ViewModifiers/ButtonViewModifier.swift
   public static let encryptEverything = L10n.tr("Localizable", "Encrypt Everything", fallback: "Encrypt Everything")
+  /// Encrypting
+  public static let encrypting = L10n.tr("Localizable", "Encrypting", fallback: "Encrypting")
   /// Encryption Key
   public static let encryptionKey = L10n.tr("Localizable", "Encryption Key", fallback: "Encryption Key")
   /// Privacy-First Camera 🔒
@@ -219,6 +221,8 @@ public enum L10n {
   public static let familyShareable = L10n.tr("Localizable", "Family Shareable", fallback: "Family Shareable")
   /// ./Encamera/Settings/SettingsView.swift
   public static let feedbackRequest = L10n.tr("Localizable", "FeedbackRequest", fallback: "Because Encamera does not track user behavior in any way, and collects no information about you, the user, we rely on your feedback to help us improve the app.")
+  /// Finish Importing Media
+  public static let finishImportingMedia = L10n.tr("Localizable", "FinishImportingMedia", fallback: "Finish Importing Media")
   /// Follow @encamera_app
   public static let followUs = L10n.tr("Localizable", "FollowUs", fallback: "Follow @encamera_app")
   /// No Tracking, No Data Collection 🤫

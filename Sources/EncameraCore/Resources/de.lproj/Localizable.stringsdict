@@ -20,7 +20,7 @@
 			<string>Fotos übrig</string>
 		</dict>
 	</dict>
-	<key>%@ image(s)</key>
+	<key>%@ Image(s)</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>
 		<string>%#@image_count@</string>

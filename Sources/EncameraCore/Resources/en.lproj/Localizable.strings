@@ -47,6 +47,7 @@
 "You don't have an active key selected, select one to continue saving media." = "You don't have an active key selected, select one to continue saving media.";
 "Key Selection" = "Key Selection";
 "OpenSettings" = "Open Settings";
+"FinishImportingMedia" = "Finish Importing Media";
 /* ./Encamera/CameraView/CameraModePicker.swift */
 "PHOTO" = "PHOTO";
 "VIDEO" = "VIDEO";
@@ -311,6 +312,7 @@
 "NotDoneYet" = "I'm Not Done";
 "Change Key Album" = "I Want to Choose Another Destination Album";
 "IAmDone" = "I'm Done";
+"Encrypting" = "Encrypting";
 
 /* ShareViewController.swift */
 

@@ -137,9 +137,13 @@ extension AppGroupFileReader: FileWriter {
                 fatalError("Could not get shared container url")
             }
             
-    
-            let fileName = url.lastPathComponent
-            let destinationURL = containerUrl.appendingPathComponent(fileName.replacingOccurrences(of: "JPG", with: "jpeg"))
+            
+            let fileExtension = url.pathExtension
+                    .replacingOccurrences(of: "JPG", with: "jpeg")
+                    .replacingOccurrences(of: "jpg", with: "jpeg")
+            let filename = "\(cleartext.id).\(fileExtension)"
+            let destinationURL = containerUrl.appendingPathComponent(filename)
+            debugPrint("Saving media to ", destinationURL)
             do {
                 try FileManager.default.copyItem(at: url, to: destinationURL)
             } catch {

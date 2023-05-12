@@ -25,15 +25,14 @@ public enum MediaType: Int, CaseIterable, Codable {
     }
     
     public static var supportedPhotoFileExtensions: [String] {
-        supportedPhotoFileTypes.map({$0.preferredFilenameExtension}).compactMap({$0})
+        supportedPhotoFileTypes.map({$0.preferredFilenameExtension}).compactMap({$0}) + ["jpg"]
     }
     public static var supportedPhotoFileTypes: [UTType] {
         [
             UTType.image,
             UTType.jpeg,
             UTType.png,
-            UTType.heic,
-            UTType(filenameExtension: "JPG")!
+            UTType.heic
         ]
     }
     

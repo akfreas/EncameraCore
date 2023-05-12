@@ -47,6 +47,7 @@
 "You don't have an active key selected, select one to continue saving media." = "Sie haben keinen aktiven Schlüssel ausgewählt, wählen Sie einen aus, um weiterhin Medien zu speichern.";
 "Key Selection" = "Schlüsselauswahl";
 "OpenSettings" = "Einstellungen öffnen";
+"FinishImportingMedia" = "Import von Medien abschließen";
 /* ./Encamera/CameraView/CameraModePicker.swift */
 "PHOTO" = "FOTO";
 "VIDEO" = "VIDEO";
@@ -279,6 +280,7 @@
 "Support privacy-focused development." = "Unterstützen Sie die datenschutzorientierte Entwicklung.";
 "Restore Purchases" = "Käufe wiederherstellen";
 "Enter Promo Code" = "Gutscheincode eingeben";
+"UnlockUnlimitedForFree" = "Schalte Unbegrenzt kostenlos frei!";
 "Start trial offer" = "Testangebot starten";
 "Subscribe" = "Abonnieren";
 /* ./Encamera/Store/SubscriptionOptionView.swift */
