@@ -423,6 +423,7 @@ private extension PrivateKey {
     var keychainQueryDictForKeychain: [String: Any] {
         var query = keychainQueryDict
         query[kSecAttrApplicationLabel as String] = applicationLabel
+        query[kSecAttrSynchronizable as String] = kSecAttrSynchronizableAny
         return query
     }
 }

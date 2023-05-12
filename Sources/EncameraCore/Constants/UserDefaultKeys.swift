@@ -21,6 +21,7 @@ public enum UserDefaultKey {
     case lastVersionReviewRequested
     case hasOpenedKeySelection
     case keyTutorialClosed
+    case launchCount
     
     var rawValue: String {
         switch self {

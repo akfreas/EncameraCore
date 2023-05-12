@@ -38,6 +38,11 @@ public struct NotificationUtils {
         return publisher(for: UIApplication.willResignActiveNotification)
     }
     
+    
+    public static var didFinishLaunchingPublisher: AnyPublisher<Notification, Never> {
+        return publisher(for: UIApplication.didFinishLaunchingNotification)
+    }
+    
     public static var orientationDidChangePublisher: AnyPublisher<Notification, Never> {
         return publisher(for: UIDevice.orientationDidChangeNotification)
     }
