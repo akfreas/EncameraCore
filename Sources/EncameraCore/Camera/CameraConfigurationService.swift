@@ -38,6 +38,11 @@ public enum SetupError: Error {
     case couldNotAddMetadataOutputToSession
 }
 
+public enum MediaProcessorError: Error {
+    case missingMovieOutput
+    case setupIncomplete
+}
+
 public enum CaptureMode: Int {
     case photo = 0
     case movie = 1
@@ -268,7 +273,7 @@ extension CameraConfigurationService {
     
     public func createVideoProcessor() async throws -> AsyncVideoCaptureProcessor {
         guard let videoOutput = self.movieOutput else {
-            fatalError()
+            throw MediaProcessorError.missingMovieOutput
         }
         let connection = videoOutput.connection(with: .video)
         connection?.videoOrientation = model.orientation
@@ -278,10 +283,10 @@ extension CameraConfigurationService {
     }
     
     
-    public func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode) async -> AsyncPhotoCaptureProcessor {
+    public func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode) async throws -> AsyncPhotoCaptureProcessor {
         guard self.model.setupResult != .configurationFailed else {
             debugPrint("Could not capture photo")
-            fatalError()
+            throw MediaProcessorError.setupIncomplete
         }
         
         if let photoOutputConnection = self.photoOutput.connection(with: .video) {
