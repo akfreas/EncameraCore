@@ -7,7 +7,7 @@ let package = Package(
     name: "EncameraCore",
     defaultLocalization: "en",
     platforms: [
-        .iOS("15.6")
+        .iOS("16.0")
     ],
     products: [
         .library(

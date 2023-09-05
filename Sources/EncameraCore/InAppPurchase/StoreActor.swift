@@ -57,7 +57,18 @@ import StoreKit
     }
     
     public func presentCodeRedemptionSheet() {
-        paymentQueue.presentCodeRedemptionSheet()
+        if #available(iOS 16.0, *) {
+            Task {
+                let scenes = await UIApplication.shared.connectedScenes
+                if let windowScenes = scenes.first as? UIWindowScene {
+                    
+                    try await AppStore.presentOfferCodeRedeemSheet(in: windowScenes)
+                }
+            }
+        }
+        else {
+            paymentQueue.presentCodeRedemptionSheet()
+        }
     }
     
     private func setupListenerTasksIfNecessary() {

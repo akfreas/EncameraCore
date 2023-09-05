@@ -223,8 +223,8 @@ public enum L10n {
   public static let feedbackRequest = L10n.tr("Localizable", "FeedbackRequest", fallback: "Because Encamera does not track user behavior in any way, and collects no information about you, the user, we rely on your feedback to help us improve the app.")
   /// Finish Importing Media
   public static let finishImportingMedia = L10n.tr("Localizable", "FinishImportingMedia", fallback: "Finish Importing Media")
-  /// Follow @encamera_app
-  public static let followUs = L10n.tr("Localizable", "FollowUs", fallback: "Follow @encamera_app")
+  /// Follow @encamera_app on Twitter
+  public static let followUs = L10n.tr("Localizable", "FollowUs", fallback: "Follow @encamera_app on Twitter")
   /// No Tracking, No Data Collection 🤫
   public static let forYourEyesOnly👀 = L10n.tr("Localizable", "For your eyes only 👀", fallback: "No Tracking, No Data Collection 🤫")
   /// Free Trial
@@ -385,6 +385,8 @@ public enum L10n {
   public static let repeatPassword = L10n.tr("Localizable", "Repeat Password", fallback: "Repeat Password")
   /// Restore Purchases
   public static let restorePurchases = L10n.tr("Localizable", "Restore Purchases", fallback: "Restore Purchases")
+  /// Roadmap & Feature Requests
+  public static let roadmap = L10n.tr("Localizable", "Roadmap", fallback: "Roadmap & Feature Requests")
   /// Save
   public static let save = L10n.tr("Localizable", "Save", fallback: "Save")
   /// Save Key

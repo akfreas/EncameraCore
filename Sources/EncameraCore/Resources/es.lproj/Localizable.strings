@@ -80,6 +80,7 @@
 "Repeat Password" = "Repetir contraseña";
 "Save" = "Guardar";
 "Change Password" = "Cambiar contraseña";
+"Roadmap" = "Hoja de ruta y solicitudes de características";
 /* ./Encamera/Settings/PromptToErase.swift */
 "Hold to erase" = "Mantén presionado para borrar";
 "Erase app data" = "Borrar datos de la aplicación";
