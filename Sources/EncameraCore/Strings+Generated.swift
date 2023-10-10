@@ -51,12 +51,12 @@ public enum L10n {
   /// • ALL your stored keys 🔑
   /// • Your password 🔐
   /// • App settings 🎛
-  /// • MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD 💾
+  /// • MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD
   /// 
   /// You can create a backup of your keys from the key management screen.
   /// 
   /// The app will quit after erase is finished.
-  public static let allDataExplanation = L10n.tr("Localizable", "allDataExplanation", fallback: "Are you sure you want to erase ALL ENCAMERA DATA?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n• MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD 💾\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.")
+  public static let allDataExplanation = L10n.tr("Localizable", "allDataExplanation", fallback: "Are you sure you want to erase ALL ENCAMERA DATA?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n• MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.")
   /// Looks like you’re all set up! 🎊 Enjoy taking photos securely with Encamera’s top-notch encryption. 💪🔐
   public static let allSetupOnboarding = L10n.tr("Localizable", "AllSetupOnboarding", fallback: "Looks like you’re all set up! 🎊 Enjoy taking photos securely with Encamera’s top-notch encryption. 💪🔐")
   /// Are you sure you want to erase ALL app data?
@@ -69,14 +69,14 @@ public enum L10n {
   /// 
   /// THIS WILL NOT ERASE:
   /// 
-  /// • Media you have stored locally or on iCloud 💾
+  /// • Media you have stored locally or on iCloud
   /// 
   /// You can create a backup of your keys from the key management screen.
   /// 
   /// The app will quit after erase is finished.
   /// 
   /// 
-  public static let appDataExplanation = L10n.tr("Localizable", "appDataExplanation", fallback: "Are you sure you want to erase ALL app data?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\nTHIS WILL NOT ERASE:\n\n• Media you have stored locally or on iCloud 💾\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n")
+  public static let appDataExplanation = L10n.tr("Localizable", "appDataExplanation", fallback: "Are you sure you want to erase ALL app data?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\nTHIS WILL NOT ERASE:\n\n• Media you have stored locally or on iCloud\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n")
   /// Back Up Key
   public static let backUpKey = L10n.tr("Localizable", "Back Up Key", fallback: "Back Up Key")
   /// Backup Keys
@@ -185,8 +185,6 @@ public enum L10n {
   public static let encrypting = L10n.tr("Localizable", "Encrypting", fallback: "Encrypting")
   /// Encryption Key
   public static let encryptionKey = L10n.tr("Localizable", "Encryption Key", fallback: "Encryption Key")
-  /// Privacy-First Camera 🔒
-  public static let encryptionExplanation = L10n.tr("Localizable", "EncryptionExplanation", fallback: "Privacy-First Camera 🔒")
   /// Enter Password
   public static let enterPassword = L10n.tr("Localizable", "Enter Password", fallback: "Enter Password")
   /// Enter Promo Code
@@ -231,6 +229,8 @@ public enum L10n {
   public static let freeTrial = L10n.tr("Localizable", "Free Trial", fallback: "Free Trial")
   /// TweetToShareView.swift
   public static let getOneYearFree = L10n.tr("Localizable", "GetOneYearFree", fallback: "Get 1 Year Free!")
+  /// Let's Start
+  public static let getStartedButtonText = L10n.tr("Localizable", "GetStartedButtonText", fallback: "Let's Start")
   /// Got it!
   public static let gotIt = L10n.tr("Localizable", "Got it!", fallback: "Got it!")
   /// ./Encamera/ImageViewing/GalleryGridView.swift
@@ -313,7 +313,10 @@ public enum L10n {
   public static let newKeySubheading = L10n.tr("Localizable", "New Key Subheading", fallback: "Set the name for this key.\n\nYou can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".")
   /// New Password
   public static let newPassword = L10n.tr("Localizable", "New Password", fallback: "New Password")
-  /// ./Encamera/Onboarding/OnboardingView.swift
+  /// Localizable.strings
+  ///   Encamera
+  /// 
+  ///   Created by Alexander Freas on 30.01.23.
   public static let next = L10n.tr("Localizable", "Next", fallback: "Next")
   /// No file access available.
   public static let noFileAccessAvailable = L10n.tr("Localizable", "No file access available.", fallback: "No file access available.")
@@ -341,6 +344,22 @@ public enum L10n {
   public static let noTrackingExplanation = L10n.tr("Localizable", "NoTrackingExplanation", fallback: "No trackers are installed in this app. Encamera doesn't use *any* services except those provided by Apple.")
   /// OK
   public static let ok = L10n.tr("Localizable", "OK", fallback: "OK")
+  /// ./Encamera/Onboarding/MainOnboardingView.swift
+  public static let onboardingIntroHeadingText1 = L10n.tr("Localizable", "OnboardingIntroHeadingText1", fallback: "Privacy-First Camera")
+  /// Encamera encrypts everything, keeping your media safe from unwanted eyes.
+  public static let onboardingIntroSubheadingText = L10n.tr("Localizable", "OnboardingIntroSubheadingText", fallback: "Encamera encrypts everything, keeping your media safe from unwanted eyes.")
+  /// Camera access
+  public static let onboardingPermissionsCameraAccess = L10n.tr("Localizable", "OnboardingPermissionsCameraAccess", fallback: "Camera access")
+  /// Needed to take photos
+  public static let onboardingPermissionsCameraAccessSubheading = L10n.tr("Localizable", "OnboardingPermissionsCameraAccessSubheading", fallback: "Needed to take photos")
+  /// Microphone access
+  public static let onboardingPermissionsMicrophoneAccess = L10n.tr("Localizable", "OnboardingPermissionsMicrophoneAccess", fallback: "Microphone access")
+  /// Needed only for videos
+  public static let onboardingPermissionsMicrophoneAccessSubheading = L10n.tr("Localizable", "OnboardingPermissionsMicrophoneAccessSubheading", fallback: "Needed only for videos")
+  /// You will need to give permissions to use the camera & microphone in order to access the app
+  public static let onboardingPermissionsSubheading = L10n.tr("Localizable", "OnboardingPermissionsSubheading", fallback: "You will need to give permissions to use the camera & microphone in order to access the app")
+  /// Permissions
+  public static let onboardingPermissionsTitle = L10n.tr("Localizable", "OnboardingPermissionsTitle", fallback: "Permissions")
   /// One-Time Purchase
   public static let oneTimePurchase = L10n.tr("Localizable", "One-Time Purchase", fallback: "One-Time Purchase")
   /// Open settings to allow camera access permission
@@ -417,6 +436,8 @@ public enum L10n {
   public static let setAsActiveKey = L10n.tr("Localizable", "Set as Active Key", fallback: "Set as Active Key")
   /// Set Password
   public static let setPassword = L10n.tr("Localizable", "Set Password", fallback: "Set Password")
+  /// Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later.
+  public static let setAPasswordWarning = L10n.tr("Localizable", "SetAPasswordWarning", fallback: "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later.")
   /// Settings
   public static let settings = L10n.tr("Localizable", "Settings", fallback: "Settings")
   /// Share
@@ -435,10 +456,12 @@ public enum L10n {
   public static let sharedMedia = L10n.tr("Localizable", "Shared Media", fallback: "Shared Media")
   /// ./Encamera/KeyManagement/KeyExchange.swift
   public static let shareKeyExplanation = L10n.tr("Localizable", "ShareKeyExplanation", fallback: "Share your encryption key with someone you trust.\n\nSharing it with them means they can decrypt any media you share with them that is encrypted with this key.")
+  /// Skip for now
+  public static let skipForNow = L10n.tr("Localizable", "Skip for now", fallback: "Skip for now")
   /// ./Encamera/Store/PurchaseUpgradeView.swift
   public static let startTrialOffer = L10n.tr("Localizable", "Start trial offer", fallback: "Start trial offer")
-  /// Where do you want to store your media? Each key will store data in its own directory once encrypted. 💾
-  public static let storageLocationOnboarding = L10n.tr("Localizable", "Storage location onboarding", fallback: "Where do you want to store your media? Each key will store data in its own directory once encrypted. 💾")
+  /// Where do you want to store your media? Each key will store data in its own directory once encrypted.
+  public static let storageLocationOnboarding = L10n.tr("Localizable", "Storage location onboarding", fallback: "Where do you want to store your media? Each key will store data in its own directory once encrypted.")
   /// Storage Settings
   public static let storageSettings = L10n.tr("Localizable", "Storage Settings", fallback: "Storage Settings")
   /// Encamera does not store media to your camera roll. All encrypted media are stored either on this app or on iCloud, depending on your storage choice.
@@ -542,12 +565,6 @@ public enum L10n {
   public enum KeyCopiedToClipboard {
     /// Key copied to clipboard. Store this in a password manager or other secure place.
     public static let storeThisInAPasswordManagerOrOtherSecurePlace = L10n.tr("Localizable", "Key copied to clipboard. Store this in a password manager or other secure place.", fallback: "Key copied to clipboard. Store this in a password manager or other secure place.")
-  }
-  public enum SetAPasswordToAccessTheApp {
-    public enum BeSureToStoreItInASafePlaceYouCannotRecoverItLater {
-      /// Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅
-      public static let 🙅 = L10n.tr("Localizable", "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅", fallback: "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅")
-    }
   }
 }
 // swiftlint:enable explicit_type_interface function_parameter_count identifier_name line_length

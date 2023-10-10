@@ -9,9 +9,12 @@ import Foundation
 import Combine
 
 public struct UserDefaultUtils {
-    
+
+    #if DEBUG
+    static var appGroup = "group.me.freas.encamera.debug"
+    #else
     static var appGroup = "group.me.freas.encamera"
-    
+    #endif
     private static var defaults: UserDefaults {
         UserDefaults(suiteName: appGroup) ?? UserDefaults.standard
     }

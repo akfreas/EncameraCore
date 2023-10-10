@@ -70,8 +70,8 @@
 "Erase" = "Borrar";
 "Erase keychain data" = "Borrar datos del llavero";
 "Erase all data" = "Borrar todos los datos";
-"allDataExplanation" = "¿Estás seguro de que quieres borrar TODOS LOS DATOS DE ENCAMERA?\n\nESTO BORRARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Configuración de la aplicación 🎛\n• CONTENIDO MULTIMEDIA ALMACENADO LOCALMENTE O EN iCLOUD 💾\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de administración de claves.\n\nLa aplicación se cerrará después de que se complete el borrado.";
-"appDataExplanation" = "¿Estás seguro de que quieres borrar TODOS los datos de la aplicación?\n\nESTO BORRARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Configuración de la aplicación 🎛\n\nESTO NO BORRARÁ:\n\n• Contenido multimedia almacenado localmente o en iCloud 💾\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de administración de claves.\n\nLa aplicación se cerrará después de que se complete el borrado.\n\n";
+"allDataExplanation" = "¿Estás seguro de que quieres borrar TODOS LOS DATOS DE ENCAMERA?\n\nESTO BORRARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Configuración de la aplicación 🎛\n• CONTENIDO MULTIMEDIA ALMACENADO LOCALMENTE O EN iCLOUD\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de administración de claves.\n\nLa aplicación se cerrará después de que se complete el borrado.";
+"appDataExplanation" = "¿Estás seguro de que quieres borrar TODOS los datos de la aplicación?\n\nESTO BORRARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Configuración de la aplicación 🎛\n\nESTO NO BORRARÁ:\n\n• Contenido multimedia almacenado localmente o en iCloud\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de administración de claves.\n\nLa aplicación se cerrará después de que se complete el borrado.\n\n";
 
 "Erase" = "Borrar";
 "Change Password" = "Cambiar contraseña";
@@ -243,8 +243,8 @@
 "Next" = "Siguiente";
 "Erase Device Data" = "Borrar datos del dispositivo";
 "Set Password" = "Establecer contraseña";
-"Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅" = "Establece una contraseña para acceder a la aplicación. Asegúrate de guardarla en un lugar seguro, no podrás recuperarla más tarde. 🙅";
-"Storage location onboarding" = "¿Dónde quieres almacenar tus medios? Cada clave almacenará datos en su propio directorio una vez cifrados. 💾";
+"SetAPasswordWarning" = "Establece una contraseña para acceder a la aplicación. Asegúrate de guardarla en un lugar seguro, no podrás recuperarla más tarde.";
+"Storage location onboarding" = "¿Dónde quieres almacenar tus medios? Cada clave almacenará datos en su propio directorio una vez cifrados.";
 "Set Password" = "Contraseña";
 "StorageExplanationHeader" = "¿Dónde se almacenan mis fotos?";
 "StorageExplanation" = "Encamera no guarda los medios en tu carrete. Todos los medios cifrados se almacenan en esta aplicación o en iCloud, dependiendo de tu elección de almacenamiento.";

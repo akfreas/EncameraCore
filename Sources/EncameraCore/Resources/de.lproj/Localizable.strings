@@ -70,8 +70,8 @@
 "Erase" = "Löschen";
 "Erase keychain data" = "Schlüsselbund-Daten löschen";
 "Erase all data" = "Alle Daten löschen";
-"allDataExplanation" = "Möchten Sie wirklich ALLE ENCAMERA-DATEN löschen?\n\nDIES WIRD GELÖSCHT:\n\n• ALL Ihre gespeicherten Schlüssel 🔑\n• Ihr Passwort 🔐\n• App-Einstellungen 🎛\n• LOKAL ODER IN iCLOUD GESPEICHERTE MEDIEN 💾\n\nSie können von der Schlüsselverwaltung aus eine Sicherung Ihrer Schlüssel erstellen.\n\nDie App wird nach Abschluss des Löschvorgangs beendet.";
-"appDataExplanation" = "Möchten Sie wirklich ALLE App-Daten löschen?\n\nDIES WIRD GELÖSCHT:\n\n• ALL Ihre gespeicherten Schlüssel 🔑\n• Ihr Passwort 🔐\n• App-Einstellungen 🎛\n\nDIES WIRD NICHT GELÖSCHT:\n\n• Lokal oder in iCloud gespeicherte Medien 💾\n\nSie können von der Schlüsselverwaltung aus eine Sicherung Ihrer Schlüssel erstellen.\n\nDie App wird nach Abschluss des Löschvorgangs beendet.\n\n";
+"allDataExplanation" = "Möchten Sie wirklich ALLE ENCAMERA-DATEN löschen?\n\nDIES WIRD GELÖSCHT:\n\n• ALL Ihre gespeicherten Schlüssel 🔑\n• Ihr Passwort 🔐\n• App-Einstellungen 🎛\n• LOKAL ODER IN iCLOUD GESPEICHERTE MEDIEN\n\nSie können von der Schlüsselverwaltung aus eine Sicherung Ihrer Schlüssel erstellen.\n\nDie App wird nach Abschluss des Löschvorgangs beendet.";
+"appDataExplanation" = "Möchten Sie wirklich ALLE App-Daten löschen?\n\nDIES WIRD GELÖSCHT:\n\n• ALL Ihre gespeicherten Schlüssel 🔑\n• Ihr Passwort 🔐\n• App-Einstellungen 🎛\n\nDIES WIRD NICHT GELÖSCHT:\n\n• Lokal oder in iCloud gespeicherte Medien\n\nSie können von der Schlüsselverwaltung aus eine Sicherung Ihrer Schlüssel erstellen.\n\nDie App wird nach Abschluss des Löschvorgangs beendet.\n\n";
 
 "Erase" = "Löschen";
 "Change Password" = "Passwort ändern";
@@ -243,8 +243,8 @@
 "Next" = "Weiter";
 "Erase Device Data" = "Gerätedaten löschen";
 "Set Password" = "Passwort festlegen";
-"Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅" = "Legen Sie ein Passwort für den Zugriff auf die App fest. Bewahren Sie es an einem sicheren Ort auf – Sie können es später nicht wiederherstellen. 🙅";
-"Storage location onboarding" = "Wo möchten Sie Ihre Medien speichern? Jeder Schlüssel speichert Daten in einem eigenen Verzeichnis, sobald sie verschlüsselt sind. 💾";
+"SetAPasswordWarning" = "Legen Sie ein Passwort für den Zugriff auf die App fest. Bewahren Sie es an einem sicheren Ort auf – Sie können es später nicht wiederherstellen.";
+"Storage location onboarding" = "Wo möchten Sie Ihre Medien speichern? Jeder Schlüssel speichert Daten in einem eigenen Verzeichnis, sobald sie verschlüsselt sind.";
 "Set Password" = "Passwort festlegen";
 "StorageExplanationHeader" = "Wo werden meine Fotos gespeichert?";
 "StorageExplanation" = "Encamera speichert Medien nicht in Ihrer Fotogalerie. Alle verschlüsselten Medien werden entweder in dieser App oder in iCloud gespeichert, abhängig von Ihrer Speicherwahl.";

@@ -96,7 +96,33 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
                  backupToiCloud: backupToiCloud)
         return key
     }
-    
+
+    @discardableResult public func generateKeyFromPassword(_ password: String, name: String) throws -> PrivateKey {
+
+        try checkAuthenticated()
+
+        try validateKeyName(name: name)
+
+        // Deriving a key from the password using Sodium's password hashing function
+        let hash = try hashFrom(password: password)
+        let keyBytes = Array(hash.prefix(Sodium().secretStream.xchacha20poly1305.KeyBytes))
+
+        let key = PrivateKey(name: name, keyBytes: keyBytes, creationDate: Date())
+        var setNewKeyToCurrent: Bool
+        do {
+            let storedKeys = try storedKeys()
+            setNewKeyToCurrent = storedKeys.count == 0
+        } catch {
+            setNewKeyToCurrent = true
+        }
+        try save(key: key,
+                 storageType: .local,  // Replace with actual storage type
+                 setNewKeyToCurrent: setNewKeyToCurrent,
+                 backupToiCloud: false)  // Set to true if you want to backup to iCloud
+        return key
+    }
+
+
     public func validateKeyName(name: String) throws {
         guard name.count > KeychainConstants.minKeyLength else {
             throw KeyManagerError.keyNameError

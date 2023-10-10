@@ -38,6 +38,7 @@ public enum OnboardingFlowScreen: Int, Identifiable {
     case biometrics
     case setupPrivateKey
     case dataStorageSetting
+    case permissions
     case finished
     public var id: Self { self }
 }
@@ -182,7 +183,7 @@ public class OnboardingManager: OnboardingManaging {
         }
         
         if !keyManager.passwordExists() {
-            screens += [.dataStorageSetting]
+            screens += [.dataStorageSetting, .permissions]
         }
         screens += [
             .finished

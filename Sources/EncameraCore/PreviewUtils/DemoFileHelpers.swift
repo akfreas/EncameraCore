@@ -316,7 +316,7 @@ public class DemoOnboardingManager: OnboardingManaging {
     }
     
     public func generateOnboardingFlow() -> [OnboardingFlowScreen] {
-        return [.enterExistingPassword]
+        return [.permissions]
     }
     
     public func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {

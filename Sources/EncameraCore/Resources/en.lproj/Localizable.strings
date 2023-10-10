@@ -5,6 +5,9 @@
   Created by Alexander Freas on 30.01.23.
   
 */
+
+"Next" = "Next";
+
 /* ./EncameraCore/Constants/AppConstants.swift */
 "DefaultKey" = "DefaultKey";
 // $'"n"n"nnCopy the code into the "n" form in the app to use it again."' = $'"n"n"nnCopy the code into the "n" form in the app to use it again."';
@@ -70,8 +73,8 @@
 "Erase" = "Erase";
 "Erase keychain data" = "Erase keychain data";
 "Erase all data" = "Erase all data";
-"allDataExplanation" = "Are you sure you want to erase ALL ENCAMERA DATA?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n• MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD 💾\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.";
-"appDataExplanation" = "Are you sure you want to erase ALL app data?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\nTHIS WILL NOT ERASE:\n\n• Media you have stored locally or on iCloud 💾\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n";
+"allDataExplanation" = "Are you sure you want to erase ALL ENCAMERA DATA?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n• MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.";
+"appDataExplanation" = "Are you sure you want to erase ALL app data?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\nTHIS WILL NOT ERASE:\n\n• Media you have stored locally or on iCloud\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n";
 
 "Erase" = "Erase";
 "Change Password" = "Change Password";
@@ -172,7 +175,6 @@
 
 "New Key" = "New Key";
 "MultipleKeysForMultiplePurposesExplanation" = "You can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".";
-"Next" = "Next";
 "Storage Settings" = "Storage Settings";
 "Save Key" = "Save Key";
 "Select a place to keep media for this key." = "Select a place to keep media for this key.";
@@ -228,8 +230,10 @@
 /* ./Encamera/ImageViewing/PhotoInfoView.swift */
 "No info available" = "No info available";
 /* ./Encamera/Onboarding/MainOnboardingView.swift */
-"Next" = "Next";
-"EncryptionExplanation" = "Privacy-First Camera 🔒";
+
+"OnboardingIntroHeadingText1" = "Privacy-First Camera";
+"OnboardingIntroSubheadingText" = "Encamera encrypts everything, keeping your media safe from unwanted eyes.";
+"GetStartedButtonText" = "Let's Start";
 "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera encrypts everything, keeping your media safe from unwanted eyes.";
 "KeyBasedEncryption" = "Key-Based Encryption 🔑";
 "IntroStorageExplanation" = "Your media is safely secured behind a key and stored locally on your device on iCloud.";
@@ -240,11 +244,12 @@
 
 "Enter Password" = "Enter Password";
 "You have an existing password for this device." = "You have an existing password for this device.";
-"Next" = "Next";
+
 "Erase Device Data" = "Erase Device Data";
 "Set Password" = "Set Password";
-"Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅" = "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅";
-"Storage location onboarding" = "Where do you want to store your media? Each key will store data in its own directory once encrypted. 💾";
+"SetAPasswordWarning" = "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later.";
+"Storage location onboarding" = "Where do you want to store your media? Each key will store data in its own directory once encrypted.";
+"Skip for now" = "Skip for now";
 "Set Password" = "Set Password";
 "StorageExplanationHeader" = "Where are my photos stored?";
 "StorageExplanation" = "Encamera does not store media to your camera roll. All encrypted media are stored either on this app or on iCloud, depending on your storage choice.";
@@ -254,23 +259,28 @@
 "Repeat Password" = "Repeat Password";
 "Use %@?" = "Use %@?";
 "Enable %@ to quickly and securely gain access to the app." = "Enable %@ to quickly and securely gain access to the app.";
-"Next" = "Next";
+
 "Enable %@" = "Enable %@";
 "Encryption Key" = "Encryption Key";
 "New Key Subheading" = "Set the name for this key.\n\nYou can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".";
-"Next" = "Next";
+
 "Key Name" = "Key Name";
 "Key Value" = "Key Value";
 "If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe." = "If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe.";
 "Select Storage" = "Select Storage";
-"Next" = "Next";
+"OnboardingPermissionsTitle" = "Permissions";
+"OnboardingPermissionsSubheading" = "You will need to give permissions to use the camera & microphone in order to access the app";
+"OnboardingPermissionsCameraAccess" = "Camera access";
+"OnboardingPermissionsCameraAccessSubheading" = "Needed to take photos";
+"OnboardingPermissionsMicrophoneAccess" = "Microphone access";
+"OnboardingPermissionsMicrophoneAccessSubheading" = "Needed only for videos";
 "Please select a storage location." = "Please select a storage location.";
 "DoneOnboarding" = "Done!";
 "Done" = "Done";
 "AllSetupOnboarding" = "Looks like you’re all set up! 🎊 Enjoy taking photos securely with Encamera’s top-notch encryption. 💪🔐";
 /* ./Encamera/Onboarding/StorageSettingView.swift */
 /* ./Encamera/Onboarding/OnboardingView.swift */
-"Next" = "Next";
+
 /* ./Encamera/Store/PurchaseUpgradeHeaderView.swift */
 "View unlimited photos for each key." = "View unlimited photos for each key.";
 "Create an unlimited number of keys." = "Create an unlimited number of keys.";
