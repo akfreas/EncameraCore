@@ -93,7 +93,7 @@
 "You took your first photo! 📸 🥳"= "You took your first photo! 📸 🥳";
 "See the photos that belong to a key by tapping the " = "See the photos that belong to a key by tapping the ";
 " icon on the top left of the screen." = " icon on the top left of the screen.";
-"Got it!" = "Got it!";
+"Got it!" = "See how it works";
 /* ./Encamera/Tutorial/ExplanationForUpgradeTutorial.swift */
 "Want more?" = "Want more?";
 "Support privacy-focused development by upgrading!" = "Support privacy-focused development by upgrading!";
@@ -106,7 +106,7 @@
 "Accept" = "Accept";
 /* ./Encamera/KeyManagement/KeySelectionGridItem.swift */
 "Active" = "Active";
-"Create New Key" = "Create New Key";
+"CreateNewAlbum" = "Create New Album";
 "Add Existing Key" = "Add Existing Key";
 "My Keys" = "My Keys";
 /* ./Encamera/KeyManagement/KeyOperationCell.swift */
@@ -150,7 +150,6 @@
 "Created %@" = "Created %@";
 "Key length: %@" = "Key length: %@";
 /* ./Encamera/KeyManagement/KeySelectionList.swift */
-"Create New Key" = "Create New Key";
 "Add Existing Key" = "Add Existing Key";
 "Backup Keys" = "Backup Keys";
 "Keys" = "Keys";
@@ -235,11 +234,12 @@
 "OnboardingIntroSubheadingText" = "Encamera encrypts everything, keeping your media safe from unwanted eyes.";
 "GetStartedButtonText" = "Let's Start";
 "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera encrypts everything, keeping your media safe from unwanted eyes.";
-"KeyBasedEncryption" = "Key-Based Encryption 🔑";
+"KeyBasedEncryption" = "Key-Based Encryption";
 "IntroStorageExplanation" = "Your media is safely secured behind a key and stored locally on your device on iCloud.";
-"For your eyes only 👀" = "No Tracking, No Data Collection 🤫";
-"NoTrackingExplanation" = "No trackers are installed in this app. Encamera doesn't use *any* services except those provided by Apple.";
-"EncameraIsOpenSource" = "Open Source 🌎";
+"NoTrackingOnboardingExplanation" = "No Tracking, No Data Collection";
+"EncryptionExplanation" = "Your media is safely secured behind a key and stored locally on your device on iCloud";
+"NoTrackingExplanation" = "No trackers are installed in this app. Encamera doesn't use any services except those provided by Apple.";
+"EncameraIsOpenSource" = "Open Source";
 "OpenSourceExplanation" = "Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.";
 
 "Enter Password" = "Enter Password";
@@ -310,8 +310,8 @@
 "Tap to Upgrade" = "Tap to Upgrade";
 "Take a Photo!" = "Take a Photo!";
 "Your Keys" = "Your Keys";
-"KeyTutorialText" = "Each key functions as an album, and each album uses a different key to encrypt media.\n\nBackup these keys! If you lose the key or your device, and don't select iCloud backup, your media cannot be recovered.";
-"KeyTutorialTitle" = "Introducing: Your Encryption Keys 🔑";
+"KeyTutorialText" = "Non explicabo officia aut odit ex eum ipsum libero.";
+"KeyTutorialTitle" = "All of your files are encrypted";
 
 /* ./Encamera/MediaImport/MediaImportView.swift */
 "Select All" = "Select All";

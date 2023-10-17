@@ -40,7 +40,7 @@ public enum L10n {
   public static let accept = L10n.tr("Localizable", "Accept", fallback: "Accept")
   /// Active
   public static let active = L10n.tr("Localizable", "Active", fallback: "Active")
-  /// Add Existing Key
+  /// ./Encamera/KeyManagement/KeySelectionList.swift
   public static let addExistingKey = L10n.tr("Localizable", "Add Existing Key", fallback: "Add Existing Key")
   /// ./Encamera/KeyManagement/KeyOperationCell.swift
   public static let addKey = L10n.tr("Localizable", "Add Key", fallback: "Add Key")
@@ -117,14 +117,14 @@ public enum L10n {
   public static let couldNotDeleteKeychainItems = L10n.tr("Localizable", "Could not delete keychain items.", fallback: "Could not delete keychain items.")
   /// Create an unlimited number of keys.
   public static let createAnUnlimitedNumberOfKeys = L10n.tr("Localizable", "Create an unlimited number of keys.", fallback: "Create an unlimited number of keys.")
-  /// ./Encamera/KeyManagement/KeySelectionList.swift
-  public static let createNewKey = L10n.tr("Localizable", "Create New Key", fallback: "Create New Key")
   /// Create unlimited keys 🔑 
   public static let createUnlimitedKeys🔑 = L10n.tr("Localizable", "Create unlimited keys 🔑 ", fallback: "Create unlimited keys 🔑 ")
   /// ./Encamera/KeyManagement/KeyInformation.swift
   public static func created(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Created %@", String(describing: p1), fallback: "Created %@")
   }
+  /// Create New Album
+  public static let createNewAlbum = L10n.tr("Localizable", "CreateNewAlbum", fallback: "Create New Album")
   /// Creation Date: %@
   public static func creationDate(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Creation Date: %@", String(describing: p1), fallback: "Creation Date: %@")
@@ -177,14 +177,16 @@ public enum L10n {
   }
   /// Encamera encrypts everything, keeping your media safe from unwanted eyes.
   public static let encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy = L10n.tr("Localizable", "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy.", fallback: "Encamera encrypts everything, keeping your media safe from unwanted eyes.")
-  /// Open Source 🌎
-  public static let encameraIsOpenSource = L10n.tr("Localizable", "EncameraIsOpenSource", fallback: "Open Source 🌎")
+  /// Open Source
+  public static let encameraIsOpenSource = L10n.tr("Localizable", "EncameraIsOpenSource", fallback: "Open Source")
   /// ./Encamera/Styles/ViewModifiers/ButtonViewModifier.swift
   public static let encryptEverything = L10n.tr("Localizable", "Encrypt Everything", fallback: "Encrypt Everything")
   /// Encrypting
   public static let encrypting = L10n.tr("Localizable", "Encrypting", fallback: "Encrypting")
   /// Encryption Key
   public static let encryptionKey = L10n.tr("Localizable", "Encryption Key", fallback: "Encryption Key")
+  /// Your media is safely secured behind a key and stored locally on your device on iCloud
+  public static let encryptionExplanation = L10n.tr("Localizable", "EncryptionExplanation", fallback: "Your media is safely secured behind a key and stored locally on your device on iCloud")
   /// Enter Password
   public static let enterPassword = L10n.tr("Localizable", "Enter Password", fallback: "Enter Password")
   /// Enter Promo Code
@@ -223,16 +225,14 @@ public enum L10n {
   public static let finishImportingMedia = L10n.tr("Localizable", "FinishImportingMedia", fallback: "Finish Importing Media")
   /// Follow @encamera_app on Twitter
   public static let followUs = L10n.tr("Localizable", "FollowUs", fallback: "Follow @encamera_app on Twitter")
-  /// No Tracking, No Data Collection 🤫
-  public static let forYourEyesOnly👀 = L10n.tr("Localizable", "For your eyes only 👀", fallback: "No Tracking, No Data Collection 🤫")
   /// Free Trial
   public static let freeTrial = L10n.tr("Localizable", "Free Trial", fallback: "Free Trial")
   /// TweetToShareView.swift
   public static let getOneYearFree = L10n.tr("Localizable", "GetOneYearFree", fallback: "Get 1 Year Free!")
   /// Let's Start
   public static let getStartedButtonText = L10n.tr("Localizable", "GetStartedButtonText", fallback: "Let's Start")
-  /// Got it!
-  public static let gotIt = L10n.tr("Localizable", "Got it!", fallback: "Got it!")
+  /// See how it works
+  public static let gotIt = L10n.tr("Localizable", "Got it!", fallback: "See how it works")
   /// ./Encamera/ImageViewing/GalleryGridView.swift
   public static let hide = L10n.tr("Localizable", "Hide", fallback: "Hide")
   /// ./Encamera/Settings/PromptToErase.swift
@@ -283,16 +283,14 @@ public enum L10n {
   public static let keySelection = L10n.tr("Localizable", "Key Selection", fallback: "Key Selection")
   /// Key Value
   public static let keyValue = L10n.tr("Localizable", "Key Value", fallback: "Key Value")
-  /// Key-Based Encryption 🔑
-  public static let keyBasedEncryption = L10n.tr("Localizable", "KeyBasedEncryption", fallback: "Key-Based Encryption 🔑")
+  /// Key-Based Encryption
+  public static let keyBasedEncryption = L10n.tr("Localizable", "KeyBasedEncryption", fallback: "Key-Based Encryption")
   /// Keys
   public static let keys = L10n.tr("Localizable", "Keys", fallback: "Keys")
-  /// Each key functions as an album, and each album uses a different key to encrypt media.
-  /// 
-  /// Backup these keys! If you lose the key or your device, and don't select iCloud backup, your media cannot be recovered.
-  public static let keyTutorialText = L10n.tr("Localizable", "KeyTutorialText", fallback: "Each key functions as an album, and each album uses a different key to encrypt media.\n\nBackup these keys! If you lose the key or your device, and don't select iCloud backup, your media cannot be recovered.")
-  /// Introducing: Your Encryption Keys 🔑
-  public static let keyTutorialTitle = L10n.tr("Localizable", "KeyTutorialTitle", fallback: "Introducing: Your Encryption Keys 🔑")
+  /// Non explicabo officia aut odit ex eum ipsum libero.
+  public static let keyTutorialText = L10n.tr("Localizable", "KeyTutorialText", fallback: "Non explicabo officia aut odit ex eum ipsum libero.")
+  /// All of your files are encrypted
+  public static let keyTutorialTitle = L10n.tr("Localizable", "KeyTutorialTitle", fallback: "All of your files are encrypted")
   /// Leave a Review
   public static let leaveAReview = L10n.tr("Localizable", "Leave a Review", fallback: "Leave a Review")
   /// Local
@@ -340,8 +338,10 @@ public enum L10n {
   public static let notDetermined = L10n.tr("Localizable", "Not determined.", fallback: "Not determined.")
   /// I'm Not Done
   public static let notDoneYet = L10n.tr("Localizable", "NotDoneYet", fallback: "I'm Not Done")
-  /// No trackers are installed in this app. Encamera doesn't use *any* services except those provided by Apple.
-  public static let noTrackingExplanation = L10n.tr("Localizable", "NoTrackingExplanation", fallback: "No trackers are installed in this app. Encamera doesn't use *any* services except those provided by Apple.")
+  /// No trackers are installed in this app. Encamera doesn't use any services except those provided by Apple.
+  public static let noTrackingExplanation = L10n.tr("Localizable", "NoTrackingExplanation", fallback: "No trackers are installed in this app. Encamera doesn't use any services except those provided by Apple.")
+  /// No Tracking, No Data Collection
+  public static let noTrackingOnboardingExplanation = L10n.tr("Localizable", "NoTrackingOnboardingExplanation", fallback: "No Tracking, No Data Collection")
   /// OK
   public static let ok = L10n.tr("Localizable", "OK", fallback: "OK")
   /// ./Encamera/Onboarding/MainOnboardingView.swift

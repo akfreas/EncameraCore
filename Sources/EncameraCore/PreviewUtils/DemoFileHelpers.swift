@@ -132,13 +132,15 @@ public class DemoFileEnumerator: FileAccess {
     
     
     public func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
-        let retVal: [T?] = (1...6).map { val in
-            if let url = Bundle(for: type(of: self)).url(forResource: "\(val)", withExtension: "JPG") {
-                return T(source: url, mediaType: .photo, id: "\(val)")
-            }
-            return nil
+        let retVal: [T] = (1...6).map { val in
+            let url = Bundle(for: type(of: self)).url(forResource: "\(val)", withExtension: "JPG")!
+            return T(source: url, mediaType: .photo, id: "\(val)")
+//            if let url = Bundle(for: type(of: self)).url(forResource: "\(val)", withExtension: "JPG")! {
+//                return T(source: url, mediaType: .photo, id: "\(val)")
+//            }
+//            return nil
         }
-            
+        print("Enumerated images: \(retVal)")
         return retVal.compactMap({$0}).shuffled()
     }
     public func delete(media: EncryptedMedia) async throws {
@@ -316,7 +318,7 @@ public class DemoOnboardingManager: OnboardingManaging {
     }
     
     public func generateOnboardingFlow() -> [OnboardingFlowScreen] {
-        return [.permissions]
+        return [.intro, .dataStorageSetting]
     }
     
     public func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {
