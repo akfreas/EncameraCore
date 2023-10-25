@@ -40,7 +40,7 @@ public enum L10n {
   public static let accept = L10n.tr("Localizable", "Accept", fallback: "Accept")
   /// Active
   public static let active = L10n.tr("Localizable", "Active", fallback: "Active")
-  /// ./Encamera/KeyManagement/KeySelectionList.swift
+  /// ./Encamera/KeyManagement/AlbumList.swift
   public static let addExistingKey = L10n.tr("Localizable", "Add Existing Key", fallback: "Add Existing Key")
   /// ./Encamera/KeyManagement/KeyOperationCell.swift
   public static let addKey = L10n.tr("Localizable", "Add Key", fallback: "Add Key")

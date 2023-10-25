@@ -19,7 +19,7 @@ public enum UserDefaultKey {
     case featureToggle(feature: Feature)
     case viewGalleryCount
     case lastVersionReviewRequested
-    case hasOpenedKeySelection
+    case hasOpenedAlbum
     case keyTutorialClosed
     case launchCount
     
