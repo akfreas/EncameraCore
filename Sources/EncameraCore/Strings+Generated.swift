@@ -44,6 +44,10 @@ public enum L10n {
   public static let addExistingKey = L10n.tr("Localizable", "Add Existing Key", fallback: "Add Existing Key")
   /// ./Encamera/KeyManagement/KeyOperationCell.swift
   public static let addKey = L10n.tr("Localizable", "Add Key", fallback: "Add Key")
+  /// Add Photos
+  public static let addPhotos = L10n.tr("Localizable", "AddPhotos", fallback: "Add Photos")
+  /// AlbumGrid
+  public static let albumsTitle = L10n.tr("Localizable", "AlbumsTitle", fallback: "Albums")
   /// Are you sure you want to erase ALL ENCAMERA DATA?
   /// 
   /// THIS WILL ERASE:
@@ -138,7 +142,7 @@ public enum L10n {
     return L10n.tr("Localizable", "Decryption error: %@", String(describing: p1), fallback: "Decryption error: %@")
   }
   /// ./EncameraCore/Constants/AppConstants.swift
-  public static let defaultKey = L10n.tr("Localizable", "DefaultKey", fallback: "DefaultKey")
+  public static let defaultAlbumName = L10n.tr("Localizable", "DefaultAlbumName", fallback: "My Album")
   /// Delete
   public static let delete = L10n.tr("Localizable", "Delete", fallback: "Delete")
   /// Delete All Associated Data?
@@ -229,6 +233,8 @@ public enum L10n {
   public static let freeTrial = L10n.tr("Localizable", "Free Trial", fallback: "Free Trial")
   /// TweetToShareView.swift
   public static let getOneYearFree = L10n.tr("Localizable", "GetOneYearFree", fallback: "Get 1 Year Free!")
+  /// Get Premium
+  public static let getPremium = L10n.tr("Localizable", "GetPremium", fallback: "Get Premium")
   /// Let's Start
   public static let getStartedButtonText = L10n.tr("Localizable", "GetStartedButtonText", fallback: "Let's Start")
   /// See how it works
@@ -396,8 +402,6 @@ public enum L10n {
   public static let pleaseSelectAStorageLocation = L10n.tr("Localizable", "Please select a storage location.", fallback: "Please select a storage location.")
   /// premium
   public static let premium = L10n.tr("Localizable", "premium", fallback: "premium")
-  /// ✨ Premium ✨
-  public static let premiumSparkles = L10n.tr("Localizable", "premium sparkles", fallback: "✨ Premium ✨")
   /// Privacy Policy
   public static let privacyPolicy = L10n.tr("Localizable", "Privacy Policy", fallback: "Privacy Policy")
   /// Repeat Password

@@ -9,7 +9,7 @@
 "Next" = "Next";
 
 /* ./EncameraCore/Constants/AppConstants.swift */
-"DefaultKey" = "DefaultKey";
+"DefaultAlbumName" = "My Album";
 // $'"n"n"nnCopy the code into the "n" form in the app to use it again."' = $'"n"n"nnCopy the code into the "n" form in the app to use it again."';
 /* ./EncameraCore/Utils/KeyManager.swift */
 "Could not delete keychain items." = "Could not delete keychain items.";
@@ -64,7 +64,8 @@
 "Open Source" = "Open Source";
 "Leave a Review" = "Leave a Review";
 "Password successfully changed" = "Password successfully changed";
-"premium sparkles" = "✨ Premium ✨";
+"GetPremium" = "Get Premium";
+"PremiumUnlockTheseBenefits" = "Unlock all of these amazing benefits today";
 "Restore Purchases" = "Restore Purchases";
 "Settings" = "Settings";
 "Contact" = "Contact";
@@ -109,6 +110,9 @@
 "CreateNewAlbum" = "Create New Album";
 "Add Existing Key" = "Add Existing Key";
 "My Keys" = "My Keys";
+/* AlbumGrid */
+"AlbumsTitle" = "Albums";
+
 /* ./Encamera/KeyManagement/KeyOperationCell.swift */
 "Add Key" = "Add Key";
 /* ./Encamera/KeyManagement/KeyExchange.swift */
@@ -125,6 +129,7 @@
 "Key Info" = "Key Info";
 "Share Key" = "Share Key";
 "Back Up Key" = "Back Up Key";
+"AddPhotos" = "Add Photos";
 "Delete Key" = "Delete Key";
 "Delete" = "Delete";
 "Delete All Key Data" = "Delete Media & Key";

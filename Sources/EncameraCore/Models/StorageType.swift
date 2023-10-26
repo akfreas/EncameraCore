@@ -15,7 +15,7 @@ public struct StorageAvailabilityModel: Identifiable, Equatable {
     }
 }
 
-public enum StorageType: String {
+public enum StorageType: String, Codable {
     case icloud
     case local
     

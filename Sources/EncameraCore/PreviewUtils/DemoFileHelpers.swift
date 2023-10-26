@@ -140,7 +140,6 @@ public class DemoFileEnumerator: FileAccess {
 //            }
 //            return nil
         }
-        print("Enumerated images: \(retVal)")
         return retVal.compactMap({$0}).shuffled()
     }
     public func delete(media: EncryptedMedia) async throws {

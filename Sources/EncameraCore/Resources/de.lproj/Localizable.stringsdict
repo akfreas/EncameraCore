@@ -20,11 +20,11 @@
 			<string>Fotos übrig</string>
 		</dict>
 	</dict>
-	<key>%@ Image(s)</key>
+	<key>%@ Item(s)</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>
 		<string>%#@image_count@</string>
-		<key>image_count</key>
+		<key>item_count</key>
 		<dict>
 			<key>NSStringFormatSpecTypeKey</key>
 			<string>NSStringPluralRuleType</string>
