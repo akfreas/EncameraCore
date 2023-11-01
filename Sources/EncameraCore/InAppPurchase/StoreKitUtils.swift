@@ -91,10 +91,3 @@ public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, Observabl
 
     }
 }
-
-struct StoreKitUtils {
-    
-    func isPhotoSubscriptionActive() -> Bool {
-        return false
-    }
-}

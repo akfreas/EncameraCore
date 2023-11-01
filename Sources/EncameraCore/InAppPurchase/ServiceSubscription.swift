@@ -37,29 +37,23 @@ public struct ServiceSubscription: Identifiable, Equatable {
 }
 
 public struct SubscriptionSavings {
-    let percentSavings: Decimal
-    let granularPrice: Decimal
+    let totalSavings: Decimal
+    let monthlyPrice: Decimal
     let granularPricePeriod: Product.SubscriptionPeriod.Unit
     
-    public init(percentSavings: Decimal, granularPrice: Decimal, granularPricePeriod: Product.SubscriptionPeriod.Unit) {
-        self.percentSavings = percentSavings
-        self.granularPrice = granularPrice
+    public init(totalSavings: Decimal, granularPrice: Decimal, granularPricePeriod: Product.SubscriptionPeriod.Unit) {
+        self.totalSavings = totalSavings
+        self.monthlyPrice = granularPrice
         self.granularPricePeriod = granularPricePeriod
     }
-    
-    public var formattedPercent: String {
-        return percentSavings.formatted(.percent.precision(.significantDigits(3)))
+
+    public func formattedTotalSavings(for subscription: ServiceSubscription) ->  String {
+        return L10n.saveAmount(totalSavings.formatted(subscription.priceFormatStyle))
     }
     
-//    @available(iOS 16.0, *)
-    public func formattedPrice(for subscription: ServiceSubscription) -> String {
-        if #available(iOS 16.0, *) {
-            let currency = granularPrice.formatted(subscription.priceFormatStyle)
-            let period = granularPricePeriod.formatted(subscription.subscriptionPeriodUnitFormatStyle).lowercased()
-            return "\(currency)/\(period)"
-        } else {
-            return subscription.priceText
-        }
-        
+    public func formattedMonthlyPrice(for subscription: ServiceSubscription) -> String {
+        let currency = monthlyPrice.formatted(subscription.priceFormatStyle)
+        let period = granularPricePeriod.formatted(subscription.subscriptionPeriodUnitFormatStyle).lowercased()
+        return "\(currency)/\(period)"
     }
 }

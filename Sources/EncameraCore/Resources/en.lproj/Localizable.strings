@@ -197,6 +197,9 @@
 "Cancel" = "Cancel";
 "Save" = "Save";
 /* ./Encamera/AuthenticationView/PasswordEntry.swift */
+"WelcomeBack" = "Welcome back!";
+"EnterYourPassword" = "Enter your password";
+"Or" = "Or";
 "Password" = "Password";
 "Invalid Password" = "Invalid Password";
 /* ./Encamera/AuthenticationView/AuthenticationView.swift */
@@ -301,7 +304,7 @@
 "Subscribe" = "Subscribe";
 /* ./Encamera/Store/SubscriptionOptionView.swift */
 "Subscribed" = "Subscribed";
-"SaveAmount %@ $@" = "%@ (Save %@)";
+"SaveAmount %@ $@" = "SAVE %@";
 /* ./Encamera/Store/PurchaseUpgradeOptionsListView.swift */
 "**Purchased: %@**" = "**Purchased: %@**";
 "Thank you for your support!" = "Thank you for your support!";

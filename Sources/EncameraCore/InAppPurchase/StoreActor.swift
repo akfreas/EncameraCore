@@ -20,8 +20,6 @@ import StoreKit
     ]
     
     public static let productIDs: Array<String> = [
-        lifetimeUnlimitedBasic,
-        lifetimeUnlimitedBasicFamily
     ]
     
     public static let allProductIDs: Array<String> = {

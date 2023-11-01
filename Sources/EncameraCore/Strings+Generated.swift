@@ -197,6 +197,8 @@ public enum L10n {
   public static let enterPromoCode = L10n.tr("Localizable", "Enter Promo Code", fallback: "Enter Promo Code")
   /// Enter the name of the key to delete all its data, including saved media, forever.
   public static let enterTheNameOfTheKeyToDeleteAllItsDataIncludingSavedMediaForever = L10n.tr("Localizable", "Enter the name of the key to delete all its data, including saved media, forever.", fallback: "Enter the name of the key to delete all its data, including saved media, forever.")
+  /// Enter your password
+  public static let enterYourPassword = L10n.tr("Localizable", "EnterYourPassword", fallback: "Enter your password")
   /// Erase
   public static let erase = L10n.tr("Localizable", "Erase", fallback: "Erase")
   /// Erase all data
@@ -376,6 +378,8 @@ public enum L10n {
   public static let openSettings = L10n.tr("Localizable", "OpenSettings", fallback: "Open Settings")
   /// Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.
   public static let openSourceExplanation = L10n.tr("Localizable", "OpenSourceExplanation", fallback: "Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.")
+  /// Or
+  public static let or = L10n.tr("Localizable", "Or", fallback: "Or")
   /// Password
   public static let password = L10n.tr("Localizable", "Password", fallback: "Password")
   /// Password incorrect
@@ -402,6 +406,8 @@ public enum L10n {
   public static let pleaseSelectAStorageLocation = L10n.tr("Localizable", "Please select a storage location.", fallback: "Please select a storage location.")
   /// premium
   public static let premium = L10n.tr("Localizable", "premium", fallback: "premium")
+  /// Unlock all of these amazing benefits today
+  public static let premiumUnlockTheseBenefits = L10n.tr("Localizable", "PremiumUnlockTheseBenefits", fallback: "Unlock all of these amazing benefits today")
   /// Privacy Policy
   public static let privacyPolicy = L10n.tr("Localizable", "Privacy Policy", fallback: "Privacy Policy")
   /// Repeat Password
@@ -418,9 +424,9 @@ public enum L10n {
   public static let saveKeyToICloud = L10n.tr("Localizable", "Save Key to iCloud", fallback: "Save Key to iCloud")
   /// Save this media?
   public static let saveThisMedia = L10n.tr("Localizable", "Save this media?", fallback: "Save this media?")
-  /// %@ (Save %@)
-  public static func saveAmount(_ p1: Any, _ p2: Any) -> String {
-    return L10n.tr("Localizable", "SaveAmount %@ $@", String(describing: p1), String(describing: p2), fallback: "%@ (Save %@)")
+  /// SAVE %@
+  public static func saveAmount(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "SaveAmount %@ $@", String(describing: p1), fallback: "SAVE %@")
   }
   /// Saves encrypted files to iCloud Drive.
   public static let savesEncryptedFilesToICloudDrive = L10n.tr("Localizable", "Saves encrypted files to iCloud Drive.", fallback: "Saves encrypted files to iCloud Drive.")
@@ -538,6 +544,8 @@ public enum L10n {
   public static let viewUnlimitedPhotos😍 = L10n.tr("Localizable", "View unlimited photos 😍 ", fallback: "View unlimited photos 😍 ")
   /// ./Encamera/Tutorial/ExplanationForUpgradeTutorial.swift
   public static let wantMore = L10n.tr("Localizable", "Want more?", fallback: "Want more?")
+  /// ./Encamera/AuthenticationView/PasswordEntry.swift
+  public static let welcomeBack = L10n.tr("Localizable", "WelcomeBack", fallback: "Welcome back!")
   /// What is Encamera?
   public static let whatIsEncamera = L10n.tr("Localizable", "What is Encamera?", fallback: "What is Encamera?")
   /// Where do you want to save this key's media?
