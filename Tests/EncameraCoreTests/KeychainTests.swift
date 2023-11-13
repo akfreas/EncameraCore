@@ -13,22 +13,22 @@ import Combine
 
 class KeychainTests: XCTestCase {
     
-    var keyManager: MultipleKeyKeychainManager = MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
+    var keyManager: MultipleKeyKeychainManager = MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
     
     override func setUp() async throws {
-        try? keyManager.clearKeychainData()
+        keyManager.clearKeychainData()
         try? keyManager.clearPassword()
     }
     
     override func tearDown() {
-        try? keyManager.clearKeychainData()
+        keyManager.clearKeychainData()
         try? keyManager.clearPassword()
     }
 
     
     func testStoreMultipleKeys() throws {
-        try keyManager.generateNewKey(name: "test1", storageType: .local)
-        try keyManager.generateNewKey(name: "test2", storageType: .local)
+        try keyManager.generateNewKey(name: "test1")
+        try keyManager.generateNewKey(name: "test2")
         
         let storedKeys = try keyManager.storedKeys()
         
@@ -38,8 +38,8 @@ class KeychainTests: XCTestCase {
     }
     
     func testSelectCurrentKey() throws {
-        try keyManager.generateNewKey(name: "test4", storageType: .local)
-        try keyManager.generateNewKey(name: "test5", storageType: .local)
+        try keyManager.generateNewKey(name: "test4")
+        try keyManager.generateNewKey(name: "test5")
 
         try keyManager.setActiveKey("test5")
         
@@ -49,8 +49,8 @@ class KeychainTests: XCTestCase {
     }
     
     func testDeleteKeyByName() throws {
-        try keyManager.generateNewKey(name: "test1_key", storageType: .local)
-        let key = try keyManager.generateNewKey(name: "test2_key", storageType: .local)
+        try keyManager.generateNewKey(name: "test1_key")
+        let key = try keyManager.generateNewKey(name: "test2_key")
 
         try keyManager.deleteKey(key)
         
@@ -62,7 +62,7 @@ class KeychainTests: XCTestCase {
     
     func testGenerateNewKeySetsCurrentKey() throws {
         
-        let newKey = try keyManager.generateNewKey(name: "test1_key", storageType: .local)
+        let newKey = try keyManager.generateNewKey(name: "test1_key")
 
         XCTAssertEqual(keyManager.currentKey, newKey)
         let activeKey = try XCTUnwrap(keyManager.getActiveKey())
@@ -71,7 +71,7 @@ class KeychainTests: XCTestCase {
     
     func testGenerateNewKeySetsCurrentKeyInUserDefaults() throws {
         
-        let newKey = try keyManager.generateNewKey(name: "test1_key", storageType: .local)
+        let newKey = try keyManager.generateNewKey(name: "test1_key")
 
         XCTAssertEqual(keyManager.currentKey, newKey)
         let activeKey = try XCTUnwrap(UserDefaultUtils.value(forKey: .currentKey) as? String)
@@ -80,14 +80,14 @@ class KeychainTests: XCTestCase {
     
     func testGenerateNewKeySetsActiveKeyWithoutUserDefaults() throws {
         
-        let newKey = try keyManager.generateNewKey(name: "test1_key", storageType: .local)
+        let newKey = try keyManager.generateNewKey(name: "test1_key")
         UserDefaultUtils.removeObject(forKey: .currentKey)
         let activeKey = try XCTUnwrap(keyManager.getActiveKey())
         XCTAssertEqual(activeKey, newKey)
     }
     
     func testDeleteKeyUnsetsCurrentKey() throws {
-        let newKey = try keyManager.generateNewKey(name: "test1_key", storageType: .local)
+        let newKey = try keyManager.generateNewKey(name: "test1_key")
 
         try keyManager.deleteKey(newKey)
         
@@ -97,25 +97,25 @@ class KeychainTests: XCTestCase {
     
     func testGenerateMutipleNewKeysSetsFirstKeyAsCurrentKey() throws {
         
-        let newKey = try keyManager.generateNewKey(name: "test1_key", storageType: .local)
-        try keyManager.generateNewKey(name: "test2_key", storageType: .local)
+        let newKey = try keyManager.generateNewKey(name: "test1_key")
+        try keyManager.generateNewKey(name: "test2_key")
         XCTAssertEqual(keyManager.currentKey, newKey)
         let activeKey = try XCTUnwrap(keyManager.getActiveKey())
         XCTAssertEqual(activeKey, newKey)
     }
     
     func testGeneratingNewKeyWithExistingNameThrowsError() throws {
-        try keyManager.generateNewKey(name: "test1_key", storageType: .local)
-        XCTAssertThrowsError(try keyManager.generateNewKey(name: "test1_key", storageType: .local))
+        try keyManager.generateNewKey(name: "test1_key")
+        XCTAssertThrowsError(try keyManager.generateNewKey(name: "test1_key"))
         
     }
     
     func testInitSetsCurrentKeyIfAuthenticated() throws {
         
-        let key = try keyManager.generateNewKey(name: "test1_key", storageType: .local)
+        let key = try keyManager.generateNewKey(name: "test1_key")
         try keyManager.setActiveKey(key.name)
         let subject = PassthroughSubject<Bool, Never>()
-        let newManager = MultipleKeyKeychainManager(isAuthenticated: subject.eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
+        let newManager = MultipleKeyKeychainManager(isAuthenticated: subject.eraseToAnyPublisher())
         subject.send(true)
         
         XCTAssertEqual(newManager.currentKey, key)
@@ -124,17 +124,17 @@ class KeychainTests: XCTestCase {
     
     func testInitDoesNotSetCurrentKeyIfNotAuthenticated() throws {
         
-        try keyManager.generateNewKey(name: "test1_key", storageType: .local)
+        try keyManager.generateNewKey(name: "test1_key")
 
-        let newManager = MultipleKeyKeychainManager(isAuthenticated: Just(false).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
+        let newManager = MultipleKeyKeychainManager(isAuthenticated: Just(false).eraseToAnyPublisher())
         
         XCTAssertNil(newManager.currentKey)
         
     }
     
     func testCreateBackupDocument() throws {
-        try keyManager.generateNewKey(name: "test4", storageType: .local)
-        try keyManager.generateNewKey(name: "test5", storageType: .local)
+        try keyManager.generateNewKey(name: "test4")
+        try keyManager.generateNewKey(name: "test5")
 
         let doc = try keyManager.createBackupDocument()
         

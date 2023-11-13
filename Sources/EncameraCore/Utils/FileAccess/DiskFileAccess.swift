@@ -26,13 +26,13 @@ public actor DiskFileAccess: FileEnumerator {
     
     public init() {}
     
-    public init(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
-        await configure(with: key, storageSettingsManager: storageSettingsManager)
+    public init(for album: Album, with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
+        await configure(for: album, with: key, storageSettingsManager: storageSettingsManager)
     }
     
-    public func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
+    public func configure(for album: Album, with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
         self.key = key
-        let storageModel = storageSettingsManager.storageModelFor(keyName: key?.name)
+        let storageModel = storageSettingsManager.storageModelFor(album: album)
         self.directoryModel = storageModel
         try? self.directoryModel?.initializeDirectories()
     }
@@ -327,7 +327,7 @@ extension DiskFileAccess: FileWriter {
                 continue
             }
             do {
-                try type.modelForType.init(keyName: "").deleteAllFiles()
+                try type.modelForType.deleteAllFiles()
             } catch {
                 print("Could not delete all files for \(type): ", error)
             }

@@ -8,8 +8,8 @@
 import Foundation
 
 public protocol DataStorageSetting {
-    func storageModelFor(keyName: KeyName?) -> DataStorageModel?
-    func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType)
+    func storageModelFor(album: Album?) -> DataStorageModel?
+    func setStorageTypeFor(album: Album, directoryModelType: StorageType)
 }
 
 public extension DataStorageSetting {
@@ -44,33 +44,33 @@ public extension DataStorageSetting {
 public struct DataStorageUserDefaultsSetting: DataStorageSetting {
     
     private enum Constants {
-        static func directoryTypeKeyFor(keyName: KeyName) -> String {
-            return "encamera.keydirectory.\(keyName)"
+        static func directoryTypeKeyFor(album: Album) -> String {
+            return "encamera.keydirectory.\(album.name)"
         }
     }
     
     public init() {}
     
-    public func storageModelFor(keyName: KeyName?) -> DataStorageModel? {
-        
-        guard let keyName = keyName else {
+    public func storageModelFor(album: Album?) -> DataStorageModel? {
+
+        guard let album else {
             return nil
         }
-        guard let directoryModelString = UserDefaultUtils.value(forKey: .directoryTypeKeyFor(keyName: keyName)) as? String,
+        guard let directoryModelString = UserDefaultUtils.value(forKey: .directoryTypeKeyFor(album: album)) as? String,
               let type = StorageType(rawValue: directoryModelString) else {
-            let model = determineStorageModelFor(keyName: keyName) ?? LocalStorageModel(keyName: keyName)
-            setStorageTypeFor(keyName: keyName, directoryModelType: model.storageType)
+            let model = determineStorageModelFor(album: album) ?? LocalStorageModel(album: album)
+            setStorageTypeFor(album: album, directoryModelType: model.storageType)
             return model
         }
         
-        let model = type.modelForType.init(keyName: keyName)
-        
+        let model = type.modelForType.init(album: album)
+
         return model
     }
     
-    public func determineStorageModelFor(keyName: KeyName) -> DataStorageModel? {
-        
-        let local = LocalStorageModel(keyName: keyName)
+    public func determineStorageModelFor(album: Album) -> DataStorageModel? {
+
+        let local = LocalStorageModel(album: album)
         if FileManager.default.fileExists(atPath: local.baseURL.path) {
             return local
         }
@@ -79,7 +79,7 @@ public struct DataStorageUserDefaultsSetting: DataStorageSetting {
             return local
         }
         
-        let remote = iCloudStorageModel(keyName: keyName)
+        let remote = iCloudStorageModel(album: album)
         _ = remote.baseURL.startAccessingSecurityScopedResource()
         defer {
             remote.baseURL.stopAccessingSecurityScopedResource()
@@ -90,8 +90,7 @@ public struct DataStorageUserDefaultsSetting: DataStorageSetting {
         return nil
     }
     
-    public func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType) {
-        UserDefaultUtils.set(directoryModelType.rawValue, forKey: .directoryTypeKeyFor(keyName: keyName))
-        
+    public func setStorageTypeFor(album: Album, directoryModelType: StorageType) {
+        UserDefaultUtils.set(directoryModelType.rawValue, forKey: .directoryTypeKeyFor(album: album))
     }
 }

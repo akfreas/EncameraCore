@@ -28,9 +28,9 @@ public class DemoFileEnumerator: FileAccess {
             
         }
     }
-    
-    public func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
-        
+    public func configure(for album: Album, with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
+
+
     }
     
     
@@ -155,15 +155,18 @@ public class DemoFileEnumerator: FileAccess {
 }
 
 public class DemoDirectoryModel: DataStorageModel {
+    public static var rootURL: URL = URL(fileURLWithPath: "")
+    
+
     public var storageType: StorageType = .local
     
-    public var keyName: KeyName = "testSuite"
-    
+    public var album: Album = Album(name: "Test", storageOption: .local, creationDate: Date())
+
     public var baseURL: URL
     
     public var thumbnailDirectory: URL
     
-    public required init(keyName: KeyName) {
+    public required init(album: Album) {
         self.baseURL = URL(fileURLWithPath: NSTemporaryDirectory(),
                            isDirectory: true).appendingPathComponent("base")
         self.thumbnailDirectory = URL(fileURLWithPath: NSTemporaryDirectory(),
@@ -171,7 +174,7 @@ public class DemoDirectoryModel: DataStorageModel {
     }
     
     convenience init() {
-        self.init(keyName: "")
+        self.init(album: Album(name: "", storageOption: .local, creationDate: Date()))
     }
     
     
@@ -196,12 +199,7 @@ public class DemoDirectoryModel: DataStorageModel {
 }
 
 public class DemoKeyManager: KeyManager {
-   
-    
-    public var keyDirectoryStorage: DataStorageSetting = DemoStorageSettingsManager()
-    
-     
-    
+
     private var hasExistingPassword = false
     public var throwError = false
     public var password: String? {
@@ -241,7 +239,7 @@ public class DemoKeyManager: KeyManager {
         
     }
     
-    public func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
+    public func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
         
     }
     
@@ -266,7 +264,7 @@ public class DemoKeyManager: KeyManager {
         
     }
     
-    public func generateNewKey(name: String, storageType: StorageType, backupToiCloud: Bool) throws -> PrivateKey {
+    public func generateNewKey(name: String, backupToiCloud: Bool) throws -> PrivateKey {
         return try PrivateKey(base64String: "")
     }
     
@@ -280,15 +278,15 @@ public class DemoKeyManager: KeyManager {
     
     
     public convenience init() {
-        self.init(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
+        self.init(isAuthenticated: Just(true).eraseToAnyPublisher())
     }
     
     public convenience init(keys: [PrivateKey]) {
-        self.init(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
+        self.init(isAuthenticated: Just(true).eraseToAnyPublisher())
         self.storedKeysValue = keys
     }
     
-    public required init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
+    public required init(isAuthenticated: AnyPublisher<Bool, Never>) {
         self.isAuthenticated = isAuthenticated
         self.currentKey = PrivateKey(name: "secrets", keyBytes: [], creationDate: Date())
         self.keyPublisher = PassthroughSubject<PrivateKey?, Never>().eraseToAnyPublisher()
@@ -329,12 +327,12 @@ public class DemoOnboardingManager: OnboardingManaging {
 
 public class DemoStorageSettingsManager: DataStorageSetting {
     public init() {}
-    public func storageModelFor(keyName: KeyName?) -> DataStorageModel? {
-        return LocalStorageModel(keyName: keyName!)
+    public func storageModelFor(album: Album?) -> DataStorageModel? {
+        return LocalStorageModel(album: album!)
     }
     
-    public func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType) {
-        
+    public func setStorageTypeFor(album: Album, directoryModelType: StorageType) {
+
     }
     
     

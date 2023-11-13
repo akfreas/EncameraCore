@@ -10,21 +10,25 @@ import UIKit
 import UniformTypeIdentifiers
 
 public struct AppGroupStorageModel: DataStorageModel {
-    public var baseURL: URL {
-        return FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: UserDefaultUtils.appGroup)!
+    public static var rootURL: URL {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: UserDefaultUtils.appGroup)!
             .appendingPathComponent("ImportImages")
     }
-    
-    public var keyName: KeyName = ""
-    
+
+    public var album: Album
+
+    public var baseURL: URL {
+        return Self.rootURL
+    }
+
     public var storageType: StorageType = .local
     
     init() {
-        
+        self.album = Album(name: "", storageOption: .local, creationDate: Date())
     }
     
-    public init(keyName: KeyName) {
-        
+    public init(album: Album) {
+        self.album = album
     }
     
     
@@ -32,6 +36,8 @@ public struct AppGroupStorageModel: DataStorageModel {
 
 
 public class AppGroupFileReader: FileAccess {
+
+    
     public var directoryModel: DataStorageModel? = AppGroupStorageModel()
     
    
@@ -85,8 +91,8 @@ public class AppGroupFileReader: FileAccess {
 
 
 extension AppGroupFileReader: FileEnumerator {
-    
-    public func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
+
+    public func configure(for album: Album, with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
         
     }
     

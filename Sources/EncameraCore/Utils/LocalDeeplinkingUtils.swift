@@ -19,10 +19,10 @@ public class LocalDeeplinkingUtils {
         UIApplication.shared.open(url)
     }
     
-    public static func openKeyContentsInFiles(keyName: KeyName) {
-        
+    public static func openAlbumContentsInFiles(album: Album) {
+
         let storageSetting = DataStorageUserDefaultsSetting()
-        let model = storageSetting.storageModelFor(keyName: keyName)
+        let model = storageSetting.storageModelFor(album: album)
         guard let url = model?.baseURL.driveDeeplink() else {
             debugPrint("Could not create deeplink")
             return

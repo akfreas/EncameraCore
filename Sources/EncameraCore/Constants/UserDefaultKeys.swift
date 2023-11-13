@@ -13,7 +13,7 @@ public enum UserDefaultKey {
     case authenticationPolicy
     case currentKey
     case onboardingState
-    case directoryTypeKeyFor(keyName: KeyName)
+    case directoryTypeKeyFor(album: Album)
     case savedSettings
     case capturedPhotos
     case featureToggle(feature: Feature)
@@ -25,8 +25,8 @@ public enum UserDefaultKey {
     
     var rawValue: String {
         switch self {
-        case .directoryTypeKeyFor(let keyName):
-            return "\(UserDefaultKey.directoryPrefix)\(keyName)"
+        case .directoryTypeKeyFor(let album):
+            return "\(UserDefaultKey.directoryPrefix)\(album.name)"
         case .featureToggle(feature: let feature):
             return "featureToggle_\(feature)"
         default:

@@ -19,4 +19,6 @@ public enum AppConstants {
     public static let defaultAlbumName: String = L10n.defaultAlbumName
     public static let numberOfGalleryViewsBeforePromptingForReview = 5
     public static let requestForTweetFrequency = 3
+    public static let lowOpacity = 0.4
+
 }

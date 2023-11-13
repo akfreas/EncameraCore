@@ -7,7 +7,6 @@
 
 import Foundation
 
-
 public struct Album: Codable {
 
     public var name: String

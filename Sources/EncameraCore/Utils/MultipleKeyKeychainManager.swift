@@ -18,14 +18,11 @@ private enum KeychainConstants {
 
 public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
-    
-    
     public var isAuthenticated: AnyPublisher<Bool, Never>
     private var authenticated: Bool = false
     private var cancellables = Set<AnyCancellable>()
     private var sodium = Sodium()
     private var passwordValidator = PasswordValidator()
-    public var keyDirectoryStorage: DataStorageSetting
     private (set) public var currentKey: PrivateKey?  {
         didSet {
             keySubject.send(currentKey)
@@ -37,9 +34,8 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     private var keySubject: PassthroughSubject<PrivateKey?, Never> = .init()
     
-    required public init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
+    required public init(isAuthenticated: AnyPublisher<Bool, Never>) {
         self.isAuthenticated = isAuthenticated
-        self.keyDirectoryStorage = keyDirectoryStorage
         self.isAuthenticated.sink { newValue in
             self.authenticated = newValue
             do {
@@ -74,7 +70,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         print("Keychain data cleared")
     }
     
-    @discardableResult public func generateNewKey(name: String, storageType: StorageType, backupToiCloud: Bool = false) throws -> PrivateKey {
+    @discardableResult public func generateNewKey(name: String, backupToiCloud: Bool = false) throws -> PrivateKey {
         
         try checkAuthenticated()
         
@@ -91,7 +87,6 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
             setNewKeyToCurrent = true
         }
         try save(key: key,
-                 storageType: storageType,
                  setNewKeyToCurrent: setNewKeyToCurrent,
                  backupToiCloud: backupToiCloud)
         return key
@@ -116,7 +111,6 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
             setNewKeyToCurrent = true
         }
         try save(key: key,
-                 storageType: .local,  // Replace with actual storage type
                  setNewKeyToCurrent: setNewKeyToCurrent,
                  backupToiCloud: false)  // Set to true if you want to backup to iCloud
         return key
@@ -137,7 +131,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }.joined(separator: "\n").appending("\n\nCopy the code into the \"Key Entry\" form in the app to use it again.")
     }
     
-    public func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
+    public func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
         var query = key.keychainQueryDictForKeychain
         
         if backupToiCloud {
@@ -149,7 +143,6 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
         let status = SecItemAdd(query as CFDictionary, nil)
         try checkStatus(status: status)
-        keyDirectoryStorage.setStorageTypeFor(keyName: key.name, directoryModelType: storageType)
 
         if setNewKeyToCurrent {
             try setActiveKey(key.name)

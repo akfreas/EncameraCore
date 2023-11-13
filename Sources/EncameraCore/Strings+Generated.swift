@@ -46,6 +46,8 @@ public enum L10n {
   public static let addKey = L10n.tr("Localizable", "Add Key", fallback: "Add Key")
   /// Add Photos
   public static let addPhotos = L10n.tr("Localizable", "AddPhotos", fallback: "Add Photos")
+  /// Album Name
+  public static let albumName = L10n.tr("Localizable", "AlbumName", fallback: "Album Name")
   /// AlbumGrid
   public static let albumsTitle = L10n.tr("Localizable", "AlbumsTitle", fallback: "Albums")
   /// Are you sure you want to erase ALL ENCAMERA DATA?
@@ -251,8 +253,6 @@ public enum L10n {
   public static let iAmDone = L10n.tr("Localizable", "IAmDone", fallback: "I'm Done")
   /// ./EncameraCore/Models/StorageType.swift
   public static let iCloud = L10n.tr("Localizable", "iCloud", fallback: "iCloud")
-  /// If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe.
-  public static let ifYouDonTUseICloudBackupItSHighlyRecommendedThatYouBackupYourKeysToAPasswordManagerOrSomewhereElseSafe = L10n.tr("Localizable", "If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe.", fallback: "If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe.")
   /// Import
   public static let `import` = L10n.tr("Localizable", "Import", fallback: "Import")
   /// Import media
@@ -277,8 +277,6 @@ public enum L10n {
   }
   /// Key Management
   public static let keyManagement = L10n.tr("Localizable", "Key Management", fallback: "Key Management")
-  /// Key Name
-  public static let keyName = L10n.tr("Localizable", "Key Name", fallback: "Key Name")
   /// Key name is invalid, must be more than two characters
   public static let keyNameIsInvalidMustBeMoreThanTwoCharacters = L10n.tr("Localizable", "Key name is invalid, must be more than two characters", fallback: "Key name is invalid, must be more than two characters")
   /// ./Encamera/KeyManagement/AddExchangedKeyConfirmation.swift
@@ -289,8 +287,6 @@ public enum L10n {
   public static let keyNotFound = L10n.tr("Localizable", "Key not found.", fallback: "Key not found.")
   /// Key Selection
   public static let keySelection = L10n.tr("Localizable", "Key Selection", fallback: "Key Selection")
-  /// Key Value
-  public static let keyValue = L10n.tr("Localizable", "Key Value", fallback: "Key Value")
   /// Key-Based Encryption
   public static let keyBasedEncryption = L10n.tr("Localizable", "KeyBasedEncryption", fallback: "Key-Based Encryption")
   /// Keys
@@ -311,12 +307,10 @@ public enum L10n {
   public static let multipleKeysForMultiplePurposesExplanation = L10n.tr("Localizable", "MultipleKeysForMultiplePurposesExplanation", fallback: "You can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".")
   /// My Keys
   public static let myKeys = L10n.tr("Localizable", "My Keys", fallback: "My Keys")
-  /// New Key
-  public static let newKey = L10n.tr("Localizable", "New Key", fallback: "New Key")
-  /// Set the name for this key.
-  /// 
-  /// You can have multiple keys for different purposes, e.g. one named "Documents" and another "Personal".
-  public static let newKeySubheading = L10n.tr("Localizable", "New Key Subheading", fallback: "Set the name for this key.\n\nYou can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".")
+  /// New Album
+  public static let newAlbum = L10n.tr("Localizable", "New Album", fallback: "New Album")
+  /// Set the name for this encrypted photo album.
+  public static let newAlbumSubheading = L10n.tr("Localizable", "New Album Subheading", fallback: "Set the name for this encrypted photo album.")
   /// New Password
   public static let newPassword = L10n.tr("Localizable", "New Password", fallback: "New Password")
   /// Localizable.strings
@@ -410,6 +404,8 @@ public enum L10n {
   public static let premiumUnlockTheseBenefits = L10n.tr("Localizable", "PremiumUnlockTheseBenefits", fallback: "Unlock all of these amazing benefits today")
   /// Privacy Policy
   public static let privacyPolicy = L10n.tr("Localizable", "Privacy Policy", fallback: "Privacy Policy")
+  /// ./Encamera/Onboarding/OnboardingView.swift
+  public static let profileSetup = L10n.tr("Localizable", "ProfileSetup", fallback: "PROFILE SETUP")
   /// Repeat Password
   public static let repeatPassword = L10n.tr("Localizable", "Repeat Password", fallback: "Repeat Password")
   /// Restore Purchases

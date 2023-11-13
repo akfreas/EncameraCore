@@ -10,12 +10,13 @@ import Combine
 
 public protocol DataStorageModel {
     var baseURL: URL { get }
-    var keyName: KeyName { get }
+    var album: Album { get }
     var thumbnailDirectory: URL { get }
     var storageType: StorageType { get }
     
-    init(keyName: KeyName)
+    init(album: Album)
     func initializeDirectories() throws
+    static var rootURL: URL { get }
 }
 
 enum DataStorageModelError: Error {
@@ -58,9 +59,14 @@ extension DataStorageModel {
     }
     
     func enumeratorForStorageDirectory(resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil) -> [URL] {
-        let driveUrl = baseURL
+        return Self.enumeratorForStorageDirectory(at: baseURL, resourceKeys: resourceKeys, fileExtensionFilter: fileExtensionFilter)
+    }
+
+
+    static func enumeratorForStorageDirectory(at url: URL, resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil) -> [URL] {
+        let driveUrl = url
         _ = driveUrl.startAccessingSecurityScopedResource()
-        
+
         guard let enumerator = FileManager.default.enumerator(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys)) else {
             return []
         }
@@ -77,7 +83,7 @@ extension DataStorageModel {
                 guard components.count > 1 else {
                     return false
                 }
-                
+
                 //Account for .icloud final extension, just take the "middle" extension
                 guard let fileExtension = components[safe: 1] else { return false }
                 return fileExtensionFilter.contains(where: {$0.lowercased() == fileExtension})
@@ -85,15 +91,16 @@ extension DataStorageModel {
         }
         return mapped
     }
-    
+
+
     public func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.fileExtension]) -> Int {
         return enumeratorForStorageDirectory(resourceKeys: Set(), fileExtensionFilter: matchingFileExtension).count
     }
     
    
         
-    func deleteAllFiles() throws {
-        for url in enumeratorForStorageDirectory() {
+    static func deleteAllFiles() throws {
+        for url in enumeratorForStorageDirectory(at: Self.rootURL) {
             do {
                 try FileManager.default.removeItem(at: url)
                 debugPrint("Deleted item at \(url)")

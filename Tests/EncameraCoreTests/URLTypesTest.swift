@@ -14,11 +14,11 @@ import Combine
 class URLTypesTest: XCTestCase {
     
     var key: PrivateKey!
-    let keyManager = MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DataStorageUserDefaultsSetting())
+    let keyManager = MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
     
     override func setUp() {
         
-        key = try? keyManager.generateNewKey(name: NSUUID().uuidString, storageType: .local)
+        key = try? keyManager.generateNewKey(name: NSUUID().uuidString)
     }
     
     override func tearDown() {
