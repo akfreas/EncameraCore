@@ -149,24 +149,24 @@ public enum L10n {
   public static let defaultAlbumName = L10n.tr("Localizable", "DefaultAlbumName", fallback: "My Album")
   /// Delete
   public static let delete = L10n.tr("Localizable", "Delete", fallback: "Delete")
+  /// Delete Album?
+  public static let deleteAlbumQuestion = L10n.tr("Localizable", "Delete Album question", fallback: "Delete Album?")
   /// Delete All Associated Data?
   public static let deleteAllAssociatedData = L10n.tr("Localizable", "Delete All Associated Data?", fallback: "Delete All Associated Data?")
   /// Delete Media & Key
   public static let deleteAllKeyData = L10n.tr("Localizable", "Delete All Key Data", fallback: "Delete Media & Key")
   /// Delete Everything
   public static let deleteEverything = L10n.tr("Localizable", "Delete Everything", fallback: "Delete Everything")
-  /// Delete Key
-  public static let deleteKey = L10n.tr("Localizable", "Delete Key", fallback: "Delete Key")
-  /// Delete Key?
-  public static let deleteKeyQuestion = L10n.tr("Localizable", "Delete Key question", fallback: "Delete Key?")
   /// ./Encamera/ImageViewing/GalleryHorizontalScrollView.swift
   public static let deleteThisImage = L10n.tr("Localizable", "Delete this image?", fallback: "Delete this image?")
+  /// Delete Album
+  public static let deleteAlbum = L10n.tr("Localizable", "DeleteAlbum", fallback: "Delete Album")
+  /// Do you want to delete this album and all media associated with it forever?
+  public static let deleteAlbumForever = L10n.tr("Localizable", "DeleteAlbumForever", fallback: "Do you want to delete this album and all media associated with it forever?")
   /// Delete Images?
   public static let deleteImported = L10n.tr("Localizable", "DeleteImported", fallback: "Delete Images?")
   /// Deletion Error
   public static let deletionError = L10n.tr("Localizable", "Deletion Error", fallback: "Deletion Error")
-  /// Do you want to delete this key and all media associated with it forever?
-  public static let doYouWantToDeleteThisKeyAndAllMediaAssociatedWithItForever = L10n.tr("Localizable", "Do you want to delete this key and all media associated with it forever?", fallback: "Do you want to delete this key and all media associated with it forever?")
   /// Do you want to delete this key forever? All media will remain saved.
   public static let doYouWantToDeleteThisKeyForeverAllMediaWillRemainSaved = L10n.tr("Localizable", "Do you want to delete this key forever? All media will remain saved.", fallback: "Do you want to delete this key forever? All media will remain saved.")
   /// Done
@@ -199,8 +199,6 @@ public enum L10n {
   public static let enterPassword = L10n.tr("Localizable", "Enter Password", fallback: "Enter Password")
   /// Enter Promo Code
   public static let enterPromoCode = L10n.tr("Localizable", "Enter Promo Code", fallback: "Enter Promo Code")
-  /// Enter the name of the key to delete all its data, including saved media, forever.
-  public static let enterTheNameOfTheKeyToDeleteAllItsDataIncludingSavedMediaForever = L10n.tr("Localizable", "Enter the name of the key to delete all its data, including saved media, forever.", fallback: "Enter the name of the key to delete all its data, including saved media, forever.")
   /// Enter your password
   public static let enterYourPassword = L10n.tr("Localizable", "EnterYourPassword", fallback: "Enter your password")
   /// Erase
@@ -540,6 +538,8 @@ public enum L10n {
   public static let viewUnlimitedPhotosForEachKey = L10n.tr("Localizable", "View unlimited photos for each key.", fallback: "View unlimited photos for each key.")
   /// View unlimited photos 😍 
   public static let viewUnlimitedPhotos😍 = L10n.tr("Localizable", "View unlimited photos 😍 ", fallback: "View unlimited photos 😍 ")
+  /// View in Files App
+  public static let viewInFiles = L10n.tr("Localizable", "ViewInFiles", fallback: "View in Files App")
   /// ./Encamera/Tutorial/ExplanationForUpgradeTutorial.swift
   public static let wantMore = L10n.tr("Localizable", "Want more?", fallback: "Want more?")
   /// ./Encamera/AuthenticationView/PasswordEntry.swift

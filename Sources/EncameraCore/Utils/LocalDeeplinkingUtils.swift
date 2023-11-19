@@ -21,13 +21,13 @@ public class LocalDeeplinkingUtils {
     
     public static func openAlbumContentsInFiles(album: Album) {
 
-//        let model = DataStorageAvailabilityUtil..storageModelFor(album: album)
-//        guard let url = model?.baseURL.driveDeeplink() else {
-//            debugPrint("Could not create deeplink")
-//            return
-//        }
-//        
-//        UIApplication.shared.open(url)
+        let model = AlbumManager().storageModel(for: album)
+        guard let url = model?.baseURL.driveDeeplink() else {
+            debugPrint("Could not create deeplink")
+            return
+        }
+        
+        UIApplication.shared.open(url)
     }
     
     public static func deeplinkFor(key: PrivateKey) -> URL? {

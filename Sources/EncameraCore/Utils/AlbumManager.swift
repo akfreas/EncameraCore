@@ -86,7 +86,17 @@ public class AlbumManager: AlbumManaging, ObservableObject {
     }
 
     public func delete(album: Album) {
+        let fileManager = FileManager.default
+        let albumURL = album.storageURL
 
+        // Check if the directory exists
+        if fileManager.fileExists(atPath: albumURL.path) {
+            // If the directory exists, delete it
+            try? fileManager.removeItem(at: albumURL)
+        }
+
+        // Remove album from albums collection
+        albums.removeAll(where: { $0.id == album.id })
     }
 
     public func create(album: Album) throws {
