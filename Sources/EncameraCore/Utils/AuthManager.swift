@@ -224,13 +224,12 @@ public class DeviceAuthManager: AuthManager {
     
     @discardableResult public func evaluateWithBiometrics() async throws -> Bool {
         cancelNotificationObservers()
-        
-                
+
         guard let method = availableBiometric else {
             throw AuthManagerError.biometricsNotAvailable
         }
         do {
-            print("Attempting LA auth")
+            debugPrint("Attempting LA auth")
             let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: L10n.keepYourEncryptedDataSafeByUsing(method.nameForMethod))
             setupNotificationObservers()
             return result

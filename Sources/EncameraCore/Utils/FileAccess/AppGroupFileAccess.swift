@@ -91,7 +91,7 @@ public class AppGroupFileReader: FileAccess {
 
 extension AppGroupFileReader: FileEnumerator {
 
-    public func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManager) async {
+    public func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async {
         
     }
     

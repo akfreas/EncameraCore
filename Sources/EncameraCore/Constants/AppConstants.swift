@@ -21,5 +21,6 @@ public enum AppConstants {
     public static let numberOfGalleryViewsBeforePromptingForReview = 5
     public static let requestForTweetFrequency = 3
     public static let lowOpacity = 0.4
+    public static let previewDirectory = "preview_thumbnails"
 
 }

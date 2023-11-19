@@ -22,7 +22,8 @@ public enum UserDefaultKey {
     case hasOpenedAlbum
     case keyTutorialClosed
     case launchCount
-    
+    case currentAlbumID
+
     var rawValue: String {
         switch self {
         case .directoryTypeKeyFor(let album):

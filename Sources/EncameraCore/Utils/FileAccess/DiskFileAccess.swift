@@ -26,11 +26,11 @@ public actor DiskFileAccess: FileEnumerator {
     
     public init() {}
     
-    public init(for album: Album, with key: PrivateKey?, albumManager: AlbumManager) async {
+    public init(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async {
         await configure(for: album, with: key, albumManager: albumManager)
     }
     
-    public func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManager) async {
+    public func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async {
         self.key = key
         let storageModel = albumManager.storageModel(for: album)
         self.directoryModel = storageModel

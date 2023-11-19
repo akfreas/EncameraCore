@@ -29,7 +29,7 @@ public class DemoFileEnumerator: FileAccess {
             
         }
     }
-    public func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManager) async {
+    public func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async {
 
     }
 
@@ -360,5 +360,56 @@ public class DemoPurchasedPermissionManaging: PurchasedPermissionManaging {
     }
     public func hasEntitlement() -> Bool {
         return false
+    }
+}
+
+public class DemoAlbumManager: AlbumManaging {
+    public var selectedAlbumPublisher: AnyPublisher<Album?, Never> = PassthroughSubject<Album?, Never>().eraseToAnyPublisher()
+
+    @Published public var albums: [Album]
+    private var albumSubject = PassthroughSubject<[Album], Never>()
+
+    public var albumPublisher: AnyPublisher<[Album], Never> {
+        albumSubject.eraseToAnyPublisher()
+    }
+
+    public var defaultStorageForAlbum: StorageType
+    public var currentAlbum: Album?
+    public var availableAlbums: [Album] { albums }
+
+    public init() {
+        // Initialize demo data
+        self.defaultStorageForAlbum = .local // Example storage type
+        self.albums = [
+            // Populate with demo albums
+            Album(name: "Demo Album 1", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 2", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 3", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 4", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 5", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 6", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 7", storageOption: .icloud, creationDate: Date())
+        ]
+        self.currentAlbum = albums.first
+    }
+
+    public func delete(album: Album) {
+        // No-op for demo
+    }
+
+    public func create(album: Album) throws {
+        // No-op for demo
+    }
+
+    public func storageModel(for album: Album) -> DataStorageModel? {
+        // Return a demo storage model
+        return nil // Replace with an actual demo model if needed
+    }
+
+    public func validateAlbumName(name: String) throws {
+        // Example validation logic
+        guard !name.isEmpty else {
+            throw AlbumError.albumNameError
+        }
     }
 }

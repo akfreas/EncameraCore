@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Alexander Freas on 12.11.23.
 //
@@ -8,32 +8,43 @@
 import Foundation
 import Combine
 
-public enum AlbumError: ErrorDescribable {
-
+public enum AlbumError: Error, CustomStringConvertible {
     case albumNameError
+    case albumExists
 
-
-    public var displayDescription: String {
+    public var description: String {
         switch self {
         case .albumNameError:
             return L10n.albumNameInvalid
+        case .albumExists:
+            return L10n.aKeyWithThisNameAlreadyExists
+        }
+    }
+}
+
+public class AlbumManager: AlbumManaging, ObservableObject {
+    public var selectedAlbumPublisher: AnyPublisher<Album?, Never> {
+        $currentAlbum.eraseToAnyPublisher()
+    }
+
+
+    @Published public var albums: [Album] = [] {
+        didSet {
+            albumSubject.send(albums)
         }
     }
 
-}
 
-public class AlbumManager {
-
-    public var albumPublisher: AnyPublisher<Album?, Never> {
+    public var albumPublisher: AnyPublisher<[Album], Never> {
         albumSubject.eraseToAnyPublisher()
     }
 
     public var defaultStorageForAlbum: StorageType = .local
 
-    private var albumSubject: PassthroughSubject<Album?, Never> = .init()
-    public var currentAlbum: Album? {
+    private var albumSubject: PassthroughSubject<[Album], Never> = .init()
+    @Published public var currentAlbum: Album? {
         didSet {
-            albumSubject.send(currentAlbum)
+            UserDefaultUtils.set(currentAlbum?.id, forKey: .currentAlbumID)
         }
     }
     public var availableAlbums: [Album] {
@@ -44,6 +55,7 @@ public class AlbumManager {
                 let directoryName = url.lastPathComponent
                 let attributes = try? fileManager.attributesOfItem(atPath: url.path)
                 let creationDate = attributes?[.creationDate] as? Date
+                print("name: \(url), creationDate: \(String(describing: creationDate))")
                 return creationDate != nil ? Album(name: directoryName, storageOption: .local, creationDate: creationDate!) : nil
             }
 
@@ -52,14 +64,50 @@ public class AlbumManager {
                 let directoryName = url.lastPathComponent
                 let attributes = try? fileManager.attributesOfItem(atPath: url.path)
                 let creationDate = attributes?[.creationDate] as? Date
+                print("name: \(url), creationDate: \(String(describing: creationDate))")
+
                 return creationDate != nil ? Album(name: directoryName, storageOption: .icloud, creationDate: creationDate!) : nil
             }
 
         return (localAlbums + iCloudAlbums).sorted { $0.creationDate < $1.creationDate }
+
+    }
+    required public init() {
+        self.albums = availableAlbums
+
+        // Retrieve the current album ID from user defaults
+        if let currentAlbumID = UserDefaultUtils.string(forKey: .currentAlbumID),
+            let foundAlbum = availableAlbums.first(where: { $0.id == currentAlbumID }) {
+            // Find the album with the matching ID
+            self.currentAlbum = foundAlbum
+        } else {
+            self.currentAlbum = availableAlbums.first
+        }
     }
 
     public func delete(album: Album) {
-        
+
+    }
+
+    public func create(album: Album) throws {
+        let fileManager = FileManager.default
+        let albumURL = album.storageURL
+
+        // Check if the directory already exists
+        if fileManager.fileExists(atPath: albumURL.path) {
+            // If the directory exists, throw the albumExists error
+            throw AlbumError.albumExists
+        }
+
+        // If the directory does not exist, create it
+        try fileManager.createDirectory(
+            at: albumURL,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+
+        // Add album to the albums collection
+        albums.append(album)
     }
 
 
@@ -72,10 +120,6 @@ public class AlbumManager {
             throw KeyManagerError.keyNameError
         }
     }
-
-    required public init() {
-    }
-
 
 
 }
