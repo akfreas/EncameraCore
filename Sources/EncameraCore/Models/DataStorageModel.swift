@@ -17,6 +17,7 @@ public protocol DataStorageModel {
     init(album: Album)
     func initializeDirectories() throws
     static var rootURL: URL { get }
+    static func enumerateRootDirectory() -> [URL]
 }
 
 enum DataStorageModelError: Error {
@@ -25,7 +26,40 @@ enum DataStorageModelError: Error {
 }
 
 extension DataStorageModel {
-    
+
+    static func enumeratorForStorageDirectory(at url: URL, resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil) -> [URL] {
+        let driveUrl = url
+        _ = driveUrl.startAccessingSecurityScopedResource()
+
+        guard let enumerator = FileManager.default.enumerator(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys)) else {
+            return []
+        }
+        driveUrl.stopAccessingSecurityScopedResource()
+        let mapped = enumerator.compactMap { item -> URL? in
+            guard let itemUrl = item as? URL else {
+                return nil
+            }
+            return itemUrl
+        }
+        if let fileExtensionFilter = fileExtensionFilter {
+            return mapped.filter({
+                let components = $0.lastPathComponent.split(separator: ".")
+                guard components.count > 1 else {
+                    return false
+                }
+
+                //Account for .icloud final extension, just take the "middle" extension
+                guard let fileExtension = components[safe: 1] else { return false }
+                return fileExtensionFilter.contains(where: {$0.lowercased() == fileExtension})
+            })
+        }
+        return mapped
+    }
+
+    public static func enumerateRootDirectory() -> [URL] {
+        return enumeratorForStorageDirectory(at: rootURL)
+    }
+
     public var thumbnailDirectory: URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         let documentsDirectory = paths[0]
@@ -61,37 +95,6 @@ extension DataStorageModel {
     func enumeratorForStorageDirectory(resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil) -> [URL] {
         return Self.enumeratorForStorageDirectory(at: baseURL, resourceKeys: resourceKeys, fileExtensionFilter: fileExtensionFilter)
     }
-
-
-    static func enumeratorForStorageDirectory(at url: URL, resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil) -> [URL] {
-        let driveUrl = url
-        _ = driveUrl.startAccessingSecurityScopedResource()
-
-        guard let enumerator = FileManager.default.enumerator(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys)) else {
-            return []
-        }
-        driveUrl.stopAccessingSecurityScopedResource()
-        let mapped = enumerator.compactMap { item -> URL? in
-            guard let itemUrl = item as? URL else {
-                return nil
-            }
-            return itemUrl
-        }
-        if let fileExtensionFilter = fileExtensionFilter {
-            return mapped.filter({
-                let components = $0.lastPathComponent.split(separator: ".")
-                guard components.count > 1 else {
-                    return false
-                }
-
-                //Account for .icloud final extension, just take the "middle" extension
-                guard let fileExtension = components[safe: 1] else { return false }
-                return fileExtensionFilter.contains(where: {$0.lowercased() == fileExtension})
-            })
-        }
-        return mapped
-    }
-
 
     public func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.fileExtension]) -> Int {
         return enumeratorForStorageDirectory(resourceKeys: Set(), fileExtensionFilter: matchingFileExtension).count

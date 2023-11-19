@@ -34,7 +34,6 @@ public struct AppGroupStorageModel: DataStorageModel {
     
 }
 
-
 public class AppGroupFileReader: FileAccess {
 
     
@@ -92,7 +91,7 @@ public class AppGroupFileReader: FileAccess {
 
 extension AppGroupFileReader: FileEnumerator {
 
-    public func configure(for album: Album, with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
+    public func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManager) async {
         
     }
     

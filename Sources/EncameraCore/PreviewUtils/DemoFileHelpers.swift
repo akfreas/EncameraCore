@@ -15,6 +15,7 @@ enum DemoError: Error {
 }
 
 public class DemoFileEnumerator: FileAccess {
+
     public var directoryModel: DataStorageModel? = DemoDirectoryModel()
     
    
@@ -28,12 +29,11 @@ public class DemoFileEnumerator: FileAccess {
             
         }
     }
-    public func configure(for album: Album, with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
-
+    public func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManager) async {
 
     }
-    
-    
+
+
     public func copy(media: EncryptedMedia) async throws {
         
     }
@@ -199,6 +199,8 @@ public class DemoDirectoryModel: DataStorageModel {
 }
 
 public class DemoKeyManager: KeyManager {
+    public var keyPublisher: AnyPublisher<PrivateKey?, Never>
+    
 
     private var hasExistingPassword = false
     public var throwError = false
@@ -293,9 +295,7 @@ public class DemoKeyManager: KeyManager {
     }
     
     public var isAuthenticated: AnyPublisher<Bool, Never>
-        
-    public var keyPublisher: AnyPublisher<PrivateKey?, Never>
-    
+            
     public func clearKeychainData() {
         
     }
@@ -325,18 +325,6 @@ public class DemoOnboardingManager: OnboardingManaging {
     
 }
 
-public class DemoStorageSettingsManager: DataStorageSetting {
-    public init() {}
-    public func storageModelFor(album: Album?) -> DataStorageModel? {
-        return LocalStorageModel(album: album!)
-    }
-    
-    public func setStorageTypeFor(album: Album, directoryModelType: StorageType) {
-
-    }
-    
-    
-}
 
 public class DemoPrivateKey {
     public static func dummyKey(name: String) -> PrivateKey {

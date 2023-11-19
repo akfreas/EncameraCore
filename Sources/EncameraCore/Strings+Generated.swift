@@ -48,6 +48,8 @@ public enum L10n {
   public static let addPhotos = L10n.tr("Localizable", "AddPhotos", fallback: "Add Photos")
   /// Album Name
   public static let albumName = L10n.tr("Localizable", "AlbumName", fallback: "Album Name")
+  /// Album name must be longer than 1 character
+  public static let albumNameInvalid = L10n.tr("Localizable", "AlbumNameInvalid", fallback: "Album name must be longer than 1 character")
   /// AlbumGrid
   public static let albumsTitle = L10n.tr("Localizable", "AlbumsTitle", fallback: "Albums")
   /// Are you sure you want to erase ALL ENCAMERA DATA?

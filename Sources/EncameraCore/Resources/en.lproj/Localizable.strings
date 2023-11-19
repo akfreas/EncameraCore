@@ -178,6 +178,7 @@
 "StorageSettingsSubheading" = "Where do you want to store media for files encrypted with this key?\nEach key will store data in its own directory.\n";
 
 "New Album" = "New Album";
+"AlbumNameInvalid" = "Album name must be longer than 1 character";
 "MultipleKeysForMultiplePurposesExplanation" = "You can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".";
 "Storage Settings" = "Storage Settings";
 "Save Key" = "Save Key";

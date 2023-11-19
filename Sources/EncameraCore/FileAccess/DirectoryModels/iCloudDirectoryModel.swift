@@ -31,7 +31,6 @@ public class iCloudStorageModel: DataStorageModel {
     
     private var localCancellables = Set<AnyCancellable>()
     public var baseURL: URL {
-
         
         let destURL = iCloudStorageModel.rootURL.appendingPathComponent(album.name)
         return destURL

@@ -18,13 +18,13 @@ public enum FileAccessError: Error {
 
 public protocol FileEnumerator {
 
-    func configure(for album: Album, with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async
+    func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManager) async
     func enumerateMedia<T: MediaDescribing>() async -> [T] where T.MediaSource == URL
 }
 
 public protocol FileReader: FileEnumerator {
     
-    func configure(for album: Album, with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async
+    func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManager) async
     func loadLeadingThumbnail() async throws -> UIImage?
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL
     func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL>

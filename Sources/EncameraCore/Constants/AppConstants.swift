@@ -17,6 +17,7 @@ public enum AppConstants {
     public static var numberOfPhotosBeforeInitialTutorial: Double = 1
     public static let maxPhotoCountBeforePurchase: Double = 5
     public static let defaultAlbumName: String = L10n.defaultAlbumName
+    public static let defaultKeyName: String = "DefaultKey"
     public static let numberOfGalleryViewsBeforePromptingForReview = 5
     public static let requestForTweetFrequency = 3
     public static let lowOpacity = 0.4
