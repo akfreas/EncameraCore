@@ -98,7 +98,6 @@ extension DataStorageModel {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         let documentsDirectory = paths[0]
         let thumbnailDirectory = documentsDirectory.appendingPathComponent(AppConstants.previewDirectory, isDirectory: true)
-        print("Thumbnail directory: \(thumbnailDirectory)")
         return thumbnailDirectory
     }
     

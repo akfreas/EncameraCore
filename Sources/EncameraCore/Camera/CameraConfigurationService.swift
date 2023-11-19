@@ -89,6 +89,8 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
     
     public init(model: CameraConfigurationServiceModel) {
         self.model = model
+
+
     }
     
     public func configure() async {
@@ -123,6 +125,8 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
             debugPrint("Could not stop session, isSessionRunning: \(self.session.isRunning), model.setupResult: \(model.setupResult)")
             return
         }
+        cancellables.forEach({ $0.cancel() })
+        cancellables.removeAll()
         self.session.stopRunning()
     }
     
@@ -134,6 +138,19 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
         switch self.model.setupResult {
         case .setupComplete:
             self.session.startRunning()
+            NotificationUtils.didEnterBackgroundPublisher
+                .sink { _ in
+                    Task {
+                        await self.stop()
+                    }
+                }.store(in: &cancellables)
+            NotificationUtils.willResignActivePublisher
+                .sink { _ in
+                    Task {
+                        await self.stop()
+                    }
+
+                }.store(in: &cancellables)
             guard self.session.isRunning else {
                 debugPrint("Session is not running")
                 return
