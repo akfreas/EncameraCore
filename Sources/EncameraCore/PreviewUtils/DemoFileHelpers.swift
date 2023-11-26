@@ -15,6 +15,7 @@ enum DemoError: Error {
 }
 
 public class DemoFileEnumerator: FileAccess {
+
     public var directoryModel: DataStorageModel? = DemoDirectoryModel()
     
    
@@ -28,12 +29,11 @@ public class DemoFileEnumerator: FileAccess {
             
         }
     }
-    
-    public func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
-        
+    public func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async {
+
     }
-    
-    
+
+
     public func copy(media: EncryptedMedia) async throws {
         
     }
@@ -155,15 +155,18 @@ public class DemoFileEnumerator: FileAccess {
 }
 
 public class DemoDirectoryModel: DataStorageModel {
+    public static var rootURL: URL = URL(fileURLWithPath: "")
+    
+
     public var storageType: StorageType = .local
     
-    public var keyName: KeyName = "testSuite"
-    
+    public var album: Album = Album(name: "Test", storageOption: .local, creationDate: Date())
+
     public var baseURL: URL
     
     public var thumbnailDirectory: URL
     
-    public required init(keyName: KeyName) {
+    public required init(album: Album) {
         self.baseURL = URL(fileURLWithPath: NSTemporaryDirectory(),
                            isDirectory: true).appendingPathComponent("base")
         self.thumbnailDirectory = URL(fileURLWithPath: NSTemporaryDirectory(),
@@ -171,7 +174,7 @@ public class DemoDirectoryModel: DataStorageModel {
     }
     
     convenience init() {
-        self.init(keyName: "")
+        self.init(album: Album(name: "", storageOption: .local, creationDate: Date()))
     }
     
     
@@ -196,12 +199,9 @@ public class DemoDirectoryModel: DataStorageModel {
 }
 
 public class DemoKeyManager: KeyManager {
-   
+    public var keyPublisher: AnyPublisher<PrivateKey?, Never>
     
-    public var keyDirectoryStorage: DataStorageSetting = DemoStorageSettingsManager()
-    
-     
-    
+
     private var hasExistingPassword = false
     public var throwError = false
     public var password: String? {
@@ -241,7 +241,7 @@ public class DemoKeyManager: KeyManager {
         
     }
     
-    public func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
+    public func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
         
     }
     
@@ -266,7 +266,7 @@ public class DemoKeyManager: KeyManager {
         
     }
     
-    public func generateNewKey(name: String, storageType: StorageType, backupToiCloud: Bool) throws -> PrivateKey {
+    public func generateNewKey(name: String, backupToiCloud: Bool) throws -> PrivateKey {
         return try PrivateKey(base64String: "")
     }
     
@@ -280,24 +280,22 @@ public class DemoKeyManager: KeyManager {
     
     
     public convenience init() {
-        self.init(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
+        self.init(isAuthenticated: Just(true).eraseToAnyPublisher())
     }
     
     public convenience init(keys: [PrivateKey]) {
-        self.init(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
+        self.init(isAuthenticated: Just(true).eraseToAnyPublisher())
         self.storedKeysValue = keys
     }
     
-    public required init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
+    public required init(isAuthenticated: AnyPublisher<Bool, Never>) {
         self.isAuthenticated = isAuthenticated
         self.currentKey = PrivateKey(name: "secrets", keyBytes: [], creationDate: Date())
         self.keyPublisher = PassthroughSubject<PrivateKey?, Never>().eraseToAnyPublisher()
     }
     
     public var isAuthenticated: AnyPublisher<Bool, Never>
-        
-    public var keyPublisher: AnyPublisher<PrivateKey?, Never>
-    
+            
     public func clearKeychainData() {
         
     }
@@ -327,18 +325,6 @@ public class DemoOnboardingManager: OnboardingManaging {
     
 }
 
-public class DemoStorageSettingsManager: DataStorageSetting {
-    public init() {}
-    public func storageModelFor(keyName: KeyName?) -> DataStorageModel? {
-        return LocalStorageModel(keyName: keyName!)
-    }
-    
-    public func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType) {
-        
-    }
-    
-    
-}
 
 public class DemoPrivateKey {
     public static func dummyKey(name: String) -> PrivateKey {
@@ -374,5 +360,56 @@ public class DemoPurchasedPermissionManaging: PurchasedPermissionManaging {
     }
     public func hasEntitlement() -> Bool {
         return false
+    }
+}
+
+public class DemoAlbumManager: AlbumManaging {
+    public var selectedAlbumPublisher: AnyPublisher<Album?, Never> = PassthroughSubject<Album?, Never>().eraseToAnyPublisher()
+
+    @Published public var albums: [Album]
+    private var albumSubject = PassthroughSubject<[Album], Never>()
+
+    public var albumPublisher: AnyPublisher<[Album], Never> {
+        albumSubject.eraseToAnyPublisher()
+    }
+
+    public var defaultStorageForAlbum: StorageType
+    public var currentAlbum: Album?
+    public var availableAlbums: [Album] { albums }
+
+    public init() {
+        // Initialize demo data
+        self.defaultStorageForAlbum = .local // Example storage type
+        self.albums = [
+            // Populate with demo albums
+            Album(name: "Demo Album 1", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 2", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 3", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 4", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 5", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 6", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 7", storageOption: .icloud, creationDate: Date())
+        ]
+        self.currentAlbum = albums.first
+    }
+
+    public func delete(album: Album) {
+        // No-op for demo
+    }
+
+    public func create(album: Album) throws {
+        // No-op for demo
+    }
+
+    public func storageModel(for album: Album) -> DataStorageModel? {
+        // Return a demo storage model
+        return nil // Replace with an actual demo model if needed
+    }
+
+    public func validateAlbumName(name: String) throws {
+        // Example validation logic
+        guard !name.isEmpty else {
+            throw AlbumError.albumNameError
+        }
     }
 }

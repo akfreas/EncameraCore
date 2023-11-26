@@ -44,19 +44,16 @@ public enum KeyManagerError: ErrorDescribable {
 
 public protocol KeyManager {
     
-    init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting)
+    init(isAuthenticated: AnyPublisher<Bool, Never>)
     
     var isAuthenticated: AnyPublisher<Bool, Never> { get }
     var currentKey: PrivateKey? { get }
     var keyPublisher: AnyPublisher<PrivateKey?, Never> { get }
-    var keyDirectoryStorage: DataStorageSetting { get }
     func clearKeychainData()
-    func storedKeys() throws -> [PrivateKey]
     func deleteKey(_ key: PrivateKey) throws
-    func setActiveKey(_ name: KeyName?) throws
-    func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws
+    func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws
     func update(key: PrivateKey, backupToiCloud: Bool) throws
-    func generateNewKey(name: String, storageType: StorageType, backupToiCloud: Bool) throws -> PrivateKey
+    func generateNewKey(name: String, backupToiCloud: Bool) throws -> PrivateKey
     func validateKeyName(name: String) throws
     func createBackupDocument() throws -> String
     func checkPassword(_ password: String) throws -> Bool

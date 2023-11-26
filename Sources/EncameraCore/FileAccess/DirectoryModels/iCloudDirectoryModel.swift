@@ -9,26 +9,30 @@ import Foundation
 import Combine
 
 public class iCloudStorageModel: DataStorageModel {
-    
+    public static var rootURL: URL {
+        guard let driveURL = FileManager.default
+            .url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
+            fatalError("Could not get drive url")
+        }
+        return driveURL
+    }
+
+
     public var storageType: StorageType {
         .icloud
     }
     
     
-    public let keyName: KeyName
-    
-    required public init(keyName: KeyName) {
-        self.keyName = keyName
+    public let album: Album
+
+    required public init(album: Album) {
+        self.album = album
     }
     
     private var localCancellables = Set<AnyCancellable>()
     public var baseURL: URL {
-        guard let driveURL = FileManager.default
-            .url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
-            fatalError("Could not get drive url")
-        }
         
-        let destURL = driveURL.appendingPathComponent(keyName)
+        let destURL = iCloudStorageModel.rootURL.appendingPathComponent(album.name)
         return destURL
     }
     

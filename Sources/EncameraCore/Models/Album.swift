@@ -7,10 +7,21 @@
 
 import Foundation
 
+public struct Album: Codable, Identifiable {
 
-public struct Album: Codable {
+    public init(name: String, storageOption: StorageType, creationDate: Date) {
+        self.name = name
+        self.storageOption = storageOption
+        self.creationDate = creationDate
+    }
 
     public var name: String
     public var storageOption: StorageType
     public var creationDate: Date
+    public var id: String {
+        return name
+    }
+    public var storageURL: URL {
+        storageOption.modelForType.init(album: self).baseURL
+    }
 }

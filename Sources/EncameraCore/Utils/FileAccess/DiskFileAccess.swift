@@ -26,13 +26,13 @@ public actor DiskFileAccess: FileEnumerator {
     
     public init() {}
     
-    public init(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
-        await configure(with: key, storageSettingsManager: storageSettingsManager)
+    public init(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async {
+        await configure(for: album, with: key, albumManager: albumManager)
     }
     
-    public func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
+    public func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async {
         self.key = key
-        let storageModel = storageSettingsManager.storageModelFor(keyName: key?.name)
+        let storageModel = albumManager.storageModel(for: album)
         self.directoryModel = storageModel
         try? self.directoryModel?.initializeDirectories()
     }
@@ -78,6 +78,8 @@ extension FileReader {
 
 
 extension DiskFileAccess: FileReader {
+
+    
     
     public func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL {
         
@@ -321,13 +323,12 @@ extension DiskFileAccess: FileWriter {
         try FileManager.default.removeItem(at: url)
     }
     public func deleteAllMedia() async throws {
-        let storset = DataStorageUserDefaultsSetting()
         for type in StorageType.allCases {
-            guard case .available = storset.isStorageTypeAvailable(type: type) else {
+            guard case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: type) else {
                 continue
             }
             do {
-                try type.modelForType.init(keyName: "").deleteAllFiles()
+                try type.modelForType.deleteAllFiles()
             } catch {
                 print("Could not delete all files for \(type): ", error)
             }

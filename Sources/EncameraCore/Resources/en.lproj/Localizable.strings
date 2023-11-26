@@ -130,7 +130,8 @@
 "Share Key" = "Share Key";
 "Back Up Key" = "Back Up Key";
 "AddPhotos" = "Add Photos";
-"Delete Key" = "Delete Key";
+"DeleteAlbum" = "Delete Album";
+"ViewInFiles" = "View in Files App";
 "Delete" = "Delete";
 "Delete All Key Data" = "Delete Media & Key";
 "Save Key to iCloud" = "Save Key to iCloud";
@@ -140,9 +141,8 @@
 "Delete All Associated Data?" = "Delete All Associated Data?";
 "Delete Everything" = "Delete Everything";
 "Cancel" = "Cancel";
-"Enter the name of the key to delete all its data, including saved media, forever." = "Enter the name of the key to delete all its data, including saved media, forever.";
-"Do you want to delete this key and all media associated with it forever?" = "Do you want to delete this key and all media associated with it forever?";
-"Delete Key question" = "Delete Key?";
+"DeleteAlbumForever" = "Do you want to delete this album and all media associated with it forever?";
+"Delete Album question" = "Delete Album?";
 "Delete" = "Delete";
 "Cancel" = "Cancel";
 "Enter the name of the key to delete it forever. All media will remain saved." = "Enter the name of the key to delete it forever. All media will remain saved.";
@@ -177,7 +177,8 @@
 "" = "";
 "StorageSettingsSubheading" = "Where do you want to store media for files encrypted with this key?\nEach key will store data in its own directory.\n";
 
-"New Key" = "New Key";
+"New Album" = "New Album";
+"AlbumNameInvalid" = "Album name must be longer than 1 character";
 "MultipleKeysForMultiplePurposesExplanation" = "You can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".";
 "Storage Settings" = "Storage Settings";
 "Save Key" = "Save Key";
@@ -270,11 +271,9 @@
 
 "Enable %@" = "Enable %@";
 "Encryption Key" = "Encryption Key";
-"New Key Subheading" = "Set the name for this key.\n\nYou can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".";
+"New Album Subheading" = "Set the name for this encrypted photo album.";
 
-"Key Name" = "Key Name";
-"Key Value" = "Key Value";
-"If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe." = "If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe.";
+"AlbumName" = "Album Name";
 "Select Storage" = "Select Storage";
 "OnboardingPermissionsTitle" = "Permissions";
 "OnboardingPermissionsSubheading" = "You will need to give permissions to use the camera & microphone in order to access the app";
@@ -288,7 +287,7 @@
 "AllSetupOnboarding" = "Looks like you’re all set up! 🎊 Enjoy taking photos securely with Encamera’s top-notch encryption. 💪🔐";
 /* ./Encamera/Onboarding/StorageSettingView.swift */
 /* ./Encamera/Onboarding/OnboardingView.swift */
-
+"ProfileSetup" = "PROFILE SETUP";
 /* ./Encamera/Store/PurchaseUpgradeHeaderView.swift */
 "View unlimited photos for each key." = "View unlimited photos for each key.";
 "Create an unlimited number of keys." = "Create an unlimited number of keys.";

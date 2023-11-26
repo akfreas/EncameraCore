@@ -89,6 +89,8 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
     
     public init(model: CameraConfigurationServiceModel) {
         self.model = model
+
+
     }
     
     public func configure() async {
@@ -118,11 +120,13 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
     }
     
     
-    func stop() async {
-        guard self.session.isRunning, self.model.setupResult == .authorized else {
+    public func stop() async {
+        guard self.session.isRunning, self.model.setupResult == .setupComplete else {
             debugPrint("Could not stop session, isSessionRunning: \(self.session.isRunning), model.setupResult: \(model.setupResult)")
             return
         }
+        cancellables.forEach({ $0.cancel() })
+        cancellables.removeAll()
         self.session.stopRunning()
     }
     
@@ -134,6 +138,19 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
         switch self.model.setupResult {
         case .setupComplete:
             self.session.startRunning()
+            NotificationUtils.didEnterBackgroundPublisher
+                .sink { _ in
+                    Task {
+                        await self.stop()
+                    }
+                }.store(in: &cancellables)
+            NotificationUtils.willResignActivePublisher
+                .sink { _ in
+                    Task {
+                        await self.stop()
+                    }
+
+                }.store(in: &cancellables)
             guard self.session.isRunning else {
                 debugPrint("Session is not running")
                 return
@@ -393,21 +410,22 @@ private extension CameraConfigurationService {
         session.sessionPreset = .photo
         
         var defaultVideoDevice: AVCaptureDevice?
-        
-        if let dualCameraDevice = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
-            defaultVideoDevice = dualCameraDevice
-        } else if let dualWideCameraDevice = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) {
-            // If a rear dual camera is not available, default to the rear dual wide camera.
-            defaultVideoDevice = dualWideCameraDevice
-        } else if let backCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
-            // If a rear dual wide camera is not available, default to the rear wide angle camera.
-            defaultVideoDevice = backCameraDevice
-        } else if let frontCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) {
-            // If the rear wide angle camera isn't available, default to the front wide angle camera.
-            defaultVideoDevice = frontCameraDevice
+        let cameraTypes: [AVCaptureDevice.DeviceType] = [
+            .builtInDualCamera,
+            .builtInWideAngleCamera,
+            .builtInDualWideCamera,
+            .builtInTelephotoCamera,
+            .builtInUltraWideCamera
+        ]
+
+        // Try to find a suitable camera among the types
+        for cameraType in cameraTypes {
+            if let device = AVCaptureDevice.default(cameraType, for: .video, position: .back) {
+                defaultVideoDevice = device
+                break
+            }
         }
-        
-        
+
         guard let videoDevice = defaultVideoDevice else {
             throw SetupError.defaultVideoDeviceUnavailable
         }

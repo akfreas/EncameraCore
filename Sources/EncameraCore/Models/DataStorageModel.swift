@@ -10,12 +10,14 @@ import Combine
 
 public protocol DataStorageModel {
     var baseURL: URL { get }
-    var keyName: KeyName { get }
+    var album: Album { get }
     var thumbnailDirectory: URL { get }
     var storageType: StorageType { get }
     
-    init(keyName: KeyName)
+    init(album: Album)
     func initializeDirectories() throws
+    static var rootURL: URL { get }
+    static func enumerateRootDirectory() -> [URL]
 }
 
 enum DataStorageModelError: Error {
@@ -24,11 +26,78 @@ enum DataStorageModelError: Error {
 }
 
 extension DataStorageModel {
-    
+
+    static func enumeratorForStorageDirectory(at url: URL, resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil, exclude: [String] = [], onlyDirectories: Bool = false) -> [URL] {
+        let driveUrl = url
+        _ = driveUrl.startAccessingSecurityScopedResource()
+
+        var directoryContents: [URL]
+        do {
+            directoryContents = try FileManager.default.contentsOfDirectory(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys), options: [])
+        } catch {
+            driveUrl.stopAccessingSecurityScopedResource()
+            print("Error while enumerating files \(driveUrl.path): \(error.localizedDescription)")
+            return []
+        }
+
+        driveUrl.stopAccessingSecurityScopedResource()
+
+        let filteredContents = directoryContents.filter { url in
+            // Exclude .Trash directory
+            if url.lastPathComponent == ".Trash" {
+                return false
+            }
+
+            // Apply user-defined exclusions
+            for excludeString in exclude {
+                if url.path.contains(excludeString) {
+                    return false
+                }
+            }
+
+            // Filter for directories only if required
+            if onlyDirectories {
+                let isDirectory: Bool
+                do {
+                    let resourceValues = try url.resourceValues(forKeys: [.isDirectoryKey])
+                    isDirectory = resourceValues.isDirectory ?? false
+                } catch {
+                    print("Error reading resource values for \(url.path): \(error)")
+                    return false
+                }
+                return isDirectory
+            }
+
+            return true
+        }
+
+        if let fileExtensionFilter = fileExtensionFilter {
+            return filteredContents.filter({
+                let components = $0.lastPathComponent.split(separator: ".")
+                guard components.count > 1 else {
+                    return false
+                }
+
+                // Account for .icloud final extension, just take the "middle" extension
+                guard let fileExtension = components[safe: 1] else { return false }
+                return fileExtensionFilter.contains(where: { $0.lowercased() == fileExtension })
+            })
+        }
+        return filteredContents
+    }
+
+
+    public static func enumerateRootDirectory() -> [URL] {
+        return enumeratorForStorageDirectory(
+            at: rootURL,
+            exclude: [AppConstants.previewDirectory, "thumbs"],
+            onlyDirectories: true)
+    }
+
     public var thumbnailDirectory: URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         let documentsDirectory = paths[0]
-        let thumbnailDirectory = documentsDirectory.appendingPathComponent("thumbs")
+        let thumbnailDirectory = documentsDirectory.appendingPathComponent(AppConstants.previewDirectory, isDirectory: true)
         return thumbnailDirectory
     }
     
@@ -58,42 +127,15 @@ extension DataStorageModel {
     }
     
     func enumeratorForStorageDirectory(resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil) -> [URL] {
-        let driveUrl = baseURL
-        _ = driveUrl.startAccessingSecurityScopedResource()
-        
-        guard let enumerator = FileManager.default.enumerator(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys)) else {
-            return []
-        }
-        driveUrl.stopAccessingSecurityScopedResource()
-        let mapped = enumerator.compactMap { item -> URL? in
-            guard let itemUrl = item as? URL else {
-                return nil
-            }
-            return itemUrl
-        }
-        if let fileExtensionFilter = fileExtensionFilter {
-            return mapped.filter({
-                let components = $0.lastPathComponent.split(separator: ".")
-                guard components.count > 1 else {
-                    return false
-                }
-                
-                //Account for .icloud final extension, just take the "middle" extension
-                guard let fileExtension = components[safe: 1] else { return false }
-                return fileExtensionFilter.contains(where: {$0.lowercased() == fileExtension})
-            })
-        }
-        return mapped
+        return Self.enumeratorForStorageDirectory(at: baseURL, resourceKeys: resourceKeys, fileExtensionFilter: fileExtensionFilter)
     }
-    
+
     public func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.fileExtension]) -> Int {
         return enumeratorForStorageDirectory(resourceKeys: Set(), fileExtensionFilter: matchingFileExtension).count
     }
-    
-   
-        
-    func deleteAllFiles() throws {
-        for url in enumeratorForStorageDirectory() {
+
+    static func deleteAllFiles() throws {
+        for url in enumeratorForStorageDirectory(at: Self.rootURL) {
             do {
                 try FileManager.default.removeItem(at: url)
                 debugPrint("Deleted item at \(url)")

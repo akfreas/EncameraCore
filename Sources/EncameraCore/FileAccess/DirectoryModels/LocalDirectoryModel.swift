@@ -8,17 +8,22 @@
 import Foundation
 
 struct LocalStorageModel: DataStorageModel {
+    static var rootURL: URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        let documentsDirectory = paths[0]
+
+        return documentsDirectory
+    }
+
     
     var storageType: StorageType {
         .local
     }
     
     var baseURL: URL {
-        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-        let documentsDirectory = paths[0]
-        let filesDirectory = documentsDirectory.appendingPathComponent(keyName)
+        let filesDirectory = Self.rootURL.appendingPathComponent(album.name)
         return filesDirectory
     }
     
-    var keyName: KeyName
+    var album: Album
 }
