@@ -44,11 +44,7 @@ public actor DiskFileAccess: FileEnumerator {
         }
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
         
-        var filter = [MediaType.photo.fileExtension]
-        
-        if FeatureToggle.isEnabled(feature: .enableVideo) {
-            filter += [MediaType.video.fileExtension]
-        }
+        let filter = [MediaType.photo.fileExtension, MediaType.video.fileExtension]
         
         let urls: [URL] = directoryModel.enumeratorForStorageDirectory(
             resourceKeys: resourceKeys,
@@ -122,7 +118,7 @@ extension DiskFileAccess: FileReader {
             return thumbnail
             
         } catch {
-            debugPrint("Error loading media preview")
+            debugPrint("Error loading media preview", error)
             return nil
         }
     }

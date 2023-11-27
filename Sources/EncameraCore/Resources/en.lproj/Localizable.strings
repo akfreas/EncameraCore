@@ -211,7 +211,16 @@
 "Unlock with %@" = "Unlock with %@";
 /* ./Encamera/InAppPurchase/PurchasePhotoSubscriptionOverlay.swift */
 "Upgrade to view unlimited photos" = "Upgrade to view unlimited photos";
+"Photo limit reached" = "Photo limit reached";
+"ModalUpgradeText" = "Upgrade to premium to unlock unlimited photos";
+"Upgrade to Premium" = "Upgrade to Premium";
+"Back to album" = "Back to album";
 "Tap to Upgrade" = "Tap to Upgrade";
+/* Picture taken overlay*/
+"CoolPicture" = "That's a cool picture!";
+"WhereToFindYourPictures" = "You will find all of your photos and videos grouped in the “Albums”";
+"ViewAlbums" = "View Albums";
+"TakeAnotherPhoto" = "Take another photo";
 /* ./Encamera/ImageViewing/GalleryHorizontalScrollView.swift */
 "Delete this image?" = "Delete this image?";
 "Delete" = "Delete";

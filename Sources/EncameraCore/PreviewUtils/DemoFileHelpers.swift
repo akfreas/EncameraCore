@@ -388,7 +388,6 @@ public class DemoAlbumManager: AlbumManaging {
             Album(name: "Demo Album 4", storageOption: .local, creationDate: Date()),
             Album(name: "Demo Album 5", storageOption: .local, creationDate: Date()),
             Album(name: "Demo Album 6", storageOption: .local, creationDate: Date()),
-            Album(name: "Demo Album 7", storageOption: .icloud, creationDate: Date())
         ]
         self.currentAlbum = albums.first
     }
@@ -403,7 +402,7 @@ public class DemoAlbumManager: AlbumManaging {
 
     public func storageModel(for album: Album) -> DataStorageModel? {
         // Return a demo storage model
-        return nil // Replace with an actual demo model if needed
+        return LocalStorageModel(album: album)
     }
 
     public func validateAlbumName(name: String) throws {

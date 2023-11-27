@@ -55,7 +55,6 @@ public class AlbumManager: AlbumManaging, ObservableObject {
                 let directoryName = url.lastPathComponent
                 let attributes = try? fileManager.attributesOfItem(atPath: url.path)
                 let creationDate = attributes?[.creationDate] as? Date
-                print("name: \(url), creationDate: \(String(describing: creationDate))")
                 return creationDate != nil ? Album(name: directoryName, storageOption: .local, creationDate: creationDate!) : nil
             }
 
@@ -64,7 +63,6 @@ public class AlbumManager: AlbumManaging, ObservableObject {
                 let directoryName = url.lastPathComponent
                 let attributes = try? fileManager.attributesOfItem(atPath: url.path)
                 let creationDate = attributes?[.creationDate] as? Date
-                print("name: \(url), creationDate: \(String(describing: creationDate))")
 
                 return creationDate != nil ? Album(name: directoryName, storageOption: .icloud, creationDate: creationDate!) : nil
             }
