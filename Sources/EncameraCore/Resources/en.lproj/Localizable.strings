@@ -351,3 +351,6 @@
 "FollowUs" = "Follow @encamera_app on Twitter";
 "TapToTweet" = "Tap to Tweet!";
 "YouWillBeSentAPromoCode" = "Afterwards, you will be sent a promo code via DM that you can redeem in the app.";
+
+/* Widget */
+"QuicklyTakePictures" = "Quickly take pictures and video.";

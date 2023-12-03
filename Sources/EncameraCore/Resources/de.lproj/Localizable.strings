@@ -6,7 +6,6 @@
   
 */
 /* ./EncameraCore/Constants/AppConstants.swift */
-"DefaultKey" = "DefaultKey";
 // $'"n"n"nnCopy the code into the "n" form in the app to use it again."' = $'"n"n"nnCopy the code into the "n" form in the app to use it again."';
 /* ./EncameraCore/Utils/KeyManager.swift */
 "Could not delete keychain items." = "Schlüsselbund-Elemente konnten nicht gelöscht werden.";

@@ -57,16 +57,17 @@ public class AlbumManager: AlbumManaging, ObservableObject {
                 let creationDate = attributes?[.creationDate] as? Date
                 return creationDate != nil ? Album(name: directoryName, storageOption: .local, creationDate: creationDate!) : nil
             }
+        var iCloudAlbums: [Album] = []
+        if DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) == .available {
+            iCloudAlbums = iCloudStorageModel.enumerateRootDirectory()
+                .compactMap { url -> Album? in
+                    let directoryName = url.lastPathComponent
+                    let attributes = try? fileManager.attributesOfItem(atPath: url.path)
+                    let creationDate = attributes?[.creationDate] as? Date
 
-        let iCloudAlbums = iCloudStorageModel.enumerateRootDirectory()
-            .compactMap { url -> Album? in
-                let directoryName = url.lastPathComponent
-                let attributes = try? fileManager.attributesOfItem(atPath: url.path)
-                let creationDate = attributes?[.creationDate] as? Date
-
-                return creationDate != nil ? Album(name: directoryName, storageOption: .icloud, creationDate: creationDate!) : nil
-            }
-
+                    return creationDate != nil ? Album(name: directoryName, storageOption: .icloud, creationDate: creationDate!) : nil
+                }
+        }
         return (localAlbums + iCloudAlbums).sorted { $0.creationDate < $1.creationDate }
 
     }

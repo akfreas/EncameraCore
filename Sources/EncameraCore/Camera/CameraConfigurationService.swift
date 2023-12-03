@@ -48,6 +48,9 @@ public enum CaptureMode: Int {
     case movie = 1
 }
 
+public protocol CameraConfigurationServicableDelegate {
+    func didUpdate(zoomLevels: [ZoomLevel])
+}
 
 protocol CameraConfigurationServicable {
     var session: AVCaptureSession { get }
@@ -58,28 +61,61 @@ protocol CameraConfigurationServicable {
     func stop() async
     func start() async
     func focus(at focusPoint: CGPoint) async
-    func set(zoom: CGFloat) async
-    func changeCamera() async
+    func set(zoom: ZoomLevel) async
+    func flipCameraDevice() async
     func configureForMode(targetMode: CameraMode) async
+    func setDelegate(_ delegate: CameraConfigurationServicableDelegate) async
 }
 
 
 public class CameraConfigurationServiceModel {
-    public var alertError: AlertError = AlertError()
-    @Published public var cameraMode: CameraMode = .photo
-    public var setupResult: SessionSetupResult = .notDetermined
     @Published public var orientation: AVCaptureVideoOrientation = .portrait
-    
+    @Published public var cameraMode: CameraMode = .photo
+
+    public var alertError: AlertError = AlertError()
+    public var setupResult: SessionSetupResult = .notDetermined
+
     public init() {
-        
+    }
+}
+public enum ZoomLevel: CGFloat {
+    case x05 = 0.5
+    case x1 = 1.0
+    case x2 = 2.0
+    case x3 = 3.0
+}
+
+fileprivate struct ZoomControlModel {
+
+
+    var zoomLevel: ZoomLevel = .x1
+    var captureDevice: AVCaptureDevice?
+    var useDigitalZoom: Bool = false
+    public init(zoomLevel: ZoomLevel, captureDevice: AVCaptureDevice? = nil, useDigitalZoom: Bool) {
+        self.zoomLevel = zoomLevel
+        self.captureDevice = captureDevice
+        self.useDigitalZoom = useDigitalZoom
     }
 }
 
 public actor CameraConfigurationService: CameraConfigurationServicable {
-    
+
+    public var currentCameraDeviceType: AVCaptureDevice.DeviceType?
+    public var currentCameraPosition: AVCaptureDevice.Position?
+
     nonisolated public let session = AVCaptureSession()
     public let model: CameraConfigurationServiceModel
-    
+    var delegate: CameraConfigurationServicableDelegate?
+    private var availableZoomFactors: [CGFloat] = [1.0]
+    private var availableCameras: [AVCaptureDevice] = []
+    private var selectedCamera: AVCaptureDevice?
+    private var zoomLevels: [ZoomLevel: ZoomControlModel] = [:] {
+        didSet {
+            Task { @MainActor in
+                await delegate?.didUpdate(zoomLevels: zoomLevels.keys.sorted(by: { $0.rawValue < $1.rawValue }))
+            }
+        }
+    }
     private lazy var metadataProcessor = QRCodeCaptureProcessor()
     private var movieOutput: AVCaptureMovieFileOutput?
     private let photoOutput = AVCapturePhotoOutput()
@@ -89,8 +125,6 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
     
     public init(model: CameraConfigurationServiceModel) {
         self.model = model
-
-
     }
     
     public func configure() async {
@@ -100,7 +134,11 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
             await self.initialSessionConfiguration()
         }
     }
-    
+
+    public func setDelegate(_ delegate: CameraConfigurationServicableDelegate) async {
+        self.delegate = delegate
+    }
+
     public func checkForPermissions() async {
         
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -179,27 +217,87 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
             debugPrint(error.localizedDescription)
         }
     }
-    
-    
-    public func set(zoom: CGFloat) async {
-        guard let device = videoDeviceInput?.device else {
-            debugPrint("Could not get device for zooming")
-            return
-        }
-        let factor = zoom < 1 ? 1 : zoom
-        
-        do {
-            try device.lockForConfiguration()
-            let clampedZoomFactor = min(factor, device.activeFormat.videoMaxZoomFactor)
-            device.videoZoomFactor = clampedZoomFactor
-            device.unlockForConfiguration()
-        }
-        catch {
-            debugPrint(error.localizedDescription)
+
+
+    func loadAvailableZoomFactors() async {
+        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera, .builtInTelephotoCamera, .builtInUltraWideCamera], mediaType: .video, position: .back)
+
+        for camera in discoverySession.devices {
+            switch camera.deviceType {
+            case .builtInUltraWideCamera:
+                zoomLevels[.x05] = ZoomControlModel(zoomLevel: .x05, captureDevice: camera, useDigitalZoom: false)
+            case .builtInWideAngleCamera:
+                zoomLevels[.x1] = ZoomControlModel(zoomLevel: .x1, captureDevice: camera, useDigitalZoom: false)
+                zoomLevels[.x2] = ZoomControlModel(zoomLevel: .x2, captureDevice: camera, useDigitalZoom: true)
+            case .builtInTelephotoCamera:
+                zoomLevels[.x3] = ZoomControlModel(zoomLevel: .x3, captureDevice: camera, useDigitalZoom: false)
+            default:
+                break
+            }
         }
     }
-    
-    public func changeCamera() async {
+
+    public func set(zoom: ZoomLevel) async {
+        // Find the camera device for the given zoom level.
+        guard let zoomLevel = zoomLevels[zoom], let newCamera = zoomLevel.captureDevice else {
+            debugPrint("No camera available for the given zoom level: \(zoom)")
+            return
+        }
+
+        // Check if the selected camera is different from the current one.
+        if newCamera != self.videoDeviceInput?.device {
+            do {
+                let newVideoDeviceInput = try AVCaptureDeviceInput(device: newCamera)
+
+                // Remove the current video device input from the session.
+                if let videoDeviceInput = self.videoDeviceInput {
+                    self.session.removeInput(videoDeviceInput)
+                }
+
+                // Add the new video device input to the session.
+                if self.session.canAddInput(newVideoDeviceInput) {
+                    self.session.addInput(newVideoDeviceInput)
+                    self.videoDeviceInput = newVideoDeviceInput
+                } else if let videoDeviceInput = self.videoDeviceInput {
+                    // Re-add the old input if the new input can't be added.
+                    self.session.addInput(videoDeviceInput)
+                }
+
+                // Set the video stabilization mode if supported.
+                if let connection = self.photoOutput.connection(with: .video) {
+                    if connection.isVideoStabilizationSupported {
+                        connection.preferredVideoStabilizationMode = .auto
+                    }
+                }
+            } catch {
+                debugPrint("Error occurred while switching video device input: \(error)")
+                return
+            }
+        }
+        if zoomLevel.useDigitalZoom {
+            // Set the capture device's zoom factor.
+            do {
+                try newCamera.lockForConfiguration()
+                newCamera.videoZoomFactor = CGFloat(zoomLevel.zoomLevel.rawValue)
+                newCamera.unlockForConfiguration()
+            } catch {
+                debugPrint("Error occurred while setting video zoom factor: \(error)")
+                return
+            }
+        } else {
+            // Reset the capture device's zoom factor.
+            do {
+                try newCamera.lockForConfiguration()
+                newCamera.videoZoomFactor = 1.0
+                newCamera.unlockForConfiguration()
+            } catch {
+                debugPrint("Error occurred while setting video zoom factor: \(error)")
+                return
+            }
+        }
+    }
+
+    public func flipCameraDevice() async {
         
         guard let currentVideoDevice = self.videoDeviceInput?.device else {
             debugPrint("Current video device is nil")
@@ -238,6 +336,10 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
             debugPrint("New video device is nil")
             return
         }
+
+        currentCameraDeviceType = preferredDeviceType
+        currentCameraPosition = preferredPosition
+
         do {
             let newVideoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
             
@@ -262,7 +364,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
         } catch {
             debugPrint("Error occurred while creating video device input: \(error)")
         }
-        
+        await loadAvailableZoomFactors()
     }
     
     public func configureForMode(targetMode: CameraMode) async {
@@ -422,6 +524,8 @@ private extension CameraConfigurationService {
         for cameraType in cameraTypes {
             if let device = AVCaptureDevice.default(cameraType, for: .video, position: .back) {
                 defaultVideoDevice = device
+                currentCameraDeviceType = cameraType
+                currentCameraPosition = .back
                 break
             }
         }
@@ -480,7 +584,8 @@ private extension CameraConfigurationService {
         }
         model.setupResult = .setupComplete
         
-        await self.start()
+        await start()
+        await loadAvailableZoomFactors()
     }
     
     
