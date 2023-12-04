@@ -183,9 +183,10 @@ public class OnboardingManager: OnboardingManaging {
         }
         
         if !keyManager.passwordExists() {
-            screens += [.dataStorageSetting, .permissions]
+            screens += [.dataStorageSetting]
         }
         screens += [
+            .permissions,
             .finished
         ]
         
