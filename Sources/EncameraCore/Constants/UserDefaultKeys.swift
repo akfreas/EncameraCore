@@ -23,6 +23,7 @@ public enum UserDefaultKey {
     case keyTutorialClosed
     case launchCount
     case currentAlbumID
+    case showCameraOnLaunch
 
     var rawValue: String {
         switch self {

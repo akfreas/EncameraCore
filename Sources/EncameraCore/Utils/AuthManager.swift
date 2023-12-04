@@ -91,7 +91,7 @@ public class DeviceAuthManager: AuthManager {
     
     var context: LAContext {
         let context = LAContext()
-        context.localizedCancelTitle = L10n.usePassword
+        context.localizedCancelTitle = L10n.cancel
         return context
     }
     

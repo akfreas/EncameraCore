@@ -6,7 +6,6 @@
   
 */
 /* ./EncameraCore/Constants/AppConstants.swift */
-"DefaultKey" = "DefaultKey";
 // $'"n"n"nnCopy the code into the "n" form in the app to use it again."' = $'"n"n"nnCopy the code into the "n" form in the app to use it again."';
 /* ./EncameraCore/Utils/KeyManager.swift */
 "Could not delete keychain items." = "Schlüsselbund-Elemente konnten nicht gelöscht werden.";
@@ -85,7 +84,7 @@
 "Hold to erase" = "Halten zum Löschen";
 "Erase app data" = "App-Daten löschen";
 "Erasing in %@" = "Löschen in %@";
-/* ./Encamera/Tutorial/FirstPhotoTakenTutorial.swift */
+/* ./Encamera/Tutorial/ChooseStorageModal.swift */
 "Congratulations!" = "Herzlichen Glückwunsch!";
 "You took your first photo! 📸 🥳"= "Du hast dein erstes Foto gemacht! 📸 🥳";
 "See the photos that belong to a key by tapping the " = "Sieh dir die Fotos an, die zu einem Schlüssel gehören, indem du auf das ";

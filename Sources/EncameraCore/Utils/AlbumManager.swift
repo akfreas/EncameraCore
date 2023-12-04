@@ -11,6 +11,7 @@ import Combine
 public enum AlbumError: Error, CustomStringConvertible {
     case albumNameError
     case albumExists
+    case albumNotFoundAtSourceLocation
 
     public var description: String {
         switch self {
@@ -18,36 +19,41 @@ public enum AlbumError: Error, CustomStringConvertible {
             return L10n.albumNameInvalid
         case .albumExists:
             return L10n.aKeyWithThisNameAlreadyExists
+        case .albumNotFoundAtSourceLocation:
+            return L10n.albumNotFoundAtSourceLocation
         }
     }
 }
 
 public class AlbumManager: AlbumManaging, ObservableObject {
+
+
+    
     public var selectedAlbumPublisher: AnyPublisher<Album?, Never> {
         $currentAlbum.eraseToAnyPublisher()
     }
 
 
-    @Published public var albums: [Album] = [] {
+    @Published public var albums: Set<Album> = [] {
         didSet {
             albumSubject.send(albums)
         }
     }
 
 
-    public var albumPublisher: AnyPublisher<[Album], Never> {
+    public var albumPublisher: AnyPublisher<Set<Album>, Never> {
         albumSubject.eraseToAnyPublisher()
     }
 
     public var defaultStorageForAlbum: StorageType = .local
 
-    private var albumSubject: PassthroughSubject<[Album], Never> = .init()
+    private var albumSubject: PassthroughSubject<Set<Album>, Never> = .init()
     @Published public var currentAlbum: Album? {
         didSet {
             UserDefaultUtils.set(currentAlbum?.id, forKey: .currentAlbumID)
         }
     }
-    public var availableAlbums: [Album] {
+    public var availableAlbums: Set<Album> {
         let fileManager = FileManager.default
 
         let localAlbums = LocalStorageModel.enumerateRootDirectory()
@@ -55,23 +61,23 @@ public class AlbumManager: AlbumManaging, ObservableObject {
                 let directoryName = url.lastPathComponent
                 let attributes = try? fileManager.attributesOfItem(atPath: url.path)
                 let creationDate = attributes?[.creationDate] as? Date
-                print("name: \(url), creationDate: \(String(describing: creationDate))")
                 return creationDate != nil ? Album(name: directoryName, storageOption: .local, creationDate: creationDate!) : nil
             }
+        var iCloudAlbums: [Album] = []
+        if DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) == .available {
+            iCloudAlbums = iCloudStorageModel.enumerateRootDirectory()
+                .compactMap { url -> Album? in
+                    let directoryName = url.lastPathComponent
+                    let attributes = try? fileManager.attributesOfItem(atPath: url.path)
+                    let creationDate = attributes?[.creationDate] as? Date
 
-        let iCloudAlbums = iCloudStorageModel.enumerateRootDirectory()
-            .compactMap { url -> Album? in
-                let directoryName = url.lastPathComponent
-                let attributes = try? fileManager.attributesOfItem(atPath: url.path)
-                let creationDate = attributes?[.creationDate] as? Date
-                print("name: \(url), creationDate: \(String(describing: creationDate))")
-
-                return creationDate != nil ? Album(name: directoryName, storageOption: .icloud, creationDate: creationDate!) : nil
-            }
-
-        return (localAlbums + iCloudAlbums).sorted { $0.creationDate < $1.creationDate }
+                    return creationDate != nil ? Album(name: directoryName, storageOption: .icloud, creationDate: creationDate!) : nil
+                }
+        }
+        return Set((localAlbums + iCloudAlbums).sorted { $0.creationDate < $1.creationDate })
 
     }
+
     required public init() {
         self.albums = availableAlbums
 
@@ -96,7 +102,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         }
 
         // Remove album from albums collection
-        albums.removeAll(where: { $0.id == album.id })
+        albums.remove(album)
     }
 
     public func create(album: Album) throws {
@@ -117,7 +123,64 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         )
 
         // Add album to the albums collection
-        albums.append(album)
+        albums.insert(album)
+    }
+
+    public func moveAlbum(album: Album, toStorage: StorageType) throws {
+        let fileManager = FileManager.default
+        let currentStorage = album.storageOption.modelForType.init(album: album)
+
+        debugPrint("Starting the move process for album: \(album.name)")
+
+        // Determine the new storage URL based on the destination storage type
+        let newStorage: DataStorageModel = toStorage == .local ? LocalStorageModel(album: album) : iCloudStorageModel(album: album)
+
+        debugPrint("Current storage URL: \(currentStorage.baseURL)")
+        debugPrint("New storage URL: \(newStorage.baseURL)")
+
+        // Check if the album exists at the current location
+        guard fileManager.fileExists(atPath: currentStorage.baseURL.path) else {
+            debugPrint("Album not found at the source location.")
+            throw AlbumError.albumNotFoundAtSourceLocation
+        }
+
+        // Ensure the destination directory exists
+        if !fileManager.fileExists(atPath: newStorage.baseURL.path) {
+            debugPrint("Destination directory does not exist. Creating new directory.")
+            try fileManager.createDirectory(at: newStorage.baseURL, withIntermediateDirectories: true, attributes: nil)
+        }
+
+        // Move files individually to merge contents
+        let enumerator = fileManager.enumerator(at: currentStorage.baseURL, includingPropertiesForKeys: nil)
+        while let sourceURL = enumerator?.nextObject() as? URL {
+            let destinationURL = newStorage.baseURL.appendingPathComponent(sourceURL.lastPathComponent)
+
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                debugPrint("File already exists at destination: \(destinationURL.path). Implementing merge logic.")
+                // Implement your logic for handling duplicate files
+            } else {
+                debugPrint("Moving file from \(sourceURL.path) to \(destinationURL.path)")
+                try fileManager.moveItem(at: sourceURL, to: destinationURL)
+            }
+        }
+
+        // Delete the source directory if it's empty
+        if let contents = try? fileManager.contentsOfDirectory(atPath: currentStorage.baseURL.path), contents.isEmpty {
+            debugPrint("Source directory is empty after moving files. Deleting source directory.")
+            try fileManager.removeItem(at: currentStorage.baseURL)
+        }
+
+        // Update the album's storage option and URL if needed
+        if var movedAlbum = albums.first(where: { $0.id == album.id }) {
+            movedAlbum.storageOption = toStorage
+            albums.insert(movedAlbum)
+            debugPrint("Updated album storage option for \(album.name)")
+            // Update the storageURL if your Album model has this property
+        } else {
+            debugPrint("Could not update album, not found in the albums collection.")
+        }
+
+        debugPrint("Completed the move process for album: \(album.name)")
     }
 
 

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Album: Codable, Identifiable {
+public struct Album: Codable, Identifiable, Hashable {
 
     public init(name: String, storageOption: StorageType, creationDate: Date) {
         self.name = name

@@ -181,10 +181,7 @@ public class OnboardingManager: OnboardingManaging {
         if authManager.canAuthenticateWithBiometrics {
             screens += [.biometrics]
         }
-        
-        if !keyManager.passwordExists() {
-            screens += [.dataStorageSetting]
-        }
+
         screens += [
             .permissions,
             .finished

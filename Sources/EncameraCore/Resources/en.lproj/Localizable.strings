@@ -19,6 +19,7 @@
 "Key not found." = "Key not found.";
 "Error coding keychain data." = "Error coding keychain data.";
 "A key with this name already exists." = "A key with this name already exists.";
+
 /* ./EncameraCore/Utils/AuthManager.swift */
 "Touch ID" = "Touch ID";
 "Face ID" = "Face ID";
@@ -38,8 +39,8 @@
 /* ./EncameraCore/Models/StorageType.swift */
 "iCloud" = "iCloud";
 "Local" = "Local";
-"Saves encrypted files to iCloud Drive." = "Saves encrypted files to iCloud Drive.";
-"Saves encrypted files to this device." = "Saves encrypted files to this device.";
+"SaveToiCloudDrive" = "Save to iCloud Drive";
+"SaveLocally" = "Save to this device";
 
 /* Encamera App */
 /* ./Encamera/CameraView/CameraView.swift */
@@ -51,6 +52,7 @@
 "Key Selection" = "Key Selection";
 "OpenSettings" = "Open Settings";
 "FinishImportingMedia" = "Finish Importing Media";
+"TakeYourFirstPicture" = "TAKE YOUR FIRST PICTURE";
 /* ./Encamera/CameraView/CameraModePicker.swift */
 "PHOTO" = "PHOTO";
 "VIDEO" = "VIDEO";
@@ -89,12 +91,14 @@
 "Hold to erase" = "Hold to erase";
 "Erase app data" = "Erase app data";
 "Erasing in %@" = "Erasing in %@";
-/* ./Encamera/Tutorial/FirstPhotoTakenTutorial.swift */
+/* ./Encamera/Tutorial/ChooseStorageModal.swift */
 "Congratulations!" = "Congratulations!";
+"ChooseYourStorage" = "Choose your storage";
+"ChooseYourStorageDescription" = "Choose where to securely save your images from now on.";
 "You took your first photo! 📸 🥳"= "You took your first photo! 📸 🥳";
 "See the photos that belong to a key by tapping the " = "See the photos that belong to a key by tapping the ";
 " icon on the top left of the screen." = " icon on the top left of the screen.";
-"Got it!" = "See how it works";
+"ConfirmStorage" = "Confirm Storage";
 /* ./Encamera/Tutorial/ExplanationForUpgradeTutorial.swift */
 "Want more?" = "Want more?";
 "Support privacy-focused development by upgrading!" = "Support privacy-focused development by upgrading!";
@@ -132,6 +136,7 @@
 "AddPhotos" = "Add Photos";
 "DeleteAlbum" = "Delete Album";
 "ViewInFiles" = "View in Files App";
+"MoveAlbumStorage" = "Move Album";
 "Delete" = "Delete";
 "Delete All Key Data" = "Delete Media & Key";
 "Save Key to iCloud" = "Save Key to iCloud";
@@ -211,7 +216,16 @@
 "Unlock with %@" = "Unlock with %@";
 /* ./Encamera/InAppPurchase/PurchasePhotoSubscriptionOverlay.swift */
 "Upgrade to view unlimited photos" = "Upgrade to view unlimited photos";
+"Photo limit reached" = "Photo limit reached";
+"ModalUpgradeText" = "Upgrade to premium to unlock unlimited photos";
+"Upgrade to Premium" = "Upgrade to Premium";
+"Back to album" = "Back to album";
 "Tap to Upgrade" = "Tap to Upgrade";
+/* Picture taken overlay*/
+"CoolPicture" = "That's a cool picture!";
+"WhereToFindYourPictures" = "You will find all of your photos and videos grouped in the “Albums”";
+"ViewAlbums" = "View Albums";
+"TakeAnotherPhoto" = "Take another photo";
 /* ./Encamera/ImageViewing/GalleryHorizontalScrollView.swift */
 "Delete this image?" = "Delete this image?";
 "Delete" = "Delete";
@@ -244,10 +258,10 @@
 "GetStartedButtonText" = "Let's Start";
 "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera encrypts everything, keeping your media safe from unwanted eyes.";
 "KeyBasedEncryption" = "Key-Based Encryption";
-"IntroStorageExplanation" = "Your media is safely secured behind a key and stored locally on your device on iCloud.";
-"NoTrackingOnboardingExplanation" = "No Tracking, No Data Collection";
-"EncryptionExplanation" = "Your media is safely secured behind a key and stored locally on your device on iCloud";
-"NoTrackingExplanation" = "No trackers are installed in this app. Encamera doesn't use any services except those provided by Apple.";
+"IntroStorageExplanation" = "Your media is safely secured behind a key and stored locally on your device or iCloud.";
+"NoTrackingOnboardingExplanation" = "Your Data is Secure";
+"EncryptionExplanation" = "Your media is safely secured behind a key and stored locally on your device or iCloud";
+"NoTrackingExplanation" = "Nobody can access your data except you.";
 "EncameraIsOpenSource" = "Open Source";
 "OpenSourceExplanation" = "Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.";
 
@@ -342,3 +356,9 @@
 "FollowUs" = "Follow @encamera_app on Twitter";
 "TapToTweet" = "Tap to Tweet!";
 "YouWillBeSentAPromoCode" = "Afterwards, you will be sent a promo code via DM that you can redeem in the app.";
+
+/* Widget */
+"QuicklyTakePictures" = "Quickly take pictures and video.";
+
+/* AlbumManager */
+"AlbumNotFoundAtSourceLocation" = "Could not find the album at the source location. Use the Files app to ensure that it exists.";

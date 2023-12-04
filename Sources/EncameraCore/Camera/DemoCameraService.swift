@@ -8,10 +8,17 @@
 import Foundation
 import AVFoundation
 import Combine
-import EncameraCore
 
 
 class DemoCameraService: CameraConfigurationServicable {
+    func set(zoom: ZoomLevel) async {
+        
+    }
+    
+    func setDelegate(_ delegate: CameraConfigurationServicableDelegate) async {
+        
+    }
+    
     var session: AVCaptureSession
     
     var model: CameraConfigurationServiceModel
@@ -45,7 +52,7 @@ class DemoCameraService: CameraConfigurationServicable {
         
     }
     
-    func changeCamera() async {
+    func flipCameraDevice() async {
         
     }
     

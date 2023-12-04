@@ -59,9 +59,9 @@ extension StorageType: Identifiable, CaseIterable {
     public var description: String {
         switch self {
         case .icloud:
-            return L10n.savesEncryptedFilesToICloudDrive
+            return L10n.saveToiCloudDrive
         case .local:
-            return L10n.savesEncryptedFilesToThisDevice
+            return L10n.saveLocally
         }
     }
     
