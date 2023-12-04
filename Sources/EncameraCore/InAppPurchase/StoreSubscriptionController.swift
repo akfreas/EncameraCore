@@ -54,7 +54,7 @@ public final class StoreSubscriptionController: ObservableObject {
                 autoRenewPreference = transaction.productID
                 expirationDate = transaction.expirationDate
                 await transaction.finish()
-                action = .dismissStore
+                action = .purchaseComplete
             case .pending:
                 print("Purchase pending user action")
                 action = .noAction

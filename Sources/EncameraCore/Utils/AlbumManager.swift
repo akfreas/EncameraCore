@@ -106,14 +106,28 @@ public class AlbumManager: AlbumManaging, ObservableObject {
     }
 
     public func create(album: Album) throws {
+        debugPrint("Starting album creation process")
+
         let fileManager = FileManager.default
         let albumURL = album.storageURL
 
+        debugPrint("File manager and album URL are set up")
+
+        defer {
+            // Add album to the albums collection
+            debugPrint("Adding album to the collection")
+            albums.insert(album)
+        }
+
         // Check if the directory already exists
+        debugPrint("Checking if the directory exists at path: \(albumURL.path)")
         if fileManager.fileExists(atPath: albumURL.path) {
             // If the directory exists, throw the albumExists error
+            debugPrint("Directory already exists, throwing albumExists error")
             throw AlbumError.albumExists
         }
+
+        debugPrint("Directory does not exist, proceeding to create it")
 
         // If the directory does not exist, create it
         try fileManager.createDirectory(
@@ -122,9 +136,9 @@ public class AlbumManager: AlbumManaging, ObservableObject {
             attributes: nil
         )
 
-        // Add album to the albums collection
-        albums.insert(album)
+        debugPrint("Directory created successfully")
     }
+
 
     public func moveAlbum(album: Album, toStorage: StorageType) throws {
         let fileManager = FileManager.default

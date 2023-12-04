@@ -1,9 +1,9 @@
-/* 
+/*
   Localizable.strings
   Encamera
 
   Created by Alexander Freas on 30.01.23.
-  
+
 */
 
 "Next" = "Next";
@@ -46,13 +46,12 @@
 /* ./Encamera/CameraView/CameraView.swift */
 "Missing camera access." = "Missing camera access.";
 "Open settings to allow camera access permission" = "Open settings to allow camera access permission";
-"No Key" = "No Key";
-"No Key Selected" = "No Key Selected";
-"You don't have an active key selected, select one to continue saving media." = "You don't have an active key selected, select one to continue saving media.";
 "Key Selection" = "Key Selection";
 "OpenSettings" = "Open Settings";
 "FinishImportingMedia" = "Finish Importing Media";
 "TakeYourFirstPicture" = "TAKE YOUR FIRST PICTURE";
+"NoAlbum" = "No Album";
+"NoAlbumSelected" = "No Album Selected. You must select an album to save photos to.";
 /* ./Encamera/CameraView/CameraModePicker.swift */
 "PHOTO" = "PHOTO";
 "VIDEO" = "VIDEO";
@@ -100,12 +99,6 @@
 " icon on the top left of the screen." = " icon on the top left of the screen.";
 "ConfirmStorage" = "Confirm Storage";
 /* ./Encamera/Tutorial/ExplanationForUpgradeTutorial.swift */
-"Want more?" = "Want more?";
-"Support privacy-focused development by upgrading!" = "Support privacy-focused development by upgrading!";
-"View unlimited photos 😍 " = "View unlimited photos 😍 ";
-"Create unlimited keys 🔑 " = "Create unlimited keys 🔑 ";
-"Free Trial" = "Free Trial";
-"No, thanks" = "No, thanks";
 /* ./Encamera/Camera/CameraConfigurationService.swift */
 /* ./Encamera/Camera/AlertError.swift */
 "Accept" = "Accept";

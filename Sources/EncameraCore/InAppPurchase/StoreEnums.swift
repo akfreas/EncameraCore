@@ -8,7 +8,7 @@
 import Foundation
 
 public enum PurchaseFinishedAction {
-    case dismissStore
+    case purchaseComplete
     case noAction
     case displayError
 }

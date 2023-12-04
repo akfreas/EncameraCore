@@ -175,7 +175,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
         self.session.stopRunning()
     }
     
-    func start() async {
+    public func start() async {
         guard !self.session.isRunning else {
             debugPrint("Session is running already or is not configured")
             return

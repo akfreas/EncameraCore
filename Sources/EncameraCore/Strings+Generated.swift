@@ -137,8 +137,6 @@ public enum L10n {
   public static let couldNotDeleteKeychainItems = L10n.tr("Localizable", "Could not delete keychain items.", fallback: "Could not delete keychain items.")
   /// Create an unlimited number of keys.
   public static let createAnUnlimitedNumberOfKeys = L10n.tr("Localizable", "Create an unlimited number of keys.", fallback: "Create an unlimited number of keys.")
-  /// Create unlimited keys 🔑 
-  public static let createUnlimitedKeys🔑 = L10n.tr("Localizable", "Create unlimited keys 🔑 ", fallback: "Create unlimited keys 🔑 ")
   /// ./Encamera/KeyManagement/KeyInformation.swift
   public static func created(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Created %@", String(describing: p1), fallback: "Created %@")
@@ -338,16 +336,14 @@ public enum L10n {
   public static let noICloudAccountFoundOnThisDevice = L10n.tr("Localizable", "No iCloud account found on this device.", fallback: "No iCloud account found on this device.")
   /// ./Encamera/ImageViewing/PhotoInfoView.swift
   public static let noInfoAvailable = L10n.tr("Localizable", "No info available", fallback: "No info available")
-  /// No Key
-  public static let noKey = L10n.tr("Localizable", "No Key", fallback: "No Key")
   /// ./Encamera/ImageViewing/ImageViewing.swift
   public static let noKeyAvailable = L10n.tr("Localizable", "No key available.", fallback: "No key available.")
-  /// No Key Selected
-  public static let noKeySelected = L10n.tr("Localizable", "No Key Selected", fallback: "No Key Selected")
   /// ./Encamera/EncameraApp.swift
   public static let noPrivateKeyOrMediaFound = L10n.tr("Localizable", "No private key or media found.", fallback: "No private key or media found.")
-  /// No, thanks
-  public static let noThanks = L10n.tr("Localizable", "No, thanks", fallback: "No, thanks")
+  /// No Album
+  public static let noAlbum = L10n.tr("Localizable", "NoAlbum", fallback: "No Album")
+  /// No Album Selected. You must select an album to save photos to.
+  public static let noAlbumSelected = L10n.tr("Localizable", "NoAlbumSelected", fallback: "No Album Selected. You must select an album to save photos to.")
   /// Not authenticated for this operation.
   public static let notAuthenticatedForThisOperation = L10n.tr("Localizable", "Not authenticated for this operation.", fallback: "Not authenticated for this operation.")
   /// ./EncameraCore/Utils/PasswordValidator.swift
@@ -502,8 +498,6 @@ public enum L10n {
   public static let subscribed = L10n.tr("Localizable", "Subscribed", fallback: "Subscribed")
   /// Subscription
   public static let subscription = L10n.tr("Localizable", "Subscription", fallback: "Subscription")
-  /// Support privacy-focused development by upgrading!
-  public static let supportPrivacyFocusedDevelopmentByUpgrading = L10n.tr("Localizable", "Support privacy-focused development by upgrading!", fallback: "Support privacy-focused development by upgrading!")
   /// Support privacy-focused development.
   public static let supportPrivacyFocusedDevelopment = L10n.tr("Localizable", "Support privacy-focused development.", fallback: "Support privacy-focused development.")
   /// Take a Photo!
@@ -560,14 +554,10 @@ public enum L10n {
   public static let video = L10n.tr("Localizable", "VIDEO", fallback: "VIDEO")
   /// ./Encamera/Store/SubscriptionView.swift
   public static let viewUnlimitedPhotosForEachKey = L10n.tr("Localizable", "View unlimited photos for each key.", fallback: "View unlimited photos for each key.")
-  /// View unlimited photos 😍 
-  public static let viewUnlimitedPhotos😍 = L10n.tr("Localizable", "View unlimited photos 😍 ", fallback: "View unlimited photos 😍 ")
   /// View Albums
   public static let viewAlbums = L10n.tr("Localizable", "ViewAlbums", fallback: "View Albums")
   /// View in Files App
   public static let viewInFiles = L10n.tr("Localizable", "ViewInFiles", fallback: "View in Files App")
-  /// ./Encamera/Tutorial/ExplanationForUpgradeTutorial.swift
-  public static let wantMore = L10n.tr("Localizable", "Want more?", fallback: "Want more?")
   /// ./Encamera/AuthenticationView/PasswordEntry.swift
   public static let welcomeBack = L10n.tr("Localizable", "WelcomeBack", fallback: "Welcome back!")
   /// What is Encamera?
@@ -578,8 +568,6 @@ public enum L10n {
   public static let whereToFindYourPictures = L10n.tr("Localizable", "WhereToFindYourPictures", fallback: "You will find all of your photos and videos grouped in the “Albums”")
   /// Why Encrypt Media?
   public static let whyEncryptMedia = L10n.tr("Localizable", "Why Encrypt Media?", fallback: "Why Encrypt Media?")
-  /// You don't have an active key selected, select one to continue saving media.
-  public static let youDonTHaveAnActiveKeySelectedSelectOneToContinueSavingMedia = L10n.tr("Localizable", "You don't have an active key selected, select one to continue saving media.", fallback: "You don't have an active key selected, select one to continue saving media.")
   /// You have an existing password for this device.
   public static let youHaveAnExistingPasswordForThisDevice = L10n.tr("Localizable", "You have an existing password for this device.", fallback: "You have an existing password for this device.")
   /// You took your first photo! 📸 🥳
