@@ -85,7 +85,7 @@
 "Hold to erase" = "Mantén presionado para borrar";
 "Erase app data" = "Borrar datos de la aplicación";
 "Erasing in %@" = "Borrando en %@";
-/* ./Encamera/Tutorial/FirstPhotoTakenTutorial.swift */
+/* ./Encamera/Tutorial/ChooseStorageModal.swift */
 "Congratulations!" = "¡Felicidades!";
 "You took your first photo! 📸 🥳"= "¡Tomaste tu primera foto! 📸 🥳";
 "See the photos that belong to a key by tapping the " = "Ve las fotos que pertenecen a una clave tocando el ";

@@ -54,7 +54,7 @@ public class DemoFileEnumerator: FileAccess {
     public func deleteMediaForKey() async throws {
         
     }
-    
+
     public func moveAllMedia(for keyName: KeyName, toRenamedKey newKeyName: KeyName) async throws {
         
     }
@@ -315,7 +315,7 @@ public class DemoOnboardingManager: OnboardingManaging {
     }
     
     public func generateOnboardingFlow() -> [OnboardingFlowScreen] {
-        return [.intro, .dataStorageSetting]
+        return [.dataStorageSetting]
     }
     
     public func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {
@@ -366,16 +366,16 @@ public class DemoPurchasedPermissionManaging: PurchasedPermissionManaging {
 public class DemoAlbumManager: AlbumManaging {
     public var selectedAlbumPublisher: AnyPublisher<Album?, Never> = PassthroughSubject<Album?, Never>().eraseToAnyPublisher()
 
-    @Published public var albums: [Album]
-    private var albumSubject = PassthroughSubject<[Album], Never>()
+    @Published public var albums: Set<Album>
+    private var albumSubject = PassthroughSubject<Set<Album>, Never>()
 
-    public var albumPublisher: AnyPublisher<[Album], Never> {
+    public var albumPublisher: AnyPublisher<Set<Album>, Never> {
         albumSubject.eraseToAnyPublisher()
     }
 
     public var defaultStorageForAlbum: StorageType
     public var currentAlbum: Album?
-    public var availableAlbums: [Album] { albums }
+    public var availableAlbums: Set<Album> { albums }
 
     public init() {
         // Initialize demo data
@@ -395,7 +395,9 @@ public class DemoAlbumManager: AlbumManaging {
     public func delete(album: Album) {
         // No-op for demo
     }
+    public func moveAlbum(album: Album, toStorage: StorageType) throws {
 
+    }
     public func create(album: Album) throws {
         // No-op for demo
     }

@@ -50,6 +50,7 @@ public enum CaptureMode: Int {
 
 public protocol CameraConfigurationServicableDelegate {
     func didUpdate(zoomLevels: [ZoomLevel])
+    func didUpdate(cameraPosition: AVCaptureDevice.Position)
 }
 
 protocol CameraConfigurationServicable {
@@ -101,7 +102,13 @@ fileprivate struct ZoomControlModel {
 public actor CameraConfigurationService: CameraConfigurationServicable {
 
     public var currentCameraDeviceType: AVCaptureDevice.DeviceType?
-    public var currentCameraPosition: AVCaptureDevice.Position?
+    public var currentCameraPosition: AVCaptureDevice.Position? {
+        didSet {
+            Task { @MainActor in
+                await delegate?.didUpdate(cameraPosition: currentCameraPosition ?? .unspecified)
+            }
+        }
+    }
 
     nonisolated public let session = AVCaptureSession()
     public let model: CameraConfigurationServiceModel
