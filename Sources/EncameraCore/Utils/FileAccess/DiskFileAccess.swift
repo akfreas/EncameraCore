@@ -13,44 +13,44 @@ import AVFoundation
 
 
 public actor DiskFileAccess: FileEnumerator {
-    
+
     enum iCloudError: Error {
         case invalidURL
         case general
     }
     var key: PrivateKey?
-    
+
     private var cancellables = Set<AnyCancellable>()
 
     public var directoryModel: DataStorageModel?
-    
+
     public init() {}
-    
+
     public init(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async {
         await configure(for: album, with: key, albumManager: albumManager)
     }
-    
+
     public func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async {
         self.key = key
         let storageModel = albumManager.storageModel(for: album)
         self.directoryModel = storageModel
         try? self.directoryModel?.initializeDirectories()
     }
-    
-    
+
+
     public func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
         guard let directoryModel = directoryModel else {
             return []
         }
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
-        
+
         let filter = [MediaType.photo.fileExtension, MediaType.video.fileExtension]
-        
+
         let urls: [URL] = directoryModel.enumeratorForStorageDirectory(
             resourceKeys: resourceKeys,
             fileExtensionFilter: filter
         )
-        
+
         let imageItems: [T] = urls
             .sorted { (url1: URL, url2: URL) in
                 guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
@@ -65,25 +65,26 @@ public actor DiskFileAccess: FileEnumerator {
             }
         return imageItems
     }
-    
+
 }
 
 extension FileReader {
-    
+
 }
 
 
 extension DiskFileAccess: FileReader {
 
-    
-    
+
+
     public func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL {
-        
+        debugPrint("loadMediaPreview: Loading preview for \(media.id)")
         guard let thumbnailPath = directoryModel?.previewURLForMedia(media) else {
+            debugPrint("loadMediaPreview: No thumbnail path found")
             throw FileAccessError.missingDirectoryModel
         }
         let preview = T(source: thumbnailPath, mediaType: .preview, id: media.id)
-        
+
         do {
             let existingPreview = try await loadMediaInMemory(media: preview) { _ in }
             return try PreviewModel(source: existingPreview)
@@ -97,34 +98,39 @@ extension DiskFileAccess: FileReader {
                 // so that an encrypted preview is stored in a certain region
                 // of the file, so we can load the preview without decrypting
                 // the entire file
+                debugPrint("loadMediaPreview: No thumbnail found for video")
                 throw SecretFilesError.createVideoThumbnailError
             default:
+                debugPrint("loadMediaPreview: No thumbnail found for unknown media type")
                 throw SecretFilesError.createThumbnailError
             }
         }
     }
-    
+
     public func loadLeadingThumbnail() async throws -> UIImage? {
+        debugPrint("loadLeadingThumbnail: Loading leading thumbnail for \(directoryModel?.baseURL.absoluteString ?? "No URL")")
         let media: [EncryptedMedia] = await enumerateMedia()
         guard let firstMedia = media.first else {
+            debugPrint("loadLeadingThumbnail: No media found")
             return nil
         }
-        
+
         do {
             let cleartextPreview = try await loadMediaPreview(for: firstMedia)
             guard let thumbnail = UIImage(data: cleartextPreview.thumbnailMedia.source) else {
+                debugPrint("loadLeadingThumbnail: Could not create thumbnail from data")
                 return nil
             }
             return thumbnail
-            
+
         } catch {
             debugPrint("Error loading media preview", error)
             return nil
         }
     }
-    
+
     public func loadMediaInMemory<T: MediaDescribing>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> {
-        
+
         if var encrypted = media as? EncryptedMedia {
             if encrypted.needsDownload, let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
                 encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { prog in
@@ -136,7 +142,7 @@ extension DiskFileAccess: FileReader {
             fatalError()
         }
     }
-    
+
     public func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL> {
         if var encrypted = media as? EncryptedMedia {
             if encrypted.needsDownload, let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
@@ -148,7 +154,7 @@ extension DiskFileAccess: FileReader {
         } else if let cleartext = media as? CleartextMedia<URL> {
             return cleartext
         }
-        
+
         fatalError()
     }
     private func decryptMedia(encrypted: EncryptedMedia, progress: (Double) -> Void) async throws -> CleartextMedia<Data> {
@@ -156,22 +162,22 @@ extension DiskFileAccess: FileReader {
             throw FileAccessError.missingPrivateKey
         }
         let sourceURL = encrypted.source
-        
+
         _ = sourceURL.startAccessingSecurityScopedResource()
-        
+
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted)
-        
+
         let decrypted: CleartextMedia<Data> = try await fileHandler.decrypt()
         sourceURL.stopAccessingSecurityScopedResource()
         return decrypted
     }
-    
+
     private func decryptMedia(encrypted: EncryptedMedia, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL> {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
         }
         let sourceURL = encrypted.source
-        
+
         _ = sourceURL.startAccessingSecurityScopedResource()
         let targetURL = URL.tempMediaDirectory
             .appendingPathComponent(encrypted.id)
@@ -190,10 +196,11 @@ extension DiskFileAccess: FileReader {
         sourceURL.stopAccessingSecurityScopedResource()
         return decrypted
     }
-    
+
     @discardableResult public func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
-        
+
         let thumbnail = try await createThumbnail(for: media)
+        debugPrint("createPreview: Created thumbnail")
         var preview = PreviewModel(thumbnailMedia: thumbnail)
         if let encrypted = media as? EncryptedMedia {
             switch encrypted.mediaType {
@@ -211,22 +218,22 @@ extension DiskFileAccess: FileReader {
             preview.videoDuration = asset.duration.durationText
         }
         try await savePreview(preview: preview, sourceMedia: media)
-        
+
         return preview
     }
-    
+
     @discardableResult private func createThumbnail<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> {
-        
-        
+
+
         var thumb: CleartextMedia<Data>
         if let encrypted = media as? EncryptedMedia {
-            
+
             switch encrypted.mediaType {
-                
+
             case .photo:
                 let decrypted: CleartextMedia<Data> = try await self.decryptMedia(encrypted: encrypted) { _ in }
                 thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: decrypted)
-                
+
             case .video:
                 let decrypted: CleartextMedia<URL> = try await self.decryptMedia(encrypted: encrypted) { _ in }
                 thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: decrypted)
@@ -247,7 +254,7 @@ extension DiskFileAccess: FileReader {
 
 
 extension DiskFileAccess: FileWriter {
-        
+
     @discardableResult public func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
@@ -255,13 +262,13 @@ extension DiskFileAccess: FileWriter {
         let data = try JSONEncoder().encode(preview)
         let destinationURL = directoryModel?.previewURLForMedia(sourceMedia)
         let cleartextPreview = CleartextMedia(source: data, mediaType: .preview, id: sourceMedia.id)
-        
+
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, targetURL: destinationURL)
-        
+
         try await fileHandler.encrypt()
         return cleartextPreview
     }
-    
+
     @discardableResult public func save<T: MediaSourcing>(media: CleartextMedia<T>, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
@@ -279,7 +286,7 @@ extension DiskFileAccess: FileWriter {
         operationBus.didCreate(encrypted)
         return encrypted
     }
-    
+
     public func copy(media: EncryptedMedia) async throws {
         guard let destinationURL = directoryModel?.driveURLForNewMedia(media) else {
             throw FileAccessError.missingDirectoryModel
@@ -289,7 +296,7 @@ extension DiskFileAccess: FileWriter {
             operationBus.didCreate(newMedia)
         }
     }
-    
+
     public func move(media: EncryptedMedia) async throws {
         guard let destinationURL = directoryModel?.driveURLForNewMedia(media) else {
             throw FileAccessError.missingDirectoryModel
@@ -299,23 +306,23 @@ extension DiskFileAccess: FileWriter {
             operationBus.didCreate(newMedia)
         }
     }
-    
+
     public func delete(media: EncryptedMedia) async throws {
-        
+
         try FileManager.default.removeItem(at: media.source)
         if let previewURL = directoryModel?.previewURLForMedia(media) {
             try FileManager.default.removeItem(at: previewURL)
         }
         operationBus.didDelete(media)
-        
+
     }
-    
+
     public func deleteMediaForKey() async throws {
-        
+
         guard let url = directoryModel?.baseURL else {
             throw FileAccessError.missingPrivateKey
         }
-        
+
         try FileManager.default.removeItem(at: url)
     }
     public func deleteAllMedia() async throws {
@@ -330,14 +337,14 @@ extension DiskFileAccess: FileWriter {
             }
         }
     }
-    
+
     public func moveAllMedia(for keyName: KeyName, toRenamedKey newKeyName: KeyName) async throws {
-        
+
     }
-    
+
 }
 
 extension DiskFileAccess: FileAccess {
-    
+
 }
 

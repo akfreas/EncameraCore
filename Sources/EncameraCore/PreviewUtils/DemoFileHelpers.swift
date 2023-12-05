@@ -364,18 +364,19 @@ public class DemoPurchasedPermissionManaging: PurchasedPermissionManaging {
 }
 
 public class DemoAlbumManager: AlbumManaging {
-    public var selectedAlbumPublisher: AnyPublisher<Album?, Never> = PassthroughSubject<Album?, Never>().eraseToAnyPublisher()
+    @Published public var albums: [Album]
 
-    @Published public var albums: Set<Album>
-    private var albumSubject = PassthroughSubject<Set<Album>, Never>()
-
-    public var albumPublisher: AnyPublisher<Set<Album>, Never> {
+    public var albumPublisher: AnyPublisher<[Album], Never> {
         albumSubject.eraseToAnyPublisher()
     }
 
+    public var selectedAlbumPublisher: AnyPublisher<Album?, Never> = PassthroughSubject<Album?, Never>().eraseToAnyPublisher()
+
+    private var albumSubject = PassthroughSubject<[Album], Never>()
+
+
     public var defaultStorageForAlbum: StorageType
     public var currentAlbum: Album?
-    public var availableAlbums: Set<Album> { albums }
 
     public init() {
         // Initialize demo data

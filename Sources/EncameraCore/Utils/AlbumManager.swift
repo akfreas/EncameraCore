@@ -28,32 +28,36 @@ public enum AlbumError: Error, CustomStringConvertible {
 public class AlbumManager: AlbumManaging, ObservableObject {
 
 
-    
+
     public var selectedAlbumPublisher: AnyPublisher<Album?, Never> {
         $currentAlbum.eraseToAnyPublisher()
     }
 
 
-    @Published public var albums: Set<Album> = [] {
+    @Published public var albums: [Album] = [] {
         didSet {
             albumSubject.send(albums)
         }
     }
 
-
-    public var albumPublisher: AnyPublisher<Set<Album>, Never> {
+    public var albumPublisher: AnyPublisher<[Album], Never> {
         albumSubject.eraseToAnyPublisher()
     }
 
     public var defaultStorageForAlbum: StorageType = .local
 
-    private var albumSubject: PassthroughSubject<Set<Album>, Never> = .init()
+    private var albumSubject: PassthroughSubject<[Album], Never> = .init()
+    private var albumSet: Set<Album> = [] {
+        didSet {
+            albums = Array(albumSet).sorted(by: { $0.creationDate < $1.creationDate })
+        }
+    }
     @Published public var currentAlbum: Album? {
         didSet {
             UserDefaultUtils.set(currentAlbum?.id, forKey: .currentAlbumID)
         }
     }
-    public var availableAlbums: Set<Album> {
+    private func loadAvailableAlbums() {
         let fileManager = FileManager.default
 
         let localAlbums = LocalStorageModel.enumerateRootDirectory()
@@ -74,20 +78,20 @@ public class AlbumManager: AlbumManaging, ObservableObject {
                     return creationDate != nil ? Album(name: directoryName, storageOption: .icloud, creationDate: creationDate!) : nil
                 }
         }
-        return Set((localAlbums + iCloudAlbums).sorted { $0.creationDate < $1.creationDate })
+        self.albumSet = Set(localAlbums).union(Set(iCloudAlbums))
 
     }
 
     required public init() {
-        self.albums = availableAlbums
 
+        loadAvailableAlbums()
         // Retrieve the current album ID from user defaults
         if let currentAlbumID = UserDefaultUtils.string(forKey: .currentAlbumID),
-            let foundAlbum = availableAlbums.first(where: { $0.id == currentAlbumID }) {
+            let foundAlbum = albumSet.first(where: { $0.id == currentAlbumID }) {
             // Find the album with the matching ID
             self.currentAlbum = foundAlbum
         } else {
-            self.currentAlbum = availableAlbums.first
+            self.currentAlbum = albumSet.first
         }
     }
 
@@ -102,7 +106,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         }
 
         // Remove album from albums collection
-        albums.remove(album)
+        albumSet.remove(album)
     }
 
     public func create(album: Album) throws {
@@ -116,7 +120,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         defer {
             // Add album to the albums collection
             debugPrint("Adding album to the collection")
-            albums.insert(album)
+            albumSet.insert(album)
         }
 
         // Check if the directory already exists
@@ -187,7 +191,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         // Update the album's storage option and URL if needed
         if var movedAlbum = albums.first(where: { $0.id == album.id }) {
             movedAlbum.storageOption = toStorage
-            albums.insert(movedAlbum)
+            albumSet.insert(movedAlbum)
             debugPrint("Updated album storage option for \(album.name)")
             // Update the storageURL if your Album model has this property
         } else {
@@ -199,7 +203,9 @@ public class AlbumManager: AlbumManaging, ObservableObject {
 
 
     public func storageModel(for album: Album) -> DataStorageModel? {
-        availableAlbums.filter({$0.name == album.name}).first?.storageOption.modelForType.init(album: album)
+        albumSet.first(where: { albumInSet in
+            albumInSet.id == album.id
+        })?.storageOption.modelForType.init(album: album)
     }
 
     public func validateAlbumName(name: String) throws {
