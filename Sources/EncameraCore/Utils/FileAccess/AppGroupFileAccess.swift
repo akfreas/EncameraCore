@@ -23,8 +23,12 @@ public struct AppGroupStorageModel: DataStorageModel {
 
     public var storageType: StorageType = .local
     
-    init() {
-        self.album = Album(name: "", storageOption: .local, creationDate: Date())
+    init?(albumManager: AlbumManaging) {
+        if let currentAlbum = albumManager.currentAlbum {
+            self.album = currentAlbum
+        } else {
+            return nil
+        }
     }
     
     public init(album: Album) {
@@ -37,12 +41,19 @@ public struct AppGroupStorageModel: DataStorageModel {
 public class AppGroupFileReader: FileAccess {
 
     
-    public var directoryModel: DataStorageModel? = AppGroupStorageModel()
+    public var directoryModel: DataStorageModel?
     
-   
     public required init() {
+        assertionFailure("Cannot use default init with this reader")
+
+    }
+    public required init?(albumManager: AlbumManaging) {
+        guard let directoryModel = AppGroupStorageModel(albumManager: albumManager) else {
+            return nil
+        }
+        self.directoryModel = directoryModel
         do {
-            try directoryModel?.initializeDirectories()
+            try directoryModel.initializeDirectories()
             
         } catch {
             assertionFailure("Directory init failed")

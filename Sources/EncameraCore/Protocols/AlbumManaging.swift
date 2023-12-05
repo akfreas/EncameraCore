@@ -9,6 +9,8 @@ import Foundation
 import Combine
 
 public protocol AlbumManaging {
+
+    init(keyManager: KeyManager)
     var albums: [Album] { get }
     var albumPublisher: AnyPublisher<[Album], Never> { get }
     var selectedAlbumPublisher: AnyPublisher<Album?, Never> { get }
@@ -16,7 +18,7 @@ public protocol AlbumManaging {
     var currentAlbum: Album? { get set }
 
     func delete(album: Album)
-    func create(album: Album) throws
+    func create(name: String, storageOption: StorageType) throws -> Album 
     func storageModel(for album: Album) -> DataStorageModel?
     func moveAlbum(album: Album, toStorage: StorageType) throws
     func validateAlbumName(name: String) throws

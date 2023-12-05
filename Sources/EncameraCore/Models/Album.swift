@@ -6,15 +6,17 @@
 //
 
 import Foundation
+import Combine
 
 public struct Album: Codable, Identifiable, Hashable {
 
-    public init(name: String, storageOption: StorageType, creationDate: Date) {
+    public init(name: String, storageOption: StorageType, creationDate: Date, key: PrivateKey) {
         self.name = name
         self.storageOption = storageOption
         self.creationDate = creationDate
+        self.key = key
     }
-
+    public var key: PrivateKey
     public var name: String
     public var storageOption: StorageType
     public var creationDate: Date

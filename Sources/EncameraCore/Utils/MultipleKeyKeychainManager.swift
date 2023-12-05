@@ -162,7 +162,13 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         let status = SecItemUpdate(query, updateDict as CFDictionary)
         try checkStatus(status: status)
     }
-    
+
+    public func keyWith(name: String) -> PrivateKey? {
+
+        let keys = try? storedKeys()
+        return keys?.first(where: {$0.name == name})
+    }
+
     public func storedKeys() throws -> [PrivateKey] {
         try checkAuthenticated()
         let query: [String: Any] = [

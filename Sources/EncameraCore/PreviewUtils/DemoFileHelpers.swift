@@ -160,7 +160,7 @@ public class DemoDirectoryModel: DataStorageModel {
 
     public var storageType: StorageType = .local
     
-    public var album: Album = Album(name: "Test", storageOption: .local, creationDate: Date())
+    public var album: Album = Album(name: "Test", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())
 
     public var baseURL: URL
     
@@ -174,7 +174,7 @@ public class DemoDirectoryModel: DataStorageModel {
     }
     
     convenience init() {
-        self.init(album: Album(name: "", storageOption: .local, creationDate: Date()))
+        self.init(album: Album(name: "", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()))
     }
     
     
@@ -210,7 +210,10 @@ public class DemoKeyManager: KeyManager {
         }
     }
     
-    
+    public func keyWith(name: String) -> PrivateKey? {
+        return nil
+    }
+
     public func createBackupDocument() throws -> String {
         return ""
     }
@@ -364,6 +367,12 @@ public class DemoPurchasedPermissionManaging: PurchasedPermissionManaging {
 }
 
 public class DemoAlbumManager: AlbumManaging {
+   
+    
+    public func create(name: String, storageOption: StorageType) throws -> Album {
+        return Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())
+    }
+    
     @Published public var albums: [Album]
 
     public var albumPublisher: AnyPublisher<[Album], Never> {
@@ -378,17 +387,18 @@ public class DemoAlbumManager: AlbumManaging {
     public var defaultStorageForAlbum: StorageType
     public var currentAlbum: Album?
 
-    public init() {
+    public required init(keyManager: KeyManager = DemoKeyManager()) {
         // Initialize demo data
         self.defaultStorageForAlbum = .local // Example storage type
+        let key = DemoPrivateKey.dummyKey()
         self.albums = [
             // Populate with demo albums
-            Album(name: "Demo Album 1", storageOption: .local, creationDate: Date()),
-            Album(name: "Demo Album 2", storageOption: .local, creationDate: Date()),
-            Album(name: "Demo Album 3", storageOption: .local, creationDate: Date()),
-            Album(name: "Demo Album 4", storageOption: .local, creationDate: Date()),
-            Album(name: "Demo Album 5", storageOption: .local, creationDate: Date()),
-            Album(name: "Demo Album 6", storageOption: .local, creationDate: Date()),
+            Album(name: "Demo Album 1", storageOption: .local, creationDate: Date(), key: key),
+            Album(name: "Demo Album 2", storageOption: .local, creationDate: Date(), key: key),
+            Album(name: "Demo Album 3", storageOption: .local, creationDate: Date(), key: key),
+            Album(name: "Demo Album 4", storageOption: .local, creationDate: Date(), key: key),
+            Album(name: "Demo Album 5", storageOption: .local, creationDate: Date(), key: key),
+            Album(name: "Demo Album 6", storageOption: .local, creationDate: Date(), key: key),
         ]
         self.currentAlbum = albums.first
     }

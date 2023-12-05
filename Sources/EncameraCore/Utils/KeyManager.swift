@@ -50,6 +50,7 @@ public protocol KeyManager {
     var currentKey: PrivateKey? { get }
     var keyPublisher: AnyPublisher<PrivateKey?, Never> { get }
     func clearKeychainData()
+    func keyWith(name: String) -> PrivateKey?
     func deleteKey(_ key: PrivateKey) throws
     func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws
     func update(key: PrivateKey, backupToiCloud: Bool) throws

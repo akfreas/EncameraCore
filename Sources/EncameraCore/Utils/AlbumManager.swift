@@ -12,6 +12,7 @@ public enum AlbumError: Error, CustomStringConvertible {
     case albumNameError
     case albumExists
     case albumNotFoundAtSourceLocation
+    case noCurrentKeySet
 
     public var description: String {
         switch self {
@@ -21,6 +22,8 @@ public enum AlbumError: Error, CustomStringConvertible {
             return L10n.aKeyWithThisNameAlreadyExists
         case .albumNotFoundAtSourceLocation:
             return L10n.albumNotFoundAtSourceLocation
+        case .noCurrentKeySet:
+            return L10n.noKeyAvailable
         }
     }
 }
@@ -47,6 +50,8 @@ public class AlbumManager: AlbumManaging, ObservableObject {
     public var defaultStorageForAlbum: StorageType = .local
 
     private var albumSubject: PassthroughSubject<[Album], Never> = .init()
+    private var keyManager: KeyManager
+
     private var albumSet: Set<Album> = [] {
         didSet {
             albums = Array(albumSet).sorted(by: { $0.creationDate < $1.creationDate })
@@ -57,6 +62,18 @@ public class AlbumManager: AlbumManaging, ObservableObject {
             UserDefaultUtils.set(currentAlbum?.id, forKey: .currentAlbumID)
         }
     }
+
+    private func matchAlbumToKeyIfNeeded(albumName: String, storageType: StorageType, creationDate: Date) -> Album? {
+        let key = keyManager.keyWith(name: albumName)
+        if let key {
+            return Album(name: albumName, storageOption: storageType, creationDate: creationDate, key: key)
+        } else if let key = keyManager.currentKey {
+            return Album(name: albumName, storageOption: storageType, creationDate: creationDate, key: key)
+        } else {
+            return nil
+        }
+    }
+
     private func loadAvailableAlbums() {
         let fileManager = FileManager.default
 
@@ -65,7 +82,11 @@ public class AlbumManager: AlbumManaging, ObservableObject {
                 let directoryName = url.lastPathComponent
                 let attributes = try? fileManager.attributesOfItem(atPath: url.path)
                 let creationDate = attributes?[.creationDate] as? Date
-                return creationDate != nil ? Album(name: directoryName, storageOption: .local, creationDate: creationDate!) : nil
+                if let creationDate {
+                    return matchAlbumToKeyIfNeeded(albumName: directoryName, storageType: .local, creationDate: creationDate)
+                } else {
+                    return nil
+                }
             }
         var iCloudAlbums: [Album] = []
         if DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) == .available {
@@ -75,15 +96,19 @@ public class AlbumManager: AlbumManaging, ObservableObject {
                     let attributes = try? fileManager.attributesOfItem(atPath: url.path)
                     let creationDate = attributes?[.creationDate] as? Date
 
-                    return creationDate != nil ? Album(name: directoryName, storageOption: .icloud, creationDate: creationDate!) : nil
+                    if let creationDate {
+                        return matchAlbumToKeyIfNeeded(albumName: directoryName, storageType: .icloud, creationDate: creationDate)
+                    } else {
+                        return nil
+                    }
                 }
         }
         self.albumSet = Set(localAlbums).union(Set(iCloudAlbums))
 
     }
 
-    required public init() {
-
+    required public init(keyManager: KeyManager) {
+        self.keyManager = keyManager
         loadAvailableAlbums()
         // Retrieve the current album ID from user defaults
         if let currentAlbumID = UserDefaultUtils.string(forKey: .currentAlbumID),
@@ -109,7 +134,11 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         albumSet.remove(album)
     }
 
-    public func create(album: Album) throws {
+    public func create(name: String, storageOption: StorageType) throws -> Album  {
+        guard let currentKey = keyManager.currentKey else {
+            throw AlbumError.noCurrentKeySet
+        }
+        let album = Album(name: name, storageOption: storageOption, creationDate: Date(), key: currentKey)
         debugPrint("Starting album creation process")
 
         let fileManager = FileManager.default
@@ -141,6 +170,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         )
 
         debugPrint("Directory created successfully")
+        return album
     }
 
 
