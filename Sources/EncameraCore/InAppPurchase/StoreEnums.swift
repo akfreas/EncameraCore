@@ -8,7 +8,7 @@
 import Foundation
 
 public enum PurchaseFinishedAction {
-    case purchaseComplete
+    case purchaseComplete(amount: Decimal, currencyCode: String)
     case noAction
     case displayError
 }
