@@ -18,7 +18,7 @@ public protocol AlbumManaging {
     var currentAlbum: Album? { get set }
 
     func delete(album: Album)
-    func create(name: String, storageOption: StorageType) throws -> Album 
+    @discardableResult func create(name: String, storageOption: StorageType) throws -> Album 
     func storageModel(for album: Album) -> DataStorageModel?
     func moveAlbum(album: Album, toStorage: StorageType) throws
     func validateAlbumName(name: String) throws

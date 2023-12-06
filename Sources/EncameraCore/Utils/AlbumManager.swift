@@ -134,7 +134,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         albumSet.remove(album)
     }
 
-    public func create(name: String, storageOption: StorageType) throws -> Album  {
+    @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album  {
         guard let currentKey = keyManager.currentKey else {
             throw AlbumError.noCurrentKeySet
         }

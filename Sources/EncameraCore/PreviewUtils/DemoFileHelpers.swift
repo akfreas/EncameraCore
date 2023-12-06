@@ -369,7 +369,7 @@ public class DemoPurchasedPermissionManaging: PurchasedPermissionManaging {
 public class DemoAlbumManager: AlbumManaging {
    
     
-    public func create(name: String, storageOption: StorageType) throws -> Album {
+    @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album {
         return Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())
     }
     

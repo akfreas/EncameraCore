@@ -31,7 +31,7 @@ public enum OnboardingState: Codable, Equatable {
 }
 
 
-public enum OnboardingFlowScreen: Int, Identifiable {
+public enum OnboardingFlowScreen: String, Identifiable {
     case intro
     case enterExistingPassword
     case setPassword
