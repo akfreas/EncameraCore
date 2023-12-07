@@ -147,14 +147,8 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }
 
         let key = PrivateKey(name: name, keyBytes: keyBytes, creationDate: Date())
-        var setNewKeyToCurrent: Bool
-        do {
-            let storedKeys = try storedKeys()
-            setNewKeyToCurrent = storedKeys.count == 0
-        } catch {
-            setNewKeyToCurrent = true
-        }
-        try save(key: key, setNewKeyToCurrent: setNewKeyToCurrent, backupToiCloud: false)
+        
+        try save(key: key, setNewKeyToCurrent: true, backupToiCloud: false)
 
         // Save the passphrase to the keychain
         let passphraseData = fullPassword.data(using: .utf8)!
