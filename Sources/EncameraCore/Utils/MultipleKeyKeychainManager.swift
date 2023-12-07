@@ -13,6 +13,7 @@ private enum KeychainConstants {
     static let applicationTag = "com.encamera.key"
     static let account = "encamera"
     static let minKeyLength = 2
+    static let passPhraseKeyItem = "encamera_key_passphrase"
 }
 
 
@@ -92,15 +93,58 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         return key
     }
 
-    @discardableResult public func generateKeyFromPassword(_ password: String, name: String) throws -> PrivateKey {
-
+    @discardableResult public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
         try checkAuthenticated()
 
-        try validateKeyName(name: name)
+        // Load the dictionary file from the main bundle
+        guard let dictionaryPath = Bundle.main.path(forResource: "dictionary", ofType: "txt"),
+              let dictionaryContent = try? String(contentsOfFile: dictionaryPath) else {
+            throw KeyManagerError.dictionaryLoadError
+        }
 
-        // Deriving a key from the password using Sodium's password hashing function
-        let hash = try hashFrom(password: password)
-        let keyBytes = Array(hash.prefix(Sodium().secretStream.xchacha20poly1305.KeyBytes))
+        let words = dictionaryContent.components(separatedBy: .newlines).filter { !$0.isEmpty && $0.lengthOfBytes(using: .utf8) > 4 }
+
+        // Ensure the dictionary has enough words
+        guard words.count >= 10 else {
+            throw KeyManagerError.dictionaryTooSmall
+        }
+
+        // Select 10 random words
+        let selectedWords = (0..<10).compactMap { _ in words.randomElement()?.lowercased() }
+
+        // Use the first word as the salt and the rest as parts of the password
+        return try generateKeyFromPasswordComponents(selectedWords, name: name)
+    }
+
+
+    @discardableResult public func generateKeyFromPasswordComponents(_ components: [String], name: String) throws -> PrivateKey {
+        guard !components.isEmpty else {
+            throw KeyManagerError.invalidInput
+        }
+
+        try checkAuthenticated()
+        try validateKeyName(name: name)
+        let splitIndex = 4
+        let fullPassword = components.joined(separator: "-")
+        let saltComponents = components.prefix(splitIndex)
+        let saltString = saltComponents.joined(separator: "-")
+        let passwordComponents = components.dropFirst(splitIndex)
+        let password = passwordComponents.joined(separator: "-")
+
+        // Convert salt string to bytes, ensuring it matches the required salt length
+        let saltBytes = Array(saltString.bytes.prefix(Sodium().pwHash.SaltBytes))
+        if saltBytes.count < Sodium().pwHash.SaltBytes {
+            throw KeyManagerError.invalidSalt
+        }
+
+        let keyLength = Sodium().secretStream.xchacha20poly1305.KeyBytes
+        guard let keyBytes = sodium.pwHash.hash(outputLength: keyLength,
+                                                  passwd: password.bytes,
+                                                  salt: saltBytes,
+                                                  opsLimit: sodium.pwHash.OpsLimitInteractive,
+                                                  memLimit: sodium.pwHash.MemLimitInteractive) else {
+            throw KeyManagerError.keyDerivationFailed
+        }
 
         let key = PrivateKey(name: name, keyBytes: keyBytes, creationDate: Date())
         var setNewKeyToCurrent: Bool
@@ -110,12 +154,43 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         } catch {
             setNewKeyToCurrent = true
         }
-        try save(key: key,
-                 setNewKeyToCurrent: setNewKeyToCurrent,
-                 backupToiCloud: false)  // Set to true if you want to backup to iCloud
+        try save(key: key, setNewKeyToCurrent: setNewKeyToCurrent, backupToiCloud: false)
+
+        // Save the passphrase to the keychain
+        let passphraseData = fullPassword.data(using: .utf8)!
+        let passphraseQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem,
+            kSecValueData as String: passphraseData,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+        ]
+        let passphraseStatus = SecItemAdd(passphraseQuery as CFDictionary, nil)
+        try checkStatus(status: passphraseStatus)
+
         return key
     }
 
+    public func retrieveKeyPassphrase() throws -> [String] {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        guard status == errSecSuccess else {
+            throw KeyManagerError.notFound
+        }
+
+        guard let data = item as? Data,
+              let passphrase = String(data: data, encoding: .utf8) else {
+            throw KeyManagerError.dataError
+        }
+
+        return passphrase.components(separatedBy: "-")
+    }
 
     public func validateKeyName(name: String) throws {
         guard name.count > KeychainConstants.minKeyLength else {

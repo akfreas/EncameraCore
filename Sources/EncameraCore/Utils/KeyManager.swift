@@ -18,7 +18,12 @@ public enum KeyManagerError: ErrorDescribable {
     case dataError
     case keyExists
     case invalidPassword
-    
+    case invalidInput
+    case invalidSalt
+    case keyDerivationFailed
+    case dictionaryLoadError
+    case dictionaryTooSmall
+
     public var displayDescription: String {
         switch self {
         case .deleteKeychainItemsFailed:
@@ -37,6 +42,16 @@ public enum KeyManagerError: ErrorDescribable {
             return L10n.aKeyWithThisNameAlreadyExists
         case .invalidPassword:
             return L10n.invalidPassword
+        case .invalidInput:
+            return "Invalid input"
+        case .invalidSalt:
+            return "Invalid salt"
+        case .keyDerivationFailed:
+            return "Key derivation failed"
+        case .dictionaryLoadError:
+            return "Could not load dictionary"
+        case .dictionaryTooSmall:
+            return "Dictionary too small"
         }
     }
     
@@ -55,6 +70,8 @@ public protocol KeyManager {
     func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws
     func update(key: PrivateKey, backupToiCloud: Bool) throws
     func generateNewKey(name: String, backupToiCloud: Bool) throws -> PrivateKey
+    func generateKeyUsingRandomWords(name: String) throws -> PrivateKey
+    func retrieveKeyPassphrase() throws -> [String]
     func validateKeyName(name: String) throws
     func createBackupDocument() throws -> String
     func checkPassword(_ password: String) throws -> Bool

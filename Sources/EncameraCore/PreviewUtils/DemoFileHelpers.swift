@@ -217,10 +217,16 @@ public class DemoKeyManager: KeyManager {
     public func createBackupDocument() throws -> String {
         return ""
     }
+    public func retrieveKeyPassphrase() throws -> [String] {
+        return []
+    }
     public func passwordExists() -> Bool {
         return hasExistingPassword
     }
-    
+    public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
+        return DemoPrivateKey.dummyKey()
+    }
+
     func validate(password: String) -> PasswordValidation {
         return .valid
     }
