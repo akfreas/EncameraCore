@@ -132,6 +132,12 @@ public class AlbumManager: AlbumManaging, ObservableObject {
 
         // Remove album from albums collection
         albumSet.remove(album)
+
+        if albumSet.count == 0 {
+            currentAlbum = try? create(name: AppConstants.defaultAlbumName, storageOption: .local)
+        } else {
+            currentAlbum = albumSet.first
+        }
     }
 
     @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album  {

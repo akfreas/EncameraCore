@@ -184,7 +184,6 @@ public class OnboardingManager: OnboardingManaging {
 
         screens += [
             .permissions,
-            .finished
         ]
         
         return screens
