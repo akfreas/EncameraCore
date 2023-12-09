@@ -24,8 +24,7 @@ public struct FileOperationBus {
     }
     
     private var operationSubject: PassthroughSubject<FileOperation, Never> = PassthroughSubject()
-    
-    
+
     func didCreate(_ media: EncryptedMedia) {
         operationSubject.send(.create(media))
     }

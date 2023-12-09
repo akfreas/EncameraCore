@@ -373,6 +373,10 @@ public class DemoPurchasedPermissionManaging: PurchasedPermissionManaging {
 }
 
 public class DemoAlbumManager: AlbumManaging {
+    public func renameAlbum(album: Album, to newName: String) throws -> Album {
+        return Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())
+    }
+    
    
     
     @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album {
@@ -430,4 +434,5 @@ public class DemoAlbumManager: AlbumManaging {
             throw AlbumError.albumNameError
         }
     }
+
 }

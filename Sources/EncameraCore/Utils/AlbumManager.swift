@@ -237,6 +237,46 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         debugPrint("Completed the move process for album: \(album.name)")
     }
 
+    public func renameAlbum(album: Album, to newName: String) throws -> Album {
+        // Validate the new name
+        try validateAlbumName(name: newName)
+
+        // Check if an album with the new name already exists
+        if albumSet.contains(where: { $0.name == newName }) {
+            throw AlbumError.albumExists
+        }
+
+        // Rename the album in the file system
+        let fileManager = FileManager.default
+        let oldURL = album.storageURL
+        let newURL = oldURL.deletingLastPathComponent().appendingPathComponent(newName)
+
+        if fileManager.fileExists(atPath: oldURL.path) {
+            try fileManager.moveItem(at: oldURL, to: newURL)
+        } else {
+            throw AlbumError.albumNotFoundAtSourceLocation
+        }
+
+        // Update the album's name and storage URL in your model
+        if var albumToUpdate = albumSet.first(where: { $0.id == album.id }) {
+            albumToUpdate.name = newName
+            // Update storageURL if your Album model has this property
+            // albumToUpdate.storageURL = newURL
+
+            // Update the albums set and array
+            albumSet.remove(album)
+            albumSet.insert(albumToUpdate)
+
+            if currentAlbum?.id == album.id {
+                currentAlbum = albumToUpdate
+            }
+            return albumToUpdate
+        } else {
+            throw AlbumError.albumNotFoundAtSourceLocation
+        }
+    }
+
+
 
     public func storageModel(for album: Album) -> DataStorageModel? {
         albumSet.first(where: { albumInSet in

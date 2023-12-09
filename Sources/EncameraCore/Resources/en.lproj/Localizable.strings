@@ -119,6 +119,10 @@
 "Share Key" = "Share Key";
 /* ./Encamera/KeyManagement/KeyDetailView.swift */
 "Error deleting key. Please try again." = "Error deleting key. Please try again.";
+"Rename" = "Rename";
+"AlbumExistsError" = "An album with that name already exists.";
+"CouldNotRenameAlbumError" = "Could not rename album.";
+"PleaseEnterAnAlbumName" = "Please enter a name for the album";
 "Error clearing keychain" = "Error clearing keychain";
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "Error deleting key and associated files. Please try again or try to delete files manually via the Files app.";
 "Error deleting all files" = "Error deleting all files";

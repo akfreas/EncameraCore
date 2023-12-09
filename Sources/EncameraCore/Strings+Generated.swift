@@ -46,6 +46,8 @@ public enum L10n {
   public static let addKey = L10n.tr("Localizable", "Add Key", fallback: "Add Key")
   /// Add Photos
   public static let addPhotos = L10n.tr("Localizable", "AddPhotos", fallback: "Add Photos")
+  /// An album with that name already exists.
+  public static let albumExistsError = L10n.tr("Localizable", "AlbumExistsError", fallback: "An album with that name already exists.")
   /// Album Name
   public static let albumName = L10n.tr("Localizable", "AlbumName", fallback: "Album Name")
   /// Album name must be longer than 1 character
@@ -135,6 +137,8 @@ public enum L10n {
   }
   /// ./EncameraCore/Utils/KeyManager.swift
   public static let couldNotDeleteKeychainItems = L10n.tr("Localizable", "Could not delete keychain items.", fallback: "Could not delete keychain items.")
+  /// Could not rename album.
+  public static let couldNotRenameAlbumError = L10n.tr("Localizable", "CouldNotRenameAlbumError", fallback: "Could not rename album.")
   /// Create an unlimited number of keys.
   public static let createAnUnlimitedNumberOfKeys = L10n.tr("Localizable", "Create an unlimited number of keys.", fallback: "Create an unlimited number of keys.")
   /// ./Encamera/KeyManagement/KeyInformation.swift
@@ -410,6 +414,8 @@ public enum L10n {
   public static let photoLimitReached = L10n.tr("Localizable", "Photo limit reached", fallback: "Photo limit reached")
   /// Please select a storage location.
   public static let pleaseSelectAStorageLocation = L10n.tr("Localizable", "Please select a storage location.", fallback: "Please select a storage location.")
+  /// Please enter a name for the album
+  public static let pleaseEnterAnAlbumName = L10n.tr("Localizable", "PleaseEnterAnAlbumName", fallback: "Please enter a name for the album")
   /// premium
   public static let premium = L10n.tr("Localizable", "premium", fallback: "premium")
   /// Unlock all of these amazing benefits today
@@ -420,6 +426,8 @@ public enum L10n {
   public static let profileSetup = L10n.tr("Localizable", "ProfileSetup", fallback: "PROFILE SETUP")
   /// Widget
   public static let quicklyTakePictures = L10n.tr("Localizable", "QuicklyTakePictures", fallback: "Quickly take pictures and video.")
+  /// Rename
+  public static let rename = L10n.tr("Localizable", "Rename", fallback: "Rename")
   /// Repeat Password
   public static let repeatPassword = L10n.tr("Localizable", "Repeat Password", fallback: "Repeat Password")
   /// Restore Purchases
