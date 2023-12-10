@@ -21,7 +21,7 @@ public struct Album: Codable, Identifiable, Hashable {
     public var storageOption: StorageType
     public var creationDate: Date
     public var id: String {
-        return name
+        return "\(name)_\(storageOption.rawValue)"
     }
     public var storageURL: URL {
         storageOption.modelForType.init(album: self).baseURL
