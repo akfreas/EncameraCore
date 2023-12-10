@@ -46,6 +46,8 @@ public enum L10n {
   public static let addKey = L10n.tr("Localizable", "Add Key", fallback: "Add Key")
   /// Add Photos
   public static let addPhotos = L10n.tr("Localizable", "AddPhotos", fallback: "Add Photos")
+  /// ADD PHOTOS TO THIS ALBUM
+  public static let addPhotosToThisAlbum = L10n.tr("Localizable", "AddPhotosToThisAlbum", fallback: "ADD PHOTOS TO THIS ALBUM")
   /// An album with that name already exists.
   public static let albumExistsError = L10n.tr("Localizable", "AlbumExistsError", fallback: "An album with that name already exists.")
   /// Album Name
@@ -558,6 +560,8 @@ public enum L10n {
   }
   /// Use Password
   public static let usePassword = L10n.tr("Localizable", "Use Password", fallback: "Use Password")
+  /// Use the built-in camera to take photos and videos.
+  public static let useCameraToTakePhotos = L10n.tr("Localizable", "UseCameraToTakePhotos", fallback: "Use the built-in camera to take photos and videos.")
   /// VIDEO
   public static let video = L10n.tr("Localizable", "VIDEO", fallback: "VIDEO")
   /// ./Encamera/Store/SubscriptionView.swift
@@ -589,7 +593,7 @@ public enum L10n {
     public static let allMediaWillRemainSaved = L10n.tr("Localizable", "Enter the name of the key to delete it forever. All media will remain saved.", fallback: "Enter the name of the key to delete it forever. All media will remain saved.")
   }
   public enum ErrorDeletingKey {
-    /// ./Encamera/KeyManagement/KeyDetailView.swift
+    /// ./Encamera/KeyManagement/AlbumDetailView.swift
     public static let pleaseTryAgain = L10n.tr("Localizable", "Error deleting key. Please try again.", fallback: "Error deleting key. Please try again.")
   }
   public enum ErrorDeletingKeyAndAssociatedFiles {

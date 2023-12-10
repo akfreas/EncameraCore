@@ -117,9 +117,11 @@
 "Scan with Encamera app" = "Scan with Encamera app";
 "Hold to reveal" = "Hold to reveal";
 "Share Key" = "Share Key";
-/* ./Encamera/KeyManagement/KeyDetailView.swift */
+/* ./Encamera/KeyManagement/AlbumDetailView.swift */
 "Error deleting key. Please try again." = "Error deleting key. Please try again.";
 "Rename" = "Rename";
+"AddPhotosToThisAlbum" = "ADD PHOTOS TO THIS ALBUM";
+"UseCameraToTakePhotos" = "Use the built-in camera to take photos and videos.";
 "AlbumExistsError" = "An album with that name already exists.";
 "CouldNotRenameAlbumError" = "Could not rename album.";
 "PleaseEnterAnAlbumName" = "Please enter a name for the album";
