@@ -456,7 +456,7 @@ private extension MultipleKeyKeychainManager {
     private func getKeyQuery(for keyName: KeyName) throws -> CFDictionary {
         guard let keyData = keyName.data(using: .utf8) else {
             throw KeyManagerError.dataError
-        }
+        } 
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecMatchLimit as String: kSecMatchLimitOne,

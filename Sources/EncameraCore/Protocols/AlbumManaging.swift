@@ -20,7 +20,7 @@ public protocol AlbumManaging {
     func delete(album: Album)
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album 
     func storageModel(for album: Album) -> DataStorageModel?
-    func moveAlbum(album: Album, toStorage: StorageType) throws
+    func moveAlbum(album: Album, toStorage: StorageType) throws -> Album
     func renameAlbum(album: Album, to newName: String) throws -> Album
     func validateAlbumName(name: String) throws
 }

@@ -277,6 +277,8 @@ public enum L10n {
   public static let introStorageExplanation = L10n.tr("Localizable", "IntroStorageExplanation", fallback: "Your media is safely secured behind a key and stored locally on your device or iCloud.")
   /// Invalid Password
   public static let invalidPassword = L10n.tr("Localizable", "Invalid Password", fallback: "Invalid Password")
+  /// Join Telegram Group
+  public static let joinTelegramGroup = L10n.tr("Localizable", "Join Telegram Group", fallback: "Join Telegram Group")
   /// Keep your encrypted data safe by using %@.
   public static func keepYourEncryptedDataSafeByUsing(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Keep your encrypted data safe by using %@.", String(describing: p1), fallback: "Keep your encrypted data safe by using %@.")
@@ -323,8 +325,6 @@ public enum L10n {
   public static let moveAlbumStorage = L10n.tr("Localizable", "MoveAlbumStorage", fallback: "Move Album")
   /// You can have multiple keys for different purposes, e.g. one named "Documents" and another "Personal".
   public static let multipleKeysForMultiplePurposesExplanation = L10n.tr("Localizable", "MultipleKeysForMultiplePurposesExplanation", fallback: "You can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".")
-  /// My Keys
-  public static let myKeys = L10n.tr("Localizable", "My Keys", fallback: "My Keys")
   /// New Album
   public static let newAlbum = L10n.tr("Localizable", "New Album", fallback: "New Album")
   /// Set the name for this encrypted photo album.

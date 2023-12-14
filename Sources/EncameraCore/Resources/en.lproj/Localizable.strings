@@ -69,6 +69,7 @@
 "PremiumUnlockTheseBenefits" = "Unlock all of these amazing benefits today";
 "Restore Purchases" = "Restore Purchases";
 "Settings" = "Settings";
+"Join Telegram Group" = "Join Telegram Group";
 "Contact" = "Contact";
 "Privacy Policy" = "Privacy Policy";
 "Terms of Use" = "Terms of Use";
@@ -106,7 +107,6 @@
 "Active" = "Active";
 "CreateNewAlbum" = "Create New Album";
 "Add Existing Key" = "Add Existing Key";
-"My Keys" = "My Keys";
 /* AlbumGrid */
 "AlbumsTitle" = "Albums";
 

@@ -126,4 +126,13 @@ public enum MediaType: Int, CaseIterable, Codable {
 public enum CameraMode: Int {
     case photo
     case video
+
+    public var title: String {
+        switch self {
+        case .photo:
+            return "Photo"
+        case .video:
+            return "Video"
+        }
+    }
 }

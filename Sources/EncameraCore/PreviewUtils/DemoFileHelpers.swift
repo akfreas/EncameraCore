@@ -39,7 +39,7 @@ public class DemoFileEnumerator: FileAccess {
     }
     
     public func move(media: EncryptedMedia) async throws {
-        
+
     }
     private var mediaList: [EncryptedMedia] = []
     
@@ -416,7 +416,8 @@ public class DemoAlbumManager: AlbumManaging {
     public func delete(album: Album) {
         // No-op for demo
     }
-    public func moveAlbum(album: Album, toStorage: StorageType) throws {
+    public func moveAlbum(album: Album, toStorage: StorageType) throws -> Album {
+        fatalError()
 
     }
     public func create(album: Album) throws {

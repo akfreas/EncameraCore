@@ -108,23 +108,19 @@ extension DiskFileAccess: FileReader {
     }
 
     public func loadLeadingThumbnail() async throws -> UIImage? {
-        debugPrint("loadLeadingThumbnail: Loading leading thumbnail for \(directoryModel?.baseURL.absoluteString ?? "No URL")")
         let media: [EncryptedMedia] = await enumerateMedia()
         guard let firstMedia = media.first else {
-            debugPrint("loadLeadingThumbnail: No media found")
             return nil
         }
 
         do {
             let cleartextPreview = try await loadMediaPreview(for: firstMedia)
             guard let thumbnail = UIImage(data: cleartextPreview.thumbnailMedia.source) else {
-                debugPrint("loadLeadingThumbnail: Could not create thumbnail from data")
                 return nil
             }
             return thumbnail
 
         } catch {
-            debugPrint("Error loading media preview", error)
             return nil
         }
     }

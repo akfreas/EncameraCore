@@ -180,7 +180,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
     }
 
 
-    public func moveAlbum(album: Album, toStorage: StorageType) throws {
+    public func moveAlbum(album: Album, toStorage: StorageType) throws -> Album {
         let fileManager = FileManager.default
         let currentStorage = album.storageOption.modelForType.init(album: album)
 
@@ -223,18 +223,22 @@ public class AlbumManager: AlbumManaging, ObservableObject {
             debugPrint("Source directory is empty after moving files. Deleting source directory.")
             try fileManager.removeItem(at: currentStorage.baseURL)
         }
+        FileOperationBus.shared.didMove(album)
 
         // Update the album's storage option and URL if needed
         if var movedAlbum = albums.first(where: { $0.id == album.id }) {
             movedAlbum.storageOption = toStorage
             albumSet.insert(movedAlbum)
             debugPrint("Updated album storage option for \(album.name)")
+            return movedAlbum
             // Update the storageURL if your Album model has this property
         } else {
             debugPrint("Could not update album, not found in the albums collection.")
         }
 
+
         debugPrint("Completed the move process for album: \(album.name)")
+        return album
     }
 
     public func renameAlbum(album: Album, to newName: String) throws -> Album {
