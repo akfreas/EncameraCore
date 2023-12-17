@@ -384,6 +384,9 @@ public class DemoAlbumManager: AlbumManaging {
     }
     
     @Published public var albums: [Album]
+    public func loadAlbumsFromFilesystem() {
+
+    }
 
     public var albumPublisher: AnyPublisher<[Album], Never> {
         albumSubject.eraseToAnyPublisher()

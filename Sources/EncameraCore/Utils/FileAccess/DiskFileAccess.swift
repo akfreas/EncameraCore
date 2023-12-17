@@ -78,7 +78,6 @@ extension DiskFileAccess: FileReader {
 
 
     public func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL {
-        debugPrint("loadMediaPreview: Loading preview for \(media.id)")
         guard let thumbnailPath = directoryModel?.previewURLForMedia(media) else {
             debugPrint("loadMediaPreview: No thumbnail path found")
             throw FileAccessError.missingDirectoryModel

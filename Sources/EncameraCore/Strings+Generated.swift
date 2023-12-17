@@ -301,8 +301,6 @@ public enum L10n {
   }
   /// Key not found.
   public static let keyNotFound = L10n.tr("Localizable", "Key not found.", fallback: "Key not found.")
-  /// Key Selection
-  public static let keySelection = L10n.tr("Localizable", "Key Selection", fallback: "Key Selection")
   /// Key-Based Encryption
   public static let keyBasedEncryption = L10n.tr("Localizable", "KeyBasedEncryption", fallback: "Key-Based Encryption")
   /// Keys
@@ -448,6 +446,10 @@ public enum L10n {
   public static func saveAmount(_ p1: Any) -> String {
     return L10n.tr("Localizable", "SaveAmount %@ $@", String(describing: p1), fallback: "SAVE %@")
   }
+  /// Saved to Device
+  public static let savedToDevice = L10n.tr("Localizable", "Saved to Device", fallback: "Saved to Device")
+  /// Saved to iCloud
+  public static let savedToICloud = L10n.tr("Localizable", "Saved to iCloud", fallback: "Saved to iCloud")
   /// Save to this device
   public static let saveLocally = L10n.tr("Localizable", "SaveLocally", fallback: "Save to this device")
   /// Save to iCloud Drive

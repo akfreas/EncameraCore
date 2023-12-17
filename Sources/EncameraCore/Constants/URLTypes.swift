@@ -15,7 +15,7 @@ public enum URLType: Equatable {
     case media(encryptedMedia: EncryptedMedia)
     case key(key: PrivateKey)
     case featureToggle(feature: Feature)
-    case camera
+    case cameraFromWidget
 
     public init?(url: URL) {
         if let key = URLType.extractKey(url: url) {
@@ -25,7 +25,7 @@ public enum URLType: Equatable {
         } else if let feature = URLType.extractFeatureToggle(url: url) {
             self = .featureToggle(feature: feature)
         } else if url.absoluteString.starts(with: "\(AppConstants.deeplinkSchema)://camera") {
-            self = .camera
+            self = .cameraFromWidget
         } else {
             return nil
         }
@@ -39,7 +39,7 @@ public enum URLType: Equatable {
             return keyURL(key: key)
         case .featureToggle(feature: let feature):
             return featureToggleURL(feature: feature)
-        case .camera:
+        case .cameraFromWidget:
             return cameraURL()
         }
     }

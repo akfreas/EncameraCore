@@ -30,31 +30,13 @@ public enum AlbumError: Error, CustomStringConvertible {
 
 public class AlbumManager: AlbumManaging, ObservableObject {
 
-
-
     public var selectedAlbumPublisher: AnyPublisher<Album?, Never> {
         $currentAlbum.eraseToAnyPublisher()
     }
 
-
     @Published public var albums: [Album] = [] {
         didSet {
             albumSubject.send(albums)
-        }
-    }
-
-    public var albumPublisher: AnyPublisher<[Album], Never> {
-        albumSubject.eraseToAnyPublisher()
-    }
-
-    public var defaultStorageForAlbum: StorageType = .local
-
-    private var albumSubject: PassthroughSubject<[Album], Never> = .init()
-    private var keyManager: KeyManager
-
-    private var albumSet: Set<Album> = [] {
-        didSet {
-            albums = Array(albumSet).sorted(by: { $0.creationDate < $1.creationDate })
         }
     }
     @Published public var currentAlbum: Album? {
@@ -63,18 +45,22 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         }
     }
 
-    private func matchAlbumToKeyIfNeeded(albumName: String, storageType: StorageType, creationDate: Date) -> Album? {
-        let key = keyManager.keyWith(name: albumName)
-        if let key {
-            return Album(name: albumName, storageOption: storageType, creationDate: creationDate, key: key)
-        } else if let key = keyManager.currentKey {
-            return Album(name: albumName, storageOption: storageType, creationDate: creationDate, key: key)
-        } else {
-            return nil
+    public var albumPublisher: AnyPublisher<[Album], Never> {
+        albumSubject.eraseToAnyPublisher()
+    }
+    public var defaultStorageForAlbum: StorageType = .local
+    
+    private var albumSubject: PassthroughSubject<[Album], Never> = .init()
+    private var keyManager: KeyManager
+
+    private var albumSet: Set<Album> = [] {
+        didSet {
+            albums = Array(albumSet).sorted(by: { $0.creationDate < $1.creationDate })
         }
     }
 
-    private func loadAvailableAlbums() {
+    public func loadAlbumsFromFilesystem() {
+
         let fileManager = FileManager.default
 
         let localAlbums = LocalStorageModel.enumerateRootDirectory()
@@ -104,12 +90,11 @@ public class AlbumManager: AlbumManaging, ObservableObject {
                 }
         }
         self.albumSet = Set(localAlbums).union(Set(iCloudAlbums))
-
     }
 
     required public init(keyManager: KeyManager) {
         self.keyManager = keyManager
-        loadAvailableAlbums()
+        loadAlbumsFromFilesystem()
         // Retrieve the current album ID from user defaults
         if let currentAlbumID = UserDefaultUtils.string(forKey: .currentAlbumID),
             let foundAlbum = albumSet.first(where: { $0.id == currentAlbumID }) {
@@ -294,5 +279,14 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         }
     }
 
-
+    private func matchAlbumToKeyIfNeeded(albumName: String, storageType: StorageType, creationDate: Date) -> Album? {
+        let key = keyManager.keyWith(name: albumName)
+        if let key {
+            return Album(name: albumName, storageOption: storageType, creationDate: creationDate, key: key)
+        } else if let key = keyManager.currentKey {
+            return Album(name: albumName, storageOption: storageType, creationDate: creationDate, key: key)
+        } else {
+            return nil
+        }
+    }
 }

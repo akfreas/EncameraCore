@@ -170,9 +170,21 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
             debugPrint("Could not stop session, isSessionRunning: \(self.session.isRunning), model.setupResult: \(model.setupResult)")
             return
         }
-        cancellables.forEach({ $0.cancel() })
-        cancellables.removeAll()
+        stopCancellables()
         self.session.stopRunning()
+        NotificationUtils.didBecomeActivePublisher
+            .sink { _ in
+                Task {
+                    await self.start()
+                }
+            }.store(in: &cancellables)
+        NotificationUtils.willEnterForegroundPublisher
+            .sink { _ in
+                Task {
+                    await self.start()
+                }
+            }.store(in: &cancellables)
+
     }
     
     public func start() async {
@@ -180,6 +192,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
             debugPrint("Session is running already or is not configured")
             return
         }
+
         switch self.model.setupResult {
         case .setupComplete:
             self.session.startRunning()
@@ -514,7 +527,12 @@ private extension CameraConfigurationService {
         metadataOutput.setMetadataObjectsDelegate(metadataProcessor, queue: .main)
         metadataOutput.metadataObjectTypes = metadataProcessor.supportedObjectTypes
     }
-    
+
+    private func stopCancellables() {
+        cancellables.forEach { $0.cancel() }
+        cancellables.removeAll()
+    }
+
     private func setupVideoCaptureDevice() throws {
         session.sessionPreset = .photo
         

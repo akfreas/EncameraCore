@@ -30,6 +30,10 @@ public struct NotificationUtils {
         return publisher(for: UIApplication.didBecomeActiveNotification)
     }
     
+    public static var willEnterForegroundPublisher: AnyPublisher<Notification, Never> {
+        return publisher(for: UIApplication.willEnterForegroundNotification)
+    }
+
     public static var didEnterBackgroundPublisher: AnyPublisher<Notification, Never> {
         return publisher(for: UIApplication.didEnterBackgroundNotification)
     }

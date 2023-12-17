@@ -46,7 +46,6 @@
 /* ./Encamera/CameraView/CameraView.swift */
 "Missing camera access." = "Missing camera access.";
 "Open settings to allow camera access permission" = "Open settings to allow camera access permission";
-"Key Selection" = "Key Selection";
 "OpenSettings" = "Open Settings";
 "FinishImportingMedia" = "Finish Importing Media";
 "TakeYourFirstPicture" = "TAKE YOUR FIRST PICTURE";
@@ -120,6 +119,8 @@
 /* ./Encamera/KeyManagement/AlbumDetailView.swift */
 "Error deleting key. Please try again." = "Error deleting key. Please try again.";
 "Rename" = "Rename";
+"Saved to Device" = "Saved to Device";
+"Saved to iCloud" = "Saved to iCloud";
 "AddPhotosToThisAlbum" = "ADD PHOTOS TO THIS ALBUM";
 "UseCameraToTakePhotos" = "Use the built-in camera to take photos and videos.";
 "AlbumExistsError" = "An album with that name already exists.";
