@@ -24,6 +24,7 @@ public enum UserDefaultKey {
     case launchCount
     case currentAlbumID
     case showCameraOnLaunch
+    case lastAppLaunchVersion
 
     var rawValue: String {
         switch self {

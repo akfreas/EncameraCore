@@ -150,18 +150,41 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         
         try save(key: key, setNewKeyToCurrent: true, backupToiCloud: false)
 
-        // Save the passphrase to the keychain
+        // Save or update the passphrase in the keychain
         let passphraseData = fullPassword.data(using: .utf8)!
         let passphraseQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem,
-            kSecValueData as String: passphraseData,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            kSecReturnData as String: true
         ]
-        let passphraseStatus = SecItemAdd(passphraseQuery as CFDictionary, nil)
-        try checkStatus(status: passphraseStatus)
+
+        var item: CFTypeRef?
+        let queryResult = SecItemCopyMatching(passphraseQuery as CFDictionary, &item)
+
+        switch queryResult {
+        case errSecSuccess:
+            // Passphrase exists, update it
+            let updateQuery: [String: Any] = [kSecValueData as String: passphraseData]
+            let updateStatus = SecItemUpdate(passphraseQuery as CFDictionary, updateQuery as CFDictionary)
+
+            try checkStatus(status: updateStatus)
+        case errSecItemNotFound:
+            // Passphrase does not exist, add it
+            let addQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem,
+                kSecValueData as String: passphraseData,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            ]
+            let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+            try checkStatus(status: addStatus)
+        default:
+            // Handle other errors
+            try checkStatus(status: queryResult)
+        }
 
         return key
+
     }
 
     public func retrieveKeyPassphrase() throws -> [String] {
@@ -202,16 +225,29 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
         var query = key.keychainQueryDictForKeychain
-        
-        if backupToiCloud {
-            query[kSecAttrSynchronizable as String] = kCFBooleanTrue
-        } else {
-            query[kSecAttrSynchronizable as String] = kCFBooleanFalse
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+
+        switch status {
+        case errSecSuccess:
+            // Key exists, update it
+            let updateQuery: [String: Any] = [kSecValueData as String: Data(key.keyBytes)]
+            let updateStatus = SecItemUpdate(query as CFDictionary, updateQuery as CFDictionary)
+            try checkStatus(status: updateStatus)
+        case errSecItemNotFound:
+            // Key does not exist, add it
+            if backupToiCloud {
+                query[kSecAttrSynchronizable as String] = kCFBooleanTrue
+            } else {
+                query[kSecAttrSynchronizable as String] = kCFBooleanFalse
+            }
+            query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
+            let addStatus = SecItemAdd(query as CFDictionary, nil)
+            try checkStatus(status: addStatus)
+        default:
+            // Handle other errors
+            try checkStatus(status: status)
         }
-        
-        query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
-        let status = SecItemAdd(query as CFDictionary, nil)
-        try checkStatus(status: status)
 
         if setNewKeyToCurrent {
             try setActiveKey(key.name)

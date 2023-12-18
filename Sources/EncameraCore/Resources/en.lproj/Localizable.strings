@@ -6,14 +6,11 @@
 
 */
 
-"Next" = "Next";
 
 /* ./EncameraCore/Constants/AppConstants.swift */
 "DefaultAlbumName" = "My Album";
-// $'"n"n"nnCopy the code into the "n" form in the app to use it again."' = $'"n"n"nnCopy the code into the "n" form in the app to use it again."';
 /* ./EncameraCore/Utils/KeyManager.swift */
 "Could not delete keychain items." = "Could not delete keychain items.";
-"Unhandled error." = "Unhandled error.";
 "Not authenticated for this operation." = "Not authenticated for this operation.";
 "Key name is invalid, must be more than two characters" = "Key name is invalid, must be more than two characters";
 "Key not found." = "Key not found.";
@@ -252,7 +249,7 @@
 /* ./Encamera/ImageViewing/PhotoInfoView.swift */
 "No info available" = "No info available";
 /* ./Encamera/Onboarding/MainOnboardingView.swift */
-
+"Next" = "Next";
 "OnboardingIntroHeadingText1" = "Privacy-First Camera";
 "OnboardingIntroSubheadingText" = "Encamera encrypts everything, keeping your media safe from unwanted eyes.";
 "GetStartedButtonText" = "Let's Start";
@@ -295,6 +292,9 @@
 "OnboardingPermissionsCameraAccessSubheading" = "Needed to take photos";
 "OnboardingPermissionsMicrophoneAccess" = "Microphone access";
 "OnboardingPermissionsMicrophoneAccessSubheading" = "Needed only for videos";
+"Add Permissions" = "Add Permissions";
+"PermissionsNeededTitle" = "Camera Permissions Needed";
+"PermissionsNeededText" = "You must enable camera permissions to continue. Open the settings app to do this.";
 "Please select a storage location." = "Please select a storage location.";
 "DoneOnboarding" = "Done!";
 "Done" = "Done";

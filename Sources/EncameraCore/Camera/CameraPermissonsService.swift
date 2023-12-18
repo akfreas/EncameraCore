@@ -9,7 +9,7 @@ import Foundation
 import AVFoundation
 import Combine
 
-enum PermissionError: Error {
+public enum PermissionError: Error {
     case denied
     case restricted
     case notDetermined
@@ -20,15 +20,19 @@ public class CameraPermissionsService: ObservableObject {
 
     public static let shared = CameraPermissionsService()
 
+    @MainActor
     @Published private(set) public var isCameraAccessAuthorized: Bool = false
+    @MainActor
     @Published private(set) public var isMicrophoneAccessAuthorized: Bool = false
 
     private var cancellables: Set<AnyCancellable> = []
 
     private init() {
         // Initializing with current permission status
-        isCameraAccessAuthorized = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
-        isMicrophoneAccessAuthorized = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        Task { @MainActor in
+            isCameraAccessAuthorized = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
+            isMicrophoneAccessAuthorized = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        }
     }
 
     public func requestCameraPermission() async throws {
@@ -36,10 +40,15 @@ public class CameraPermissionsService: ObservableObject {
 
         switch status {
         case .authorized:
-            isCameraAccessAuthorized = true
+
+            Task { @MainActor in
+                isCameraAccessAuthorized = true
+            }
         case .notDetermined:
             let granted = await AVCaptureDevice.requestAccess(for: .video)
-            isCameraAccessAuthorized = granted
+            Task { @MainActor in
+                isCameraAccessAuthorized = granted
+            }
             if !granted {
                 throw PermissionError.denied
             }
@@ -53,10 +62,14 @@ public class CameraPermissionsService: ObservableObject {
 
         switch status {
         case .authorized:
-            isMicrophoneAccessAuthorized = true
+            Task { @MainActor in
+                isMicrophoneAccessAuthorized = true
+            }
         case .notDetermined:
             let granted = await AVCaptureDevice.requestAccess(for: .audio)
-            isMicrophoneAccessAuthorized = granted
+            Task { @MainActor in
+                isMicrophoneAccessAuthorized = granted
+            }
             if !granted {
                 throw PermissionError.denied
             }

@@ -90,11 +90,6 @@ public class AlbumManager: AlbumManaging, ObservableObject {
                 }
         }
         self.albumSet = Set(localAlbums).union(Set(iCloudAlbums))
-    }
-
-    required public init(keyManager: KeyManager) {
-        self.keyManager = keyManager
-        loadAlbumsFromFilesystem()
         // Retrieve the current album ID from user defaults
         if let currentAlbumID = UserDefaultUtils.string(forKey: .currentAlbumID),
             let foundAlbum = albumSet.first(where: { $0.id == currentAlbumID }) {
@@ -103,6 +98,11 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         } else {
             self.currentAlbum = albumSet.first
         }
+    }
+
+    required public init(keyManager: KeyManager) {
+        self.keyManager = keyManager
+        loadAlbumsFromFilesystem()
     }
 
     public func delete(album: Album) {

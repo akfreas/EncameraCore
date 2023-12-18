@@ -209,7 +209,7 @@ public class DemoKeyManager: KeyManager {
             hasExistingPassword = password != nil
         }
     }
-    
+
     public func keyWith(name: String) -> PrivateKey? {
         return nil
     }
@@ -324,7 +324,7 @@ public class DemoOnboardingManager: OnboardingManaging {
     }
     
     public func generateOnboardingFlow() -> [OnboardingFlowScreen] {
-        return [.dataStorageSetting]
+        return [.intro]
     }
     
     public func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {

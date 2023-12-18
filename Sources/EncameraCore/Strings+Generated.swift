@@ -44,6 +44,8 @@ public enum L10n {
   public static let addExistingKey = L10n.tr("Localizable", "Add Existing Key", fallback: "Add Existing Key")
   /// ./Encamera/KeyManagement/KeyOperationCell.swift
   public static let addKey = L10n.tr("Localizable", "Add Key", fallback: "Add Key")
+  /// Add Permissions
+  public static let addPermissions = L10n.tr("Localizable", "Add Permissions", fallback: "Add Permissions")
   /// Add Photos
   public static let addPhotos = L10n.tr("Localizable", "AddPhotos", fallback: "Add Photos")
   /// ADD PHOTOS TO THIS ALBUM
@@ -408,6 +410,10 @@ public enum L10n {
   public static let passwordsDoNotMatch = L10n.tr("Localizable", "Passwords do not match.", fallback: "Passwords do not match.")
   /// Paste the private key here.
   public static let pasteThePrivateKeyHere = L10n.tr("Localizable", "Paste the private key here.", fallback: "Paste the private key here.")
+  /// You must enable camera permissions to continue. Open the settings app to do this.
+  public static let permissionsNeededText = L10n.tr("Localizable", "PermissionsNeededText", fallback: "You must enable camera permissions to continue. Open the settings app to do this.")
+  /// Camera Permissions Needed
+  public static let permissionsNeededTitle = L10n.tr("Localizable", "PermissionsNeededTitle", fallback: "Camera Permissions Needed")
   /// ./Encamera/CameraView/CameraModePicker.swift
   public static let photo = L10n.tr("Localizable", "PHOTO", fallback: "PHOTO")
   /// Photo limit reached
