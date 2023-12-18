@@ -15,7 +15,7 @@ public enum AppConstants {
     public static var blockingBlurRadius: CGFloat = 20.0
     public static var defaultCornerRadius: CGFloat = 10.0
     public static var numberOfPhotosBeforeInitialTutorial: Double = 1
-    public static let maxPhotoCountBeforePurchase: Double = 5
+    public static let maxPhotoCountBeforePurchase: Double = 10
     public static let defaultAlbumName: String = L10n.defaultAlbumName
     public static let defaultKeyName: String = "encamera_default_key"
     public static let numberOfGalleryViewsBeforePromptingForReview = 5
