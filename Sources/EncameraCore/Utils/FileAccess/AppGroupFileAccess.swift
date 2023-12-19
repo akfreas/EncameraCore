@@ -79,14 +79,14 @@ public class AppGroupFileReader: FileAccess {
         return preview
     }
     
-    public func loadMediaToURL<T>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL> where T : MediaDescribing {
+    public func loadMediaToURL<T>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<URL> where T : MediaDescribing {
         guard let cleartext = media as? CleartextMedia<URL> else {
             throw FileAccessError.unhandledMediaType
         }
         return cleartext
     }
     
-    public func loadMediaInMemory<T>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+    public func loadMediaInMemory<T>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
         guard let cleartext = media as? CleartextMedia<URL> else {
             throw FileAccessError.unhandledMediaType
         }

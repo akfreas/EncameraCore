@@ -16,6 +16,13 @@ public enum FileAccessError: Error {
     case couldNotLoadMedia
 }
 
+public enum FileLoadingStatus {
+    case notLoaded
+    case downloading(progress: Double)
+    case decrypting(progress: Double)
+    case loaded
+}
+
 public protocol FileEnumerator {
 
     func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async
@@ -27,8 +34,8 @@ public protocol FileReader: FileEnumerator {
     func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async
     func loadLeadingThumbnail() async throws -> UIImage?
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL
-    func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL>
-    func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<Data>
+    func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<URL>
+    func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<Data>
 }
 
 public protocol FileWriter: FileEnumerator {

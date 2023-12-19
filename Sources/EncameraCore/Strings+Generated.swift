@@ -191,6 +191,8 @@ public enum L10n {
   public static let done = L10n.tr("Localizable", "Done", fallback: "Done")
   /// Done!
   public static let doneOnboarding = L10n.tr("Localizable", "DoneOnboarding", fallback: "Done!")
+  /// Downloading from iCloud
+  public static let downloadingFromICloud = L10n.tr("Localizable", "Downloading from iCloud", fallback: "Downloading from iCloud")
   /// Are you done importing images?
   public static let doYouWantToDeleteNotImported = L10n.tr("Localizable", "DoYouWantToDeleteNotImported", fallback: "Are you done importing images?")
   /// Enable %@

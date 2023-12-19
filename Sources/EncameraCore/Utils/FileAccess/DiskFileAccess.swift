@@ -124,12 +124,13 @@ extension DiskFileAccess: FileReader {
         }
     }
 
-    public func loadMediaInMemory<T: MediaDescribing>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> {
+    public func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<Data> {
 
         if var encrypted = media as? EncryptedMedia {
-            if encrypted.needsDownload, let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
+            if encrypted.needsDownload, 
+                let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
                 encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { prog in
-                    progress(prog)
+                    progress(.downloading(progress: prog))
                 }
             }
             return try await decryptMedia(encrypted: encrypted, progress: progress)
@@ -138,12 +139,14 @@ extension DiskFileAccess: FileReader {
         }
     }
 
-    public func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL> {
+    public func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<URL> {
         if var encrypted = media as? EncryptedMedia {
-            if encrypted.needsDownload, let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
+            if encrypted.needsDownload, 
+                let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
                 encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { prog in
-                    progress(prog)
+                    progress(.downloading(progress: prog))
                 }
+
             }
             return try await decryptMedia(encrypted: encrypted, progress: progress)
         } else if let cleartext = media as? CleartextMedia<URL> {
@@ -152,7 +155,7 @@ extension DiskFileAccess: FileReader {
 
         fatalError()
     }
-    private func decryptMedia(encrypted: EncryptedMedia, progress: (Double) -> Void) async throws -> CleartextMedia<Data> {
+    private func decryptMedia(encrypted: EncryptedMedia, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia<Data> {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
         }
@@ -167,7 +170,7 @@ extension DiskFileAccess: FileReader {
         return decrypted
     }
 
-    private func decryptMedia(encrypted: EncryptedMedia, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL> {
+    private func decryptMedia(encrypted: EncryptedMedia, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<URL> {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
         }
@@ -185,7 +188,7 @@ extension DiskFileAccess: FileReader {
         fileHandler.progress
             .receive(on: DispatchQueue.main)
             .sink { percent in
-                progress(percent)
+                progress(.decrypting(progress: percent))
             }.store(in: &cancellables)
         let decrypted: CleartextMedia<URL> = try await fileHandler.decrypt()
         sourceURL.stopAccessingSecurityScopedResource()

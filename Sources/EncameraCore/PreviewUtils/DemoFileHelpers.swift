@@ -59,7 +59,7 @@ public class DemoFileEnumerator: FileAccess {
         
     }
     
-    public func loadMediaToURL<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<URL> where T : MediaDescribing {
+    public func loadMediaToURL<T>(media: T, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia<URL> where T : MediaDescribing {
 
         CleartextMedia(source: URL(fileURLWithPath: ""))
     }
@@ -100,7 +100,7 @@ public class DemoFileEnumerator: FileAccess {
 
     }
     
-    public func loadMediaInMemory<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+    public func loadMediaInMemory<T>(media: T, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
         return data()
 
     }

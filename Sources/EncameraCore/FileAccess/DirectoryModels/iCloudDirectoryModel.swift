@@ -8,6 +8,12 @@
 import Foundation
 import Combine
 
+public enum iCloudDownloadStatus {
+    case notDownloaded
+    case downloading(progress: Double)
+    case downloaded
+}
+
 public class iCloudStorageModel: DataStorageModel {
     public static var rootURL: URL {
         guard let driveURL = FileManager.default
@@ -41,7 +47,11 @@ public class iCloudStorageModel: DataStorageModel {
             try? FileManager.default.startDownloadingUbiquitousItem(at: $0)
         })
     }
-    
+
+    public func triggerDownload(ofFile file: EncryptedMedia) {
+        try? FileManager.default.startDownloadingUbiquitousItem(at: file.source)
+    }
+
     public func resolveDownloadedMedia<T: MediaDescribing>(media: T) throws -> T? where T.MediaSource == URL {
         if FileManager.default.fileExists(atPath: media.downloadedSource.path) {
             if let downloaded = T(source: media.downloadedSource) {
@@ -55,40 +65,114 @@ public class iCloudStorageModel: DataStorageModel {
     }
     
     
-    func downloadFileFromiCloud<T: MediaDescribing>(media: T, progress: (Double) -> Void) async throws -> T where T.MediaSource == URL {
+    func downloadFileFromiCloud<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> T where T.MediaSource == URL {
         guard media.needsDownload == true else {
             return media
         }
-        try FileManager.default.startDownloadingUbiquitousItem(at: media.source)        
-
+        try FileManager.default.startDownloadingUbiquitousItem(at: media.source)
         return try await withCheckedThrowingContinuation { [weak self] continuation in
-            
-            guard let `self` = self else {
+
+            guard let self else {
                 return
             }
-            let timer = Timer.publish(every: 1, on: .main, in: .default)
-                .autoconnect()
-            var attempts = 0
-            
-                timer
-                .receive(on: DispatchQueue.main)
-                .sink { out in
-                    attempts += 1
-                    do {
-                        if let downloaded = try self.resolveDownloadedMedia(media: media) {
 
-                            continuation.resume(returning: downloaded)
-                            timer.upstream.connect().cancel()
+            self.checkDownloadStatus(ofFile: media)
+                .sink { status in
+                    switch status {
+                    case .notDownloaded:
+                        progress(0)
+                    case .downloading(let progressNumber):
+                        debugPrint("Download Progress: \(progressNumber)")
+                        progress(progressNumber)
+                    case .downloaded:
+                        progress(1)
+                        do {
+                            if let downloaded = try self.resolveDownloadedMedia(media: media) {
+                                continuation.resume(returning: downloaded)
+                            }
+                        } catch {
+                            debugPrint("Could not resolve downloaded media: \(error)")
+                            continuation.resume(throwing: error)
                         }
-                    } catch {
-                        continuation.resume(throwing: error)
                     }
-                    if attempts > 20 {
-                        timer.upstream.connect().cancel()
-                    }
-                }.store(in: &self.localCancellables)
+                }.store(in: &localCancellables)
         }
-
-        
     }
+
+    private var downloadStatusSubjects = [URL: PassthroughSubject<iCloudDownloadStatus, Never>]()
+
+    // Metadata query
+    private var query = NSMetadataQuery()
+
+
+    public func checkDownloadStatus<T: MediaDescribing>(ofFile file: T) -> AnyPublisher<iCloudDownloadStatus, Never> where T.MediaSource == URL {
+        if let subject = downloadStatusSubjects[file.source] {
+            // If a subject already exists for this file, return it.
+            return subject.eraseToAnyPublisher()
+        } else {
+            // Create a new subject for this file.
+            let subject = PassthroughSubject<iCloudDownloadStatus, Never>()
+              downloadStatusSubjects[file.source] = subject
+
+              // Set up and start the query
+              setupMetadataQuery(forFile: file.source)
+
+              return subject.eraseToAnyPublisher()
+          }
+      }
+
+      private func setupMetadataQuery(forFile fileURL: URL) {
+          query.stop()
+          query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
+          query.predicate = NSPredicate(format: "%K == %@", NSMetadataItemURLKey, fileURL as CVarArg)
+          NotificationCenter.default.addObserver(self, selector: #selector(queryDidUpdate), name: .NSMetadataQueryDidUpdate, object: query)
+          NotificationCenter.default.addObserver(self, selector: #selector(queryDidUpdate), name: .NSMetadataQueryGatheringProgress, object: query)
+          NotificationCenter.default.addObserver(self, selector: #selector(queryDidUpdate), name: .NSMetadataQueryDidStartGathering, object: query)
+          NotificationCenter.default.addObserver(self, selector: #selector(queryDidFinishGathering), name: .NSMetadataQueryDidFinishGathering, object: query)
+          query.start()
+      }
+
+      @objc private func queryDidUpdate(notification: Notification) {
+          processQueryResults()
+      }
+
+      @objc private func queryDidFinishGathering(notification: Notification) {
+          processQueryResults()
+          query.stop()
+      }
+
+      private func processQueryResults() {
+          for item in query.results as! [NSMetadataItem] {
+              if let fileURL = item.value(forAttribute: NSMetadataItemURLKey) as? URL,
+                 let subject = downloadStatusSubjects[fileURL] {
+
+                  let downloadStatus = iCloudDownloadStatus(fromMetadataItem: item)
+                  subject.send(downloadStatus)
+
+                  if case .downloaded = downloadStatus {
+                      subject.send(completion: .finished)
+                      downloadStatusSubjects.removeValue(forKey: fileURL)
+                  }
+              }
+          }
+      }
+
+      private func iCloudDownloadStatus(fromMetadataItem item: NSMetadataItem) -> iCloudDownloadStatus {
+          guard let downloadingStatus = item.value(forAttribute: NSMetadataUbiquitousItemDownloadingStatusKey) as? String else {
+              return .notDownloaded
+          }
+
+          switch downloadingStatus {
+          case NSMetadataUbiquitousItemDownloadingStatusDownloaded:
+              return .downloaded
+          case NSMetadataUbiquitousItemIsDownloadingKey:
+              let progress = (item.value(forAttribute: NSMetadataUbiquitousItemPercentDownloadedKey) as? Double) ?? 0.0
+              return .downloading(progress: progress / 100.0)
+          default:
+              return .notDownloaded
+          }
+      }
+
 }
+
+
