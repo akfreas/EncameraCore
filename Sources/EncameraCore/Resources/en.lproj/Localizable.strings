@@ -46,6 +46,7 @@
 "OpenSettings" = "Open Settings";
 "FinishImportingMedia" = "Finish Importing Media";
 "TakeYourFirstPicture" = "TAKE YOUR FIRST PICTURE";
+"ImageSavedToAlbum" = "IMAGE SAVED TO ALBUM";
 "NoAlbum" = "No Album";
 "NoAlbumSelected" = "No Album Selected. You must select an album to save photos to.";
 /* ./Encamera/CameraView/CameraModePicker.swift */
@@ -313,7 +314,9 @@
 "Restore Purchases" = "Restore Purchases";
 "Enter Promo Code" = "Enter Promo Code";
 "UnlockUnlimitedForFree" = "Unlock Unlimited for Free!";
-"Start trial offer" = "Start trial offer";
+"Start trial offer" = "Start 7 Day Free Trial";
+"NoCommitmentCancelAnytime" = "No commitment, cancel anytime";
+"MostPopular" = "MOST POPULAR";
 "Subscribe" = "Subscribe";
 /* ./Encamera/Store/SubscriptionOptionView.swift */
 "Subscribed" = "Subscribed";

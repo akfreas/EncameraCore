@@ -269,6 +269,8 @@ public enum L10n {
   public static let iAmDone = L10n.tr("Localizable", "IAmDone", fallback: "I'm Done")
   /// ./EncameraCore/Models/StorageType.swift
   public static let iCloud = L10n.tr("Localizable", "iCloud", fallback: "iCloud")
+  /// IMAGE SAVED TO ALBUM
+  public static let imageSavedToAlbum = L10n.tr("Localizable", "ImageSavedToAlbum", fallback: "IMAGE SAVED TO ALBUM")
   /// Import
   public static let `import` = L10n.tr("Localizable", "Import", fallback: "Import")
   /// Import media
@@ -321,6 +323,8 @@ public enum L10n {
   public static let missingPassword = L10n.tr("Localizable", "Missing password", fallback: "Missing password")
   /// Upgrade to premium to unlock unlimited photos
   public static let modalUpgradeText = L10n.tr("Localizable", "ModalUpgradeText", fallback: "Upgrade to premium to unlock unlimited photos")
+  /// MOST POPULAR
+  public static let mostPopular = L10n.tr("Localizable", "MostPopular", fallback: "MOST POPULAR")
   /// Move Album
   public static let moveAlbumStorage = L10n.tr("Localizable", "MoveAlbumStorage", fallback: "Move Album")
   /// You can have multiple keys for different purposes, e.g. one named "Documents" and another "Personal".
@@ -331,10 +335,7 @@ public enum L10n {
   public static let newAlbumSubheading = L10n.tr("Localizable", "New Album Subheading", fallback: "Set the name for this encrypted photo album.")
   /// New Password
   public static let newPassword = L10n.tr("Localizable", "New Password", fallback: "New Password")
-  /// Localizable.strings
-  ///   Encamera
-  /// 
-  ///   Created by Alexander Freas on 30.01.23.
+  /// ./Encamera/Onboarding/MainOnboardingView.swift
   public static let next = L10n.tr("Localizable", "Next", fallback: "Next")
   /// No file access available.
   public static let noFileAccessAvailable = L10n.tr("Localizable", "No file access available.", fallback: "No file access available.")
@@ -350,6 +351,8 @@ public enum L10n {
   public static let noAlbum = L10n.tr("Localizable", "NoAlbum", fallback: "No Album")
   /// No Album Selected. You must select an album to save photos to.
   public static let noAlbumSelected = L10n.tr("Localizable", "NoAlbumSelected", fallback: "No Album Selected. You must select an album to save photos to.")
+  /// No commitment, cancel anytime
+  public static let noCommitmentCancelAnytime = L10n.tr("Localizable", "NoCommitmentCancelAnytime", fallback: "No commitment, cancel anytime")
   /// Not authenticated for this operation.
   public static let notAuthenticatedForThisOperation = L10n.tr("Localizable", "Not authenticated for this operation.", fallback: "Not authenticated for this operation.")
   /// ./EncameraCore/Utils/PasswordValidator.swift
@@ -362,7 +365,7 @@ public enum L10n {
   public static let noTrackingOnboardingExplanation = L10n.tr("Localizable", "NoTrackingOnboardingExplanation", fallback: "Your Data is Secure")
   /// OK
   public static let ok = L10n.tr("Localizable", "OK", fallback: "OK")
-  /// ./Encamera/Onboarding/MainOnboardingView.swift
+  /// Privacy-First Camera
   public static let onboardingIntroHeadingText1 = L10n.tr("Localizable", "OnboardingIntroHeadingText1", fallback: "Privacy-First Camera")
   /// Encamera encrypts everything, keeping your media safe from unwanted eyes.
   public static let onboardingIntroSubheadingText = L10n.tr("Localizable", "OnboardingIntroSubheadingText", fallback: "Encamera encrypts everything, keeping your media safe from unwanted eyes.")
@@ -546,8 +549,6 @@ public enum L10n {
   /// 1. Follow @encamera_app
   /// 2. Tap the link below to tweet about Encamera
   public static let tweetToRedeemOfferExplanation = L10n.tr("Localizable", "TweetToRedeemOfferExplanation", fallback: "Get 100%% off the $9.99 yearly subscription fee!\n\n You only need to do two things:\n1. Follow @encamera_app\n2. Tap the link below to tweet about Encamera")
-  /// Unhandled error.
-  public static let unhandledError = L10n.tr("Localizable", "Unhandled error.", fallback: "Unhandled error.")
   /// Unlock
   public static let unlock = L10n.tr("Localizable", "Unlock", fallback: "Unlock")
   /// Unlock with %@

@@ -29,7 +29,7 @@ public enum KeyManagerError: ErrorDescribable {
         case .deleteKeychainItemsFailed:
             return L10n.couldNotDeleteKeychainItems
         case .unhandledError:
-            return L10n.unhandledError
+            return "Unhandled error"
         case .notAuthenticatedError:
             return L10n.notAuthenticatedForThisOperation
         case .keyNameError:
