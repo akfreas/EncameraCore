@@ -367,3 +367,15 @@
 
 /* AlbumManager */
 "AlbumNotFoundAtSourceLocation" = "Could not find the album at the source location. Use the Files app to ensure that it exists.";
+
+/* Notification Banners */
+
+"NotificationBannerTitle" = "Secured with Encryption";
+"NotificationBannerBody" = "All media is encrypted before saving. Nobody can view your files except you.";
+"TelegramGroupJoinTitle" = "Join Telegram Group";
+"TelegramGroupJoinBody" = "Get early access to beta features and give feedback";
+"TelegramGroupJoinButtonText" = "Join Group";
+"InstallWidgetTitle" = "Install Lock Screen Widget";
+"InstallWidgetBody" = "Add Encamera to your lock screen to quickly take pictures";
+"InstallWidgetButtonText" = "Add Widget";
+

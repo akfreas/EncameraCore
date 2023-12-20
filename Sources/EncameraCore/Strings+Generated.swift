@@ -73,8 +73,6 @@ public enum L10n {
   /// 
   /// The app will quit after erase is finished.
   public static let allDataExplanation = L10n.tr("Localizable", "allDataExplanation", fallback: "Are you sure you want to erase ALL ENCAMERA DATA?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n• MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.")
-  /// Looks like you’re all set up! 🎊 Enjoy taking photos securely with Encamera’s top-notch encryption. 💪🔐
-  public static let allSetupOnboarding = L10n.tr("Localizable", "AllSetupOnboarding", fallback: "Looks like you’re all set up! 🎊 Enjoy taking photos securely with Encamera’s top-notch encryption. 💪🔐")
   /// Are you sure you want to erase ALL app data?
   /// 
   /// THIS WILL ERASE:
@@ -281,6 +279,12 @@ public enum L10n {
   public static let importMedia = L10n.tr("Localizable", "Import media", fallback: "Import media")
   /// Import the selected images to your currently active key album
   public static let importSelectedImages = L10n.tr("Localizable", "ImportSelectedImages", fallback: "Import the selected images to your currently active key album")
+  /// Add Encamera to your lock screen to quickly take pictures
+  public static let installWidgetBody = L10n.tr("Localizable", "InstallWidgetBody", fallback: "Add Encamera to your lock screen to quickly take pictures")
+  /// Add Widget
+  public static let installWidgetButtonText = L10n.tr("Localizable", "InstallWidgetButtonText", fallback: "Add Widget")
+  /// Install Widget
+  public static let installWidgetTitle = L10n.tr("Localizable", "InstallWidgetTitle", fallback: "Install Widget")
   /// Your media is safely secured behind a key and stored locally on your device or iCloud.
   public static let introStorageExplanation = L10n.tr("Localizable", "IntroStorageExplanation", fallback: "Your media is safely secured behind a key and stored locally on your device or iCloud.")
   /// Invalid Password
@@ -363,6 +367,10 @@ public enum L10n {
   public static let notDetermined = L10n.tr("Localizable", "Not determined.", fallback: "Not determined.")
   /// I'm Not Done
   public static let notDoneYet = L10n.tr("Localizable", "NotDoneYet", fallback: "I'm Not Done")
+  /// All media is encrypted before saving. Nobody can view your files except you.
+  public static let notificationBannerBody = L10n.tr("Localizable", "NotificationBannerBody", fallback: "All media is encrypted before saving. Nobody can view your files except you.")
+  /// Notification Banners
+  public static let notificationBannerTitle = L10n.tr("Localizable", "NotificationBannerTitle", fallback: "Secured with Encryption")
   /// Nobody can access your data except you.
   public static let noTrackingExplanation = L10n.tr("Localizable", "NoTrackingExplanation", fallback: "Nobody can access your data except you.")
   /// Your Data is Secure
@@ -537,6 +545,12 @@ public enum L10n {
   public static let tapToUpgrade = L10n.tr("Localizable", "Tap to Upgrade", fallback: "Tap to Upgrade")
   /// Tap to Tweet!
   public static let tapToTweet = L10n.tr("Localizable", "TapToTweet", fallback: "Tap to Tweet!")
+  /// Get early access to beta features and give feedback
+  public static let telegramGroupJoinBody = L10n.tr("Localizable", "TelegramGroupJoinBody", fallback: "Get early access to beta features and give feedback")
+  /// Join Group
+  public static let telegramGroupJoinButtonText = L10n.tr("Localizable", "TelegramGroupJoinButtonText", fallback: "Join Group")
+  /// Join Telegram Group
+  public static let telegramGroupJoinTitle = L10n.tr("Localizable", "TelegramGroupJoinTitle", fallback: "Join Telegram Group")
   /// Terms of Use
   public static let termsOfUse = L10n.tr("Localizable", "Terms of Use", fallback: "Terms of Use")
   /// Thank you for your support!
