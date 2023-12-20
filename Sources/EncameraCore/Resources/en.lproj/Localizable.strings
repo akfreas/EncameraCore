@@ -300,8 +300,6 @@
 "Please select a storage location." = "Please select a storage location.";
 "DoneOnboarding" = "Done!";
 "Done" = "Done";
-"AllSetupOnboarding" = "Looks like you’re all set up! 🎊 Enjoy taking photos securely with Encamera’s top-notch encryption. 💪🔐";
-/* ./Encamera/Onboarding/StorageSettingView.swift */
 /* ./Encamera/Onboarding/OnboardingView.swift */
 "ProfileSetup" = "PROFILE SETUP";
 /* ./Encamera/Store/PurchaseUpgradeHeaderView.swift */
@@ -309,6 +307,9 @@
 "Create an unlimited number of keys." = "Create an unlimited number of keys.";
 "Support privacy-focused development." = "Support privacy-focused development.";
 /* ./Encamera/Store/SubscriptionView.swift */
+"UnlimitedStorageFeatureRowTitle" = "Unlimited storage for photos & videos";
+"UnlimitedAlbumsFeatureRowTitle" = "Unlimited albums for your memories";
+"iCloudStorageFeatureRowTitle" = "iCloud storage & backup";
 "View unlimited photos for each key." = "View unlimited photos for each key.";
 "Create an unlimited number of keys." = "Create an unlimited number of keys.";
 "Support privacy-focused development." = "Support privacy-focused development.";

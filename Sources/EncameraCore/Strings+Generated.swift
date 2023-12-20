@@ -271,6 +271,8 @@ public enum L10n {
   public static let iAmDone = L10n.tr("Localizable", "IAmDone", fallback: "I'm Done")
   /// ./EncameraCore/Models/StorageType.swift
   public static let iCloud = L10n.tr("Localizable", "iCloud", fallback: "iCloud")
+  /// iCloud storage & backup
+  public static let iCloudStorageFeatureRowTitle = L10n.tr("Localizable", "iCloudStorageFeatureRowTitle", fallback: "iCloud storage & backup")
   /// IMAGE SAVED TO ALBUM
   public static let imageSavedToAlbum = L10n.tr("Localizable", "ImageSavedToAlbum", fallback: "IMAGE SAVED TO ALBUM")
   /// Import
@@ -551,6 +553,10 @@ public enum L10n {
   /// 1. Follow @encamera_app
   /// 2. Tap the link below to tweet about Encamera
   public static let tweetToRedeemOfferExplanation = L10n.tr("Localizable", "TweetToRedeemOfferExplanation", fallback: "Get 100%% off the $9.99 yearly subscription fee!\n\n You only need to do two things:\n1. Follow @encamera_app\n2. Tap the link below to tweet about Encamera")
+  /// Unlimited albums for your memories
+  public static let unlimitedAlbumsFeatureRowTitle = L10n.tr("Localizable", "UnlimitedAlbumsFeatureRowTitle", fallback: "Unlimited albums for your memories")
+  /// ./Encamera/Store/SubscriptionView.swift
+  public static let unlimitedStorageFeatureRowTitle = L10n.tr("Localizable", "UnlimitedStorageFeatureRowTitle", fallback: "Unlimited storage for photos & videos")
   /// Unlock
   public static let unlock = L10n.tr("Localizable", "Unlock", fallback: "Unlock")
   /// Unlock with %@
@@ -575,7 +581,7 @@ public enum L10n {
   public static let useCameraToTakePhotos = L10n.tr("Localizable", "UseCameraToTakePhotos", fallback: "Use the built-in camera to take photos and videos.")
   /// VIDEO
   public static let video = L10n.tr("Localizable", "VIDEO", fallback: "VIDEO")
-  /// ./Encamera/Store/SubscriptionView.swift
+  /// View unlimited photos for each key.
   public static let viewUnlimitedPhotosForEachKey = L10n.tr("Localizable", "View unlimited photos for each key.", fallback: "View unlimited photos for each key.")
   /// View Albums
   public static let viewAlbums = L10n.tr("Localizable", "ViewAlbums", fallback: "View Albums")

@@ -377,8 +377,12 @@ public class DemoAlbumManager: AlbumManaging {
         return Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())
     }
     
-   
-    
+    public func albumMediaCount(album: Album) -> Int {
+        return 12
+    }
+
+    public var albumOperationPublisher: AnyPublisher<AlbumOperation, Never> = PassthroughSubject<AlbumOperation, Never>().eraseToAnyPublisher()
+
     @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album {
         return Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())
     }

@@ -12,7 +12,6 @@ import Combine
 public enum FileOperation {
     case create(EncryptedMedia)
     case delete(EncryptedMedia)
-    case move(Album)
 }
 
 
@@ -32,9 +31,5 @@ public struct FileOperationBus {
     
     func didDelete(_ media: EncryptedMedia) {
         operationSubject.send(.delete(media))
-    }
-
-    func didMove(_ album: Album) {
-        operationSubject.send(.move(album))
     }
 }

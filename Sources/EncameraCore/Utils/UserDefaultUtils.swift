@@ -39,7 +39,7 @@ public struct UserDefaultUtils {
             return observedKey == key
         }.map { key, value in
             return value
-        }.eraseToAnyPublisher()
+        }.share().eraseToAnyPublisher()
     }
     
     public static func integer(forKey key: UserDefaultKey) -> Int {

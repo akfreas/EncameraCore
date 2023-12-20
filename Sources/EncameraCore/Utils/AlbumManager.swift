@@ -28,29 +28,39 @@ public enum AlbumError: Error, CustomStringConvertible {
     }
 }
 
+public enum AlbumOperation {
+    case selectedAlbumChanged(album: Album?)
+    case albumsUpdated(albums: [Album])
+    case albumMoved(album: Album)
+    case albumDeleted(album: Album)
+    case albumRenamed(album: Album)
+    case albumCreated(album: Album)
+}
+
 public class AlbumManager: AlbumManaging, ObservableObject {
 
-    public var selectedAlbumPublisher: AnyPublisher<Album?, Never> {
-        $currentAlbum.eraseToAnyPublisher()
+    public var albumOperationPublisher: AnyPublisher<AlbumOperation, Never> {
+        albumOperationSubject.eraseToAnyPublisher()
     }
+
+    private var albumOperationSubject: PassthroughSubject<AlbumOperation, Never> = PassthroughSubject()
 
     @Published public var albums: [Album] = [] {
         didSet {
-            albumSubject.send(albums)
+            albumOperationSubject.send(.albumsUpdated(albums: albums))
         }
     }
+
     @Published public var currentAlbum: Album? {
         didSet {
+            albumOperationSubject.send(.selectedAlbumChanged(album: currentAlbum))
             UserDefaultUtils.set(currentAlbum?.id, forKey: .currentAlbumID)
         }
     }
 
-    public var albumPublisher: AnyPublisher<[Album], Never> {
-        albumSubject.eraseToAnyPublisher()
-    }
+
     public var defaultStorageForAlbum: StorageType = .local
     
-    private var albumSubject: PassthroughSubject<[Album], Never> = .init()
     private var keyManager: KeyManager
 
     private var albumSet: Set<Album> = [] {
@@ -117,7 +127,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
 
         // Remove album from albums collection
         albumSet.remove(album)
-
+        albumOperationSubject.send(.albumDeleted(album: album))
         if albumSet.count == 0 {
             currentAlbum = try? create(name: AppConstants.defaultAlbumName, storageOption: .local)
         } else {
@@ -141,6 +151,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
             // Add album to the albums collection
             debugPrint("Adding album to the collection")
             albumSet.insert(album)
+            albumOperationSubject.send(.albumCreated(album: album))
         }
 
         // Check if the directory already exists
@@ -208,12 +219,12 @@ public class AlbumManager: AlbumManaging, ObservableObject {
             debugPrint("Source directory is empty after moving files. Deleting source directory.")
             try fileManager.removeItem(at: currentStorage.baseURL)
         }
-        FileOperationBus.shared.didMove(album)
 
         // Update the album's storage option and URL if needed
         if var movedAlbum = albums.first(where: { $0.id == album.id }) {
             movedAlbum.storageOption = toStorage
             albumSet.insert(movedAlbum)
+            albumOperationSubject.send(.albumMoved(album: movedAlbum))
             debugPrint("Updated album storage option for \(album.name)")
             return movedAlbum
             // Update the storageURL if your Album model has this property
@@ -255,7 +266,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
             // Update the albums set and array
             albumSet.remove(album)
             albumSet.insert(albumToUpdate)
-
+            albumOperationSubject.send(.albumRenamed(album: albumToUpdate))
             if currentAlbum?.id == album.id {
                 currentAlbum = albumToUpdate
             }
@@ -277,6 +288,11 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         guard name.count > 0 else {
             throw KeyManagerError.keyNameError
         }
+    }
+
+    public func albumMediaCount(album: Album) -> Int {
+        let storageModel = storageModel(for: album)
+        return storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.fileExtension, MediaType.video.fileExtension]) ?? 0
     }
 
     private func matchAlbumToKeyIfNeeded(albumName: String, storageType: StorageType, creationDate: Date) -> Album? {
