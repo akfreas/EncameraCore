@@ -36,8 +36,8 @@ class DemoCameraService: CameraConfigurationServicable {
         
     }
     
-    func stop() async {
-        
+    func stop(observeRestart: Bool) async {
+    
     }
     
     func start() async {

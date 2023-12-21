@@ -59,7 +59,7 @@ protocol CameraConfigurationServicable {
     init(model: CameraConfigurationServiceModel)
     func configure() async
     func checkForPermissions() async
-    func stop() async
+    func stop(observeRestart: Bool) async
     func start() async
     func focus(at focusPoint: CGPoint) async
     func set(zoom: ZoomLevel) async
@@ -165,32 +165,35 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         }
     }
 
-    public func stop() async {
+    public func stop(observeRestart: Bool) async {
+        self.printDebug("Stopping session. ObserveRestart: \(observeRestart)")
+        self.stopCancellables()
+        if observeRestart {
+            NotificationUtils.didBecomeActivePublisher
+                .sink { _ in
+                    Task {
+                        self.printDebug("Starting session from didBecomeActivePublisher")
+                        await self.start()
+                    }
+                }.store(in: &self.cancellables)
+            NotificationUtils.willEnterForegroundPublisher
+                .sink { _ in
+                    Task {
+                        self.printDebug("Starting session from willEnterForegroundPublisher")
+                        await self.start()
+                    }
+                }.store(in: &self.cancellables)
+        } else {
+            cancellables.forEach({ $0.cancel() })
+            cancellables.removeAll()
+        }
 
         guard self.session.isRunning, self.model.setupResult == .setupComplete else {
             self.printDebug("Could not stop session, isSessionRunning: \(self.session.isRunning), model.setupResult: \(self.model.setupResult)")
             return
         }
-        self.stopCancellables()
-        self.printDebug("Stopping session")
 
         self.session.stopRunning()
-
-        NotificationUtils.didBecomeActivePublisher
-            .sink { _ in
-                Task {
-                    self.printDebug("Starting session from didBecomeActivePublisher")
-                    await self.start()
-                }
-            }.store(in: &self.cancellables)
-        NotificationUtils.willEnterForegroundPublisher
-            .sink { _ in
-                Task {
-                    self.printDebug("Starting session from willEnterForegroundPublisher")
-                    await self.start()
-                }
-            }.store(in: &self.cancellables)
-
 
     }
 
@@ -208,13 +211,13 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             NotificationUtils.didEnterBackgroundPublisher
                 .sink { _ in
                     Task {
-                        await self.stop()
+                        await self.stop(observeRestart: true)
                     }
                 }.store(in: &cancellables)
             NotificationUtils.willResignActivePublisher
                 .sink { _ in
                     Task {
-                        await self.stop()
+                        await self.stop(observeRestart: true)
                     }
 
                 }.store(in: &cancellables)
