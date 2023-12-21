@@ -72,31 +72,27 @@ public class AlbumManager: AlbumManaging, ObservableObject {
     public func loadAlbumsFromFilesystem() {
 
         let fileManager = FileManager.default
+        let mapToAlbum: (URL, StorageType) -> Album? = { url, storageType in
+            let directoryName = url.lastPathComponent
+            let attributes = try? fileManager.attributesOfItem(atPath: url.path)
+            let creationDate = attributes?[.creationDate] as? Date
+
+            if let creationDate {
+                return self.matchAlbumToKeyIfNeeded(albumName: directoryName, storageType: storageType, creationDate: creationDate)
+            } else {
+                return nil
+            }
+        }
 
         let localAlbums = LocalStorageModel.enumerateRootDirectory()
             .compactMap { url -> Album? in
-                let directoryName = url.lastPathComponent
-                let attributes = try? fileManager.attributesOfItem(atPath: url.path)
-                let creationDate = attributes?[.creationDate] as? Date
-                if let creationDate {
-                    return matchAlbumToKeyIfNeeded(albumName: directoryName, storageType: .local, creationDate: creationDate)
-                } else {
-                    return nil
-                }
+                return mapToAlbum(url, .local)
             }
         var iCloudAlbums: [Album] = []
         if DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) == .available {
             iCloudAlbums = iCloudStorageModel.enumerateRootDirectory()
                 .compactMap { url -> Album? in
-                    let directoryName = url.lastPathComponent
-                    let attributes = try? fileManager.attributesOfItem(atPath: url.path)
-                    let creationDate = attributes?[.creationDate] as? Date
-
-                    if let creationDate {
-                        return matchAlbumToKeyIfNeeded(albumName: directoryName, storageType: .icloud, creationDate: creationDate)
-                    } else {
-                        return nil
-                    }
+                    return mapToAlbum(url, .icloud)
                 }
         }
         self.albumSet = Set(localAlbums).union(Set(iCloudAlbums))

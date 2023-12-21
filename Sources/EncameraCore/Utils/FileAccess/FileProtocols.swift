@@ -25,13 +25,13 @@ public enum FileLoadingStatus {
 
 public protocol FileEnumerator {
 
-    func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async
+    func configure(for album: Album, albumManager: AlbumManaging) async
     func enumerateMedia<T: MediaDescribing>() async -> [T] where T.MediaSource == URL
 }
 
 public protocol FileReader: FileEnumerator {
     
-    func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async
+    func configure(for album: Album, albumManager: AlbumManaging) async
     func loadLeadingThumbnail() async throws -> UIImage?
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL
     func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<URL>

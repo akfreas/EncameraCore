@@ -29,7 +29,7 @@ public class DemoFileEnumerator: FileAccess {
             
         }
     }
-    public func configure(for album: Album, with key: PrivateKey?, albumManager: AlbumManaging) async {
+    public func configure(for album: Album, albumManager: AlbumManaging) async {
 
     }
 
