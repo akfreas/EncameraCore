@@ -52,6 +52,7 @@ public protocol FileWriter: FileEnumerator {
 
 public protocol FileAccess: FileEnumerator, FileReader, FileWriter {
     init()
+    init(for album: Album, albumManager: AlbumManaging) async
 }
 
 extension FileAccess {

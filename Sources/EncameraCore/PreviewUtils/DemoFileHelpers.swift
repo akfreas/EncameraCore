@@ -18,8 +18,11 @@ public class DemoFileEnumerator: FileAccess {
 
     public var directoryModel: DataStorageModel? = DemoDirectoryModel()
     
-   
-    
+    public required init(for album: Album, albumManager: AlbumManaging) async {
+
+        mediaList = await enumerateMedia()
+    }
+
     public static var shared = DemoFileEnumerator()
     
     public required init() {
@@ -128,19 +131,19 @@ public class DemoFileEnumerator: FileAccess {
     typealias MediaTypeHandling = Data
     
 
-    
-    
-    
+
     public func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
-        let retVal: [T] = (1...6).map { val in
+        let retVal: [T] = (7...11).map { val in
             let url = Bundle(for: type(of: self)).url(forResource: "\(val)", withExtension: "JPG")!
+            debugPrint("URL: \(url)")
             return T(source: url, mediaType: .photo, id: "\(val)")
 //            if let url = Bundle(for: type(of: self)).url(forResource: "\(val)", withExtension: "JPG")! {
 //                return T(source: url, mediaType: .photo, id: "\(val)")
 //            }
 //            return nil
-        }
-        return retVal.compactMap({$0}).shuffled()
+        }.compactMap({$0}).shuffled()
+        print("retVal: \(retVal)")
+        return retVal
     }
     public func delete(media: EncryptedMedia) async throws {
         
@@ -150,7 +153,11 @@ public class DemoFileEnumerator: FileAccess {
     }
     
     public func loadLeadingThumbnail() async throws -> UIImage? {
-        return UIImage(named: "dog")
+
+        guard let last = mediaList.popLast() else {
+            return nil
+        }
+        return UIImage(data: try Data(contentsOf: last.source))
     }
 }
 
@@ -410,10 +417,10 @@ public class DemoAlbumManager: AlbumManaging {
         let key = DemoPrivateKey.dummyKey()
         self.albums = [
             // Populate with demo albums
-            Album(name: "Demo Album 1", storageOption: .local, creationDate: Date(), key: key),
-            Album(name: "Demo Album 2", storageOption: .local, creationDate: Date(), key: key),
-            Album(name: "Demo Album 3", storageOption: .local, creationDate: Date(), key: key),
-            Album(name: "Demo Album 4", storageOption: .local, creationDate: Date(), key: key),
+            Album(name: "Personal", storageOption: .local, creationDate: Date(), key: key),
+            Album(name: "Private", storageOption: .local, creationDate: Date(), key: key),
+            Album(name: "Secret", storageOption: .local, creationDate: Date(), key: key),
+            Album(name: "Hidden", storageOption: .local, creationDate: Date(), key: key),
             Album(name: "Demo Album 5", storageOption: .local, creationDate: Date(), key: key),
             Album(name: "Demo Album 6", storageOption: .local, creationDate: Date(), key: key),
         ]

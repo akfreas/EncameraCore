@@ -47,6 +47,11 @@ public class AppGroupFileReader: FileAccess {
         assertionFailure("Cannot use default init with this reader")
 
     }
+
+    public required init(for album: Album, albumManager: AlbumManaging) async {
+        
+    }
+
     public required init?(albumManager: AlbumManaging) {
         guard let directoryModel = AppGroupStorageModel(albumManager: albumManager) else {
             return nil

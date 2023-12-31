@@ -24,7 +24,9 @@ public actor DiskFileAccess: FileEnumerator {
 
     public var directoryModel: DataStorageModel?
 
-    public init() {}
+    public init() {
+        
+    }
 
     public init(for album: Album, albumManager: AlbumManaging) async {
         await configure(for: album, albumManager: albumManager)
