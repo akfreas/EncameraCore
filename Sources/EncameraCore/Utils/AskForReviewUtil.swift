@@ -46,4 +46,13 @@ public class AskForReviewUtil {
         SKStoreReviewController.requestReview(in: currentScene)
         
     }
+
+    @MainActor
+    public static func openAppStoreReview() {
+        guard let writeReviewURL = URL(string: AppConstants.appStoreURL)?.appending(queryItems: [URLQueryItem(name: "action", value: "write-review")]) else {
+            return
+        }
+        
+        UIApplication.shared.open(writeReviewURL, options: [:], completionHandler: nil)
+    }
 }

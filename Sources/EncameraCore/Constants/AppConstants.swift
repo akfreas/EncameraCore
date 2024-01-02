@@ -22,5 +22,5 @@ public enum AppConstants {
     public static let requestForTweetFrequency = 3
     public static let lowOpacity = 0.4
     public static let previewDirectory = "preview_thumbnails"
-
+    public static let appStoreURL = "https://apps.apple.com/us/app/encamera-encrypted-photo-vault/id1639202616"
 }
