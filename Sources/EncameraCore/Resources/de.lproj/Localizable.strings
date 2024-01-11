@@ -100,7 +100,7 @@
 
 /* ./Encamera/KeyManagement/AlbumGridItem.swift */
 "Active" = "Aktiv";
-"CreateNewAlbum" = "Neues Album erstellen";
+"CreateNewAlbum" = "Neues Album";
 "Add Existing Key" = "Bestehenden Schlüssel hinzufügen"; 
 
 /* AlbumGrid */

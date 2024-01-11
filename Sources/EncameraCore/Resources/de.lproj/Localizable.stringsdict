@@ -2,6 +2,44 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>%@ Image(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@image_count@</string>
+		<key>image_count</key>
+		<dict>
+			<key>New item</key>
+			<string></string>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>Keine Elemente</string>
+			<key>one</key>
+			<string>1 Element</string>
+			<key>other</key>
+			<string>%d Elemente</string>
+		</dict>
+	</dict>
+	<key>%@ Video(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@video_count@</string>
+		<key>video_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>Keine Videos</string>
+			<key>one</key>
+			<string>1 Video</string>
+			<key>other</key>
+			<string>%d Videos</string>
+		</dict>
+	</dict>
 	<key>%@ Photo(s) Left</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>
@@ -9,33 +47,15 @@
 		<key>photo_count</key>
 		<dict>
 			<key>other</key>
-			<string>Fotos übrig</string>
+			<string>Verbleibende Fotos</string>
 			<key>NSStringFormatSpecTypeKey</key>
 			<string>NSStringPluralRuleType</string>
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>one</key>
-			<string>Foto übrig</string>
+			<string>Verbleibendes Foto</string>
 			<key>zero</key>
-			<string>Fotos übrig</string>
-		</dict>
-	</dict>
-	<key>%@ Item(s)</key>
-	<dict>
-		<key>NSStringLocalizedFormatKey</key>
-		<string>%#@image_count@</string>
-		<key>item_count</key>
-		<dict>
-			<key>NSStringFormatSpecTypeKey</key>
-			<string>NSStringPluralRuleType</string>
-			<key>NSStringFormatValueTypeKey</key>
-			<string>d</string>
-			<key>zero</key>
-			<string>Bilder</string>
-			<key>one</key>
-			<string>Bild</string>
-			<key>other</key>
-			<string>%d Bilder</string>
+			<string>Verbleibende Fotos</string>
 		</dict>
 	</dict>
 </dict>

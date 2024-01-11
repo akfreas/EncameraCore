@@ -35,7 +35,10 @@ public class AsyncVideoCaptureProcessor: NSObject {
     
     public func takeVideo() async throws -> CleartextMedia<URL> {
         return try await withCheckedThrowingContinuation({ (continuation: VideoCaptureProcessorContinuation) in
-            Timer.publish(every: 0.3, on: .main, in: .default).autoconnect().receive(on: DispatchQueue.main).sink { _ in
+            Task { @MainActor in
+                self.durationSubject.send(self.captureOutput.recordedDuration)
+            }
+            Timer.publish(every: 0.1, on: .main, in: .default).autoconnect().receive(on: DispatchQueue.main).sink { _ in
                 self.durationSubject.send(self.captureOutput.recordedDuration)
             }.store(in: &cancellables)
             self.captureOutput.startRecording(to: tempFileUrl, recordingDelegate: self)
