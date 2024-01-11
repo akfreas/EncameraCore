@@ -1,6 +1,6 @@
 # EncameraCore
 
-EncameraCore provides the underlying architecture for [Encamera](https://encrypted.camera). 
+EncameraCore provides the underlying architecture for [Encamera](https://encamera.app). 
 
 The functionality provided in this library primarily relates to:
 
