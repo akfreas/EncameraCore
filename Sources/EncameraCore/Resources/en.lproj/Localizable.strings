@@ -316,7 +316,9 @@
 "Restore Purchases" = "Restore Purchases";
 "Enter Promo Code" = "Enter Promo Code";
 "UnlockUnlimitedForFree" = "Unlock Unlimited for Free!";
-"Start trial offer" = "Start 7 Day Free Trial";
+"Start trial offer" = "Free Trial";
+"FreeTrialTerms" = "7 days free, then %@";
+
 "NoCommitmentCancelAnytime" = "No commitment, cancel anytime";
 "MostPopular" = "MOST POPULAR";
 "Subscribe" = "Subscribe";

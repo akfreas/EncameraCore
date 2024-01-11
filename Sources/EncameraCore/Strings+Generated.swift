@@ -253,6 +253,10 @@ public enum L10n {
   public static let followUs = L10n.tr("Localizable", "FollowUs", fallback: "Follow @encamera_app on Twitter")
   /// Free Trial
   public static let freeTrial = L10n.tr("Localizable", "Free Trial", fallback: "Free Trial")
+  /// 7 days free, then %@
+  public static func freeTrialTerms(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "FreeTrialTerms", String(describing: p1), fallback: "7 days free, then %@")
+  }
   /// TweetToShareView.swift
   public static let getOneYearFree = L10n.tr("Localizable", "GetOneYearFree", fallback: "Get 1 Year Free!")
   /// Get Premium
