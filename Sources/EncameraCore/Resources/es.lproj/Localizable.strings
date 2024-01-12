@@ -2,19 +2,19 @@
 "DefaultAlbumName" = "Mi Álbum"; 
 
 /* ./EncameraCore/Utils/KeyManager.swift */
-"No se pudieron eliminar los elementos del llavero." = "No se pudieron eliminar los elementos del llavero.";
-"No autenticado para esta operación." = "No autenticado para esta operación.";
-"El nombre de la llave es inválido, debe tener más de dos caracteres" = "El nombre de la llave es inválido, debe tener más de dos caracteres";
-"Llave no encontrada." = "Llave no encontrada.";
-"Error al codificar los datos del llavero." = "Error al codificar los datos del llavero.";
-"Ya existe una llave con este nombre." = "Ya existe una llave con este nombre."; 
+"Could not delete keychain items." = "No se pudieron eliminar los elementos del llavero.";
+"Not authenticated for this operation." = "No autenticado para esta operación.";
+"Key name is invalid, must be more than two characters" = "El nombre de la clave es inválido, debe tener más de dos caracteres";
+"Key not found." = "Clave no encontrada.";
+"Error coding keychain data." = "Error al codificar datos del llavero.";
+"A key with this name already exists." = "Ya existe una clave con este nombre."; 
 
 /* ./EncameraCore/Utils/AuthManager.swift */
 "Touch ID" = "Touch ID";
 "Face ID" = "Face ID";
 "Password" = "Contraseña";
-"Use Password" = "Usar Contraseña";
-"Keep your encrypted data safe by using %@." = "Mantén tus datos cifrados seguros utilizando %@."; 
+"Use Password" = "Usar contraseña";
+"Keep your encrypted data safe by using %@." = "Mantén tus datos encriptados seguros utilizando %@."; 
 
 /* ./EncameraCore/Utils/PasswordValidator.swift */
 "Not determined." = "No determinado.";
@@ -24,10 +24,10 @@
 "Password is too long, >%@" = "La contraseña es demasiado larga, >%@"; 
 
 /* ./EncameraCore/Utils/DataStorageUserDefaultsSetting.swift */
-"No se encontró una cuenta de iCloud en este dispositivo." = "No se encontró una cuenta de iCloud en este dispositivo."; 
+"No iCloud account found on this device." = "No se encontró una cuenta de iCloud en este dispositivo."; 
 
 /* ./EncameraCore/Utils/SettingsManager.swift */
-"%@ debe establecerse" = "%@ debe establecerse"; 
+"%@ must be set" = "%@ debe estar configurado"; 
 
 /* ./EncameraCore/Models/StorageType.swift */
 "iCloud" = "iCloud";
@@ -37,42 +37,43 @@
 
 /* ./Encamera/CameraView/CameraView.swift */
 "Missing camera access." = "Acceso a la cámara no disponible.";
-"Open settings to allow camera access permission" = "Abra los ajustes para permitir el acceso a la cámara";
-"OpenSettings" = "Abrir ajustes";
-"FinishImportingMedia" = "Finalizar importación de medios";
+"Open settings to allow camera access permission" = "Abre ajustes para permitir el acceso a la cámara";
+"OpenSettings" = "Abrir Ajustes";
+"FinishImportingMedia" = "Finalizar Importación de Medios";
 "TakeYourFirstPicture" = "TOMA TU PRIMERA FOTO";
-"NoAlbum" = "Sin álbum";
-"NoAlbumSelected" = "Ningún álbum seleccionado. Debes seleccionar un álbum para guardar las fotos."; 
+"ImageSavedToAlbum" = "IMAGEN GUARDADA EN EL ÁLBUM";
+"NoAlbum" = "Sin Álbum";
+"NoAlbumSelected" = "Ningún Álbum Seleccionado. Debes seleccionar un álbum para guardar las fotos."; 
 
 /* ./Encamera/CameraView/CameraModePicker.swift */
 "PHOTO" = "FOTO";
-"VIDEO" = "VÍDEO"; 
+"VIDEO" = "VIDEO"; 
 
 /* ./Encamera/ShareHandling/ShareHandling.swift */
 "Shared Media" = "Medios compartidos";
 "Save" = "Guardar"; 
 
 /* ./Encamera/Settings/SettingsView.swift */
-"FeedbackRequest" = "Dado que Encamera no realiza seguimiento del comportamiento del usuario de ninguna manera y no recopila información sobre ti, el usuario, confiamos en tus comentarios para ayudarnos a mejorar la aplicación.";
+"FeedbackRequest" = "Dado que Encamera no rastrea el comportamiento del usuario de ninguna manera y no recopila ninguna información sobre ti, el usuario, confiamos en tus comentarios para ayudarnos a mejorar la app.";
 "What is Encamera?" = "¿Qué es Encamera?";
 "Why Encrypt Media?" = "¿Por qué cifrar los medios?";
 "Open Source" = "Código Abierto";
-"Leave a Review" = "Dejar una Reseña";
+"Leave a Review" = "Dejar un comentario";
 "Password successfully changed" = "Contraseña cambiada con éxito";
-"GetPremium" = "Hazte Premium";
+"GetPremium" = "Obtener Premium";
 "PremiumUnlockTheseBenefits" = "Desbloquea todos estos increíbles beneficios hoy";
 "Restore Purchases" = "Restaurar Compras";
-"Settings" = "Configuración";
-"Join Telegram Group" = "Unirse al Grupo de Telegram";
+"Settings" = "Ajustes";
+"Join Telegram Group" = "Unirse al grupo de Telegram";
 "Contact" = "Contacto";
 "Privacy Policy" = "Política de Privacidad";
 "Terms of Use" = "Términos de Uso";
-"Erase" = "Eliminar";
-"Erase keychain data" = "Eliminar datos del llavero";
-"Erase all data" = "Eliminar todos los datos";
-"allDataExplanation" = "¿Estás seguro de que quieres eliminar TODOS LOS DATOS DE ENCAMERA?\n\nESTO ELIMINARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Configuraciones de la aplicación 🎛\n• MULTIMEDIA QUE HAYAS ALMACENADO LOCALMENTE O EN iCLOUD\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de gestión de claves.\n\nLa aplicación se cerrará después de que se complete el borrado.";
-"appDataExplanation" = "¿Estás seguro de que quieres eliminar TODOS los datos de la aplicación?\n\nESTO ELIMINARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Configuraciones de la aplicación 🎛\n\nESTO NO ELIMINARÁ:\n\n• Multimedia que hayas almacenado localmente o en iCloud\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de gestión de claves.\n\nLa aplicación se cerrará después de que se complete el borrado.\n\n";
-"Erase" = "Eliminar";
+"Erase" = "Borrar";
+"Erase keychain data" = "Borrar datos del llavero";
+"Erase all data" = "Borrar todos los datos";
+"allDataExplanation" = "¿Estás seguro de que quieres borrar TODOS LOS DATOS DE ENCAMERA?\n\nESTO BORRARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Ajustes de la app 🎛\n• MULTIMEDIA ALMACENADA LOCALMENTE O EN iCLOUD\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de gestión de claves.\n\nLa app se cerrará después de que se complete el borrado.";
+"appDataExplanation" = "¿Estás seguro de que quieres borrar TODOS los datos de la app?\n\nESTO BORRARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Ajustes de la app 🎛\n\nESTO NO BORRARÁ:\n\n• Multimedia que has almacenado localmente o en iCloud\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de gestión de claves.\n\nLa app se cerrará después de que se complete el borrado.\n\n";
+"Erase" = "Borrar";
 "Change Password" = "Cambiar Contraseña";
 "Current Password" = "Contraseña Actual";
 "New Password" = "Nueva Contraseña";
@@ -82,7 +83,7 @@
 "Roadmap" = "Hoja de Ruta y Solicitud de Funciones"; 
 
 /* ./Encamera/Settings/PromptToErase.swift */
-"Hold to erase" = "Mantén presionado para borrar";
+"Hold to erase" = "Mantener presionado para borrar";
 "Erase app data" = "Borrar datos de la app";
 "Erasing in %@" = "Borrando en %@"; 
 
@@ -92,16 +93,16 @@
 "ChooseYourStorageDescription" = "Elige dónde guardar de forma segura tus imágenes a partir de ahora.";
 "You took your first photo! 📸 🥳" = "¡Tomaste tu primera foto! 📸 🥳";
 "See the photos that belong to a key by tapping the " = "Ve las fotos que pertenecen a una llave tocando el ";
-" icon on the top left of the screen." = " ícono en la parte superior izquierda de la pantalla.";
+" icon on the top left of the screen." = " icono en la parte superior izquierda de la pantalla.";
 "ConfirmStorage" = "Confirmar Almacenamiento"; 
 
 /* ./Encamera/Camera/AlertError.swift */
-"Aceptar" = "Aceptar"; 
+"Accept" = "Aceptar"; 
 
 /* ./Encamera/KeyManagement/AlbumGridItem.swift */
 "Active" = "Activo";
 "CreateNewAlbum" = "Crear Nuevo Álbum";
-"Add Existing Key" = "Agregar Clave Existente"; 
+"Add Existing Key" = "Añadir Clave Existente"; 
 
 /* AlbumGrid */
 "AlbumsTitle" = "Álbumes"; 
@@ -110,69 +111,69 @@
 "Add Key" = "Añadir clave"; 
 
 /* ./Encamera/KeyManagement/KeyExchange.swift */
-"ShareKeyExplanation" = "Comparta su clave de cifrado con alguien de confianza.\n\nCompartirla significa que esa persona podrá descifrar cualquier medio que usted le comparta que esté cifrado con esta clave.";
+"ShareKeyExplanation" = "Comparte tu clave de cifrado con alguien de confianza.\n\nCompartirla con esa persona significa que podrá descifrar cualquier medio que compartas con ella que esté cifrado con esta clave.";
 "Scan with Encamera app" = "Escanear con la app Encamera";
 "Hold to reveal" = "Mantén presionado para revelar";
 "Share Key" = "Compartir Clave"; 
 
 /* ./Encamera/KeyManagement/AlbumDetailView.swift */
-"Error borrando la clave. Intente nuevamente." = "Error borrando la clave. Intente nuevamente.";
-"Cambiar nombre" = "Cambiar nombre";
-"Guardado en el Dispositivo" = "Guardado en el Dispositivo";
-"Guardado en iCloud" = "Guardado en iCloud";
-"AñadirFotosAEsteÁlbum" = "AÑADIR FOTOS A ESTE ÁLBUM";
-"UsarCámaraParaTomarFotos" = "Usa la cámara integrada para tomar fotos y vídeos.";
-"ErrorAlbumExiste" = "Ya existe un álbum con ese nombre.";
-"ErrorRenombrarÁlbum" = "No se pudo renombrar el álbum.";
-"PorFavorIntroduceUnNombreParaElÁlbum" = "Por favor introduce un nombre para el álbum";
-"Error al limpiar el llavero" = "Error al limpiar el llavero";
-"Error borrando la clave y los archivos asociados. Intente nuevamente o trate de borrar los archivos manualmente a través de la app Archivos." = "Error borrando la clave y los archivos asociados. Intente nuevamente o trate de borrar los archivos manualmente a través de la app Archivos.";
-"Error borrando todos los archivos" = "Error borrando todos los archivos";
-"Establecer como Clave Activa" = "Establecer como Clave Activa";
-"Información de la Clave" = "Información de la Clave";
-"Compartir Clave" = "Compartir Clave";
-"Respaldar Clave" = "Respaldar Clave";
-"AñadirFotos" = "Añadir Fotos";
-"EliminarÁlbum" = "Eliminar Álbum";
-"VerEnArchivos" = "Ver en la App Archivos";
-"MoverAlmacenamientoDeÁlbum" = "Mover Álbum";
-"Eliminar" = "Eliminar";
-"Eliminar Todos los Datos de la Clave" = "Eliminar Medios y Clave";
-"Guardar Clave en iCloud" = "Guardar Clave en iCloud";
-"Copiado al Portapapeles" = "Copiado al Portapapeles";
-"OK" = "OK";
-"Clave copiada al portapapeles. Guarde esto en un gestor de contraseñas u otro lugar seguro." = "Clave copiada al portapapeles. Guarde esto en un gestor de contraseñas u otro lugar seguro.";
-"¿Eliminar Todos los Datos Asociados?" = "¿Eliminar Todos los Datos Asociados?";
-"Eliminar Todo" = "Eliminar Todo";
-"Cancelar" = "Cancelar";
-"EliminarÁlbumParaSiempre" = "¿Deseas eliminar este álbum y todos los medios asociados con él para siempre?";
-"Pregunta Eliminar Álbum" = "¿Eliminar Álbum?";
-"Eliminar" = "Eliminar";
-"Cancelar" = "Cancelar";
-"Introduce el nombre de la clave para eliminarla para siempre. Todos los medios permanecerán guardados." = "Introduce el nombre de la clave para eliminarla para siempre. Todos los medios permanecerán guardados.";
-"¿Quieres eliminar esta clave para siempre? Todos los medios permanecerán guardados." = "¿Quieres eliminar esta clave para siempre? Todos los medios permanecerán guardados.";
-"Error de Eliminación" = "Error de Eliminación";
-"OK" = "OK"; 
+"Error deleting key. Please try again." = "Error al eliminar la clave. Por favor, intenta de nuevo.";
+"Rename" = "Renombrar";
+"Saved to Device" = "Guardado en el Dispositivo";
+"Saved to iCloud" = "Guardado en iCloud";
+"AddPhotosToThisAlbum" = "AÑADIR FOTOS A ESTE ÁLBUM";
+"UseCameraToTakePhotos" = "Usa la cámara integrada para tomar fotos y videos.";
+"AlbumExistsError" = "Ya existe un álbum con ese nombre.";
+"CouldNotRenameAlbumError" = "No se pudo renombrar el álbum.";
+"PleaseEnterAnAlbumName" = "Por favor, introduce un nombre para el álbum";
+"Error clearing keychain" = "Error al limpiar el llavero";
+"Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "Error al eliminar la clave y los archivos asociados. Por favor, intenta de nuevo o intenta eliminar los archivos manualmente a través de la app Archivos.";
+"Error deleting all files" = "Error al eliminar todos los archivos";
+"Set as Active Key" = "Establecer como Clave Activa";
+"Key Info" = "Información de la Clave";
+"Share Key" = "Compartir Clave";
+"Back Up Key" = "Respaldar Clave";
+"AddPhotos" = "Añadir Fotos";
+"DeleteAlbum" = "Eliminar Álbum";
+"ViewInFiles" = "Ver en la App Archivos";
+"MoveAlbumStorage" = "Mover Álbum";
+"Delete" = "Eliminar";
+"Delete All Key Data" = "Eliminar Medios y Clave";
+"Save Key to iCloud" = "Guardar Clave en iCloud";
+"Copied to Clipboard" = "Copiado al Portapapeles";
+"OK" = "Aceptar";
+"Key copied to clipboard. Store this in a password manager or other secure place." = "Clave copiada al portapapeles. Guárdala en un gestor de contraseñas u otro lugar seguro.";
+"Delete All Associated Data?" = "¿Eliminar Todos los Datos Asociados?";
+"Delete Everything" = "Eliminar Todo";
+"Cancel" = "Cancelar";
+"DeleteAlbumForever" = "¿Quieres eliminar este álbum y todos los medios asociados con él para siempre?";
+"Delete Album question" = "¿Eliminar Álbum?";
+"Delete" = "Eliminar";
+"Cancel" = "Cancelar";
+"Enter the name of the key to delete it forever. All media will remain saved." = "Ingresa el nombre de la clave para eliminarla para siempre. Todos los medios permanecerán guardados.";
+"Do you want to delete this key forever? All media will remain saved." = "¿Quieres eliminar esta clave para siempre? Todos los medios permanecerán guardados.";
+"Deletion Error" = "Error al Eliminar";
+"OK" = "Aceptar"; 
 
 /* ./Encamera/KeyManagement/AlbumCell.swift */
 "Active" = "Activo"; 
 
 /* ./Encamera/KeyManagement/KeyInformation.swift */
 "Created %@" = "Creado %@";
-"Key length: %@" = "Longitud de clave: %@"; 
+"Key length: %@" = "Longitud de la clave: %@"; 
 
 /* ./Encamera/KeyManagement/AlbumList.swift */
 "Add Existing Key" = "Añadir clave existente";
-"Backup Keys" = "Claves de respaldo";
+"Backup Keys" = "Respaldar claves";
 "Keys" = "Claves";
 "Key Management" = "Gestión de claves";
 "Active" = "Activo"; 
 
 /* ./Encamera/KeyManagement/AddExchangedKeyConfirmation.swift */
-"Key Name: %@" = "Nombre de la Clave: %@";
-"Creation Date: %@" = "Fecha de Creación: %@";
-"Save Key" = "Guardar Clave";
-"Confirm adding key" = "Confirmar añadir clave"; 
+"Key Name: %@" = "Nombre de la clave: %@";
+"Creation Date: %@" = "Fecha de creación: %@";
+"Save Key" = "Guardar clave";
+"Confirm adding key" = "Confirmar la adición de la clave"; 
 
 /* ./Encamera/KeyManagement/KeyEntry.swift */
 "Error saving key" = "Error al guardar la clave";
@@ -185,13 +186,13 @@
 
 /* ./Encamera/KeyManagement/KeyGeneration.swift */
 "" = "";
-"StorageSettingsSubheading" = "¿Dónde desea almacenar los archivos multimedia cifrados con esta clave?\nCada clave almacenará datos en su propio directorio.\n";
+"StorageSettingsSubheading" = "¿Dónde quieres almacenar los medios para los archivos encriptados con esta clave?\nCada clave almacenará datos en su propio directorio.\n";
 "New Album" = "Nuevo Álbum";
 "AlbumNameInvalid" = "El nombre del álbum debe tener más de 1 carácter";
 "MultipleKeysForMultiplePurposesExplanation" = "Puedes tener múltiples claves para diferentes propósitos, por ejemplo, una llamada \"Documentos\" y otra \"Personal\".";
-"Storage Settings" = "Configuración de almacenamiento";
+"Storage Settings" = "Configuración de Almacenamiento";
 "Save Key" = "Guardar Clave";
-"Select a place to keep media for this key." = "Selecciona un lugar para guardar los archivos multimedia de esta clave."; 
+"Select a place to keep media for this key." = "Selecciona un lugar para guardar los medios para esta clave."; 
 
 /* ./Encamera/Styles/ViewModifiers/PurchaseOptionViewModifier.swift */
 "Family Shareable" = "Compartible con la Familia";
@@ -203,7 +204,7 @@
 "Share" = "Compartir"; 
 
 /* ./Encamera/EncameraApp.swift */
-"No private key or media found." = "No se encontró clave privada ni medios.";
+"No private key or media found." = "No se encontró la llave privada ni medios.";
 "Close" = "Cerrar";
 "Save this media?" = "¿Guardar este medio?";
 "This will save the media to your library." = "Esto guardará el medio en tu biblioteca.";
@@ -212,15 +213,15 @@
 
 /* ./Encamera/AuthenticationView/PasswordEntry.swift */
 "WelcomeBack" = "¡Bienvenido de nuevo!";
-"EnterYourPassword" = "Ingrese su contraseña";
+"EnterYourPassword" = "Introduce tu contraseña";
 "Or" = "O";
 "Password" = "Contraseña";
 "Invalid Password" = "Contraseña inválida"; 
 
 /* ./Encamera/AuthenticationView/AuthenticationView.swift */
-"Missing password" = "Contraseña ausente";
+"Missing password" = "Falta la contraseña";
 "Password incorrect" = "Contraseña incorrecta";
-"Biometrics failed" = "Biometría fallida";
+"Biometrics failed" = "La biometría ha fallado";
 "Biometrics unavailable" = "Biometría no disponible";
 "Unlock with %@" = "Desbloquear con %@"; 
 
@@ -230,11 +231,11 @@
 "ModalUpgradeText" = "Actualiza a premium para desbloquear fotos ilimitadas";
 "Upgrade to Premium" = "Actualizar a Premium";
 "Back to album" = "Volver al álbum";
-"Tap to Upgrade" = "Toca para actualizar"; 
+"Tap to Upgrade" = "Toca para Actualizar"; 
 
 /* Picture taken overlay */
 "CoolPicture" = "¡Esa es una foto genial!";
-"WhereToFindYourPictures" = "Encontrarás todas tus fotos y vídeos agrupados en “Álbumes”";
+"WhereToFindYourPictures" = "Encontrarás todas tus fotos y vídeos agrupados en los “Álbumes”";
 "ViewAlbums" = "Ver Álbumes";
 "TakeAnotherPhoto" = "Tomar otra foto"; 
 
@@ -244,13 +245,14 @@
 "Share Image" = "Compartir imagen";
 "Share this image?" = "¿Compartir esta imagen?";
 "Share Encrypted" = "Compartir cifrada";
-"Share Decrypted" = "Compartir descifrada"; 
+"Share Decrypted" = "Compartir descifrada";
+"Downloading from iCloud" = "Descargando de iCloud"; 
 
 /* ./Encamera/ImageViewing/DecryptErrorExplanation.swift */
-"The media you tried to open could not be decrypted." = "El medio que intentó abrir no pudo ser descifrado.";
-"Check that the same key that was used to encrypt this media is set as the active key." = "Comprueba que la misma clave que se usó para cifrar este medio está establecida como la clave activa.";
+"The media you tried to open could not be decrypted." = "El medio que intentaste abrir no se pudo desencriptar.";
+"Check that the same key that was used to encrypt this media is set as the active key." = "Verifica que la misma clave que se utilizó para encriptar este medio esté establecida como la clave activa.";
 "Tap the " = "Toca el ";
-" icon in the camera view to change the active key." = " ícono en la vista de la cámara para cambiar la clave activa."; 
+" icon in the camera view to change the active key." = " icono en la vista de la cámara para cambiar la clave activa."; 
 
 /* ./Encamera/ImageViewing/GalleryGridView.swift */
 "Hide" = "Ocultar"; 
@@ -262,76 +264,81 @@
 "Decryption error: %@" = "Error de descifrado: %@"; 
 
 /* ./Encamera/ImageViewing/MovieViewing.swift */
-"Could not decrypt movie: %@" = "No se pudo descifrar la película: %@";
-"Decrypting..." = "Descifrando..."; 
+"Could not decrypt movie: %@" = "No se pudo desencriptar la película: %@";
+"Decrypting..." = "Desencriptando..."; 
 
 /* ./Encamera/ImageViewing/PhotoInfoView.swift */
-"No hay información disponible" = "No hay información disponible"; 
+"No info available" = "No hay información disponible"; 
 
 /* ./Encamera/Onboarding/MainOnboardingView.swift */
 "Next" = "Siguiente";
-"OnboardingIntroHeadingText1" = "Cámara enfocada en la Privacidad";
+"OnboardingIntroHeadingText1" = "Cámara Privacidad Primero";
 "OnboardingIntroSubheadingText" = "Encamera encripta todo, manteniendo tus medios a salvo de ojos no deseados.";
 "GetStartedButtonText" = "Empecemos";
-"Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera encripta todo, manteniendo tus medios a salvo de ojos no deseados.";
-"KeyBasedEncryption" = "Encriptación Basada en Claves";
-"IntroStorageExplanation" = "Tus medios están seguros tras una clave y almacenados localmente en tu dispositivo o en iCloud.";
-"NoTrackingOnboardingExplanation" = "Tus Datos están Seguros";
-"EncryptionExplanation" = "Tus medios están seguros tras una clave y almacenados localmente en tu dispositivo o en iCloud";
+"Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera encripta todo, manteniendo tus medios a salvo de la vigilancia de la IA, análisis de medios y otras violaciones de la privacidad.";
+"KeyBasedEncryption" = "Cifrado Basado en Claves";
+"IntroStorageExplanation" = "Tus medios están seguramente protegidos detrás de una clave y almacenados localmente en tu dispositivo o en iCloud.";
+"NoTrackingOnboardingExplanation" = "Tus datos están seguros";
+"EncryptionExplanation" = "Tus medios están seguramente protegidos detrás de una clave y almacenados localmente en tu dispositivo o en iCloud";
 "NoTrackingExplanation" = "Nadie puede acceder a tus datos excepto tú.";
 "EncameraIsOpenSource" = "Código Abierto";
-"OpenSourceExplanation" = "La funcionalidad principal de Encamera es de código abierto, lo que significa que puedes ver el código que protege tus fotos.";
-"Enter Password" = "Introducir Contraseña";
-"You have an existing password for this device." = "Tienes una contraseña existente para este dispositivo.";
+"OpenSourceExplanation" = "La funcionalidad principal de Encamera es de código abierto, lo que significa que puedes ver el código que mantiene seguras tus fotos.";
+"Enter Password" = "Ingresa la Contraseña";
+"You have an existing password for this device." = "Ya tienes una contraseña para este dispositivo.";
 "Erase Device Data" = "Borrar Datos del Dispositivo";
 "Set Password" = "Establecer Contraseña";
-"SetAPasswordWarning" = "Establece una contraseña para acceder a la app. Asegúrate de guardarla en un lugar seguro – no podrás recuperarla más tarde.";
-"Storage location onboarding" = "¿Dónde quieres almacenar tus medios? Cada clave almacenará los datos en su propio directorio una vez encriptado.";
+"SetAPasswordWarning" = "Establece una contraseña para acceder a la aplicación. Asegúrate de guardarla en un lugar seguro – no podrás recuperarla más tarde.";
+"Storage location onboarding" = "¿Dónde quieres almacenar tus medios? Cada clave almacenará datos en su propio directorio una vez encriptados.";
 "Skip for now" = "Omitir por ahora";
 "Set Password" = "Establecer Contraseña";
 "StorageExplanationHeader" = "¿Dónde están almacenadas mis fotos?";
-"StorageExplanation" = "Encamera no almacena medios en tu rollo de cámara. Todos los medios encriptados se almacenan ya sea en esta aplicación o en iCloud, dependiendo de tu elección de almacenamiento.";
-"BackUpKeysHeader" = "¡Haz copia de seguridad de esas claves!";
-"BackUpKeysExplanation" = "Si pierdes tu clave, será imposible recuperar tus datos. Realiza una copia de seguridad de tus claves en un gestor de contraseñas después de crearlas, o guárdalas en iCloud.";
+"StorageExplanation" = "Encamera no almacena medios en tu carrete de cámara. Todos los medios encriptados se almacenan en esta aplicación o en iCloud, dependiendo de tu elección de almacenamiento.";
+"BackUpKeysHeader" = "¡Respaldar esas claves!";
+"BackUpKeysExplanation" = "Si pierdes tu clave, es imposible recuperar tus datos. Respaldar tus claves en un gestor de contraseñas después de crearlas, o guárdalas en iCloud.";
 "Password" = "Contraseña";
 "Repeat Password" = "Repetir Contraseña";
 "Use %@?" = "¿Usar %@?";
 "Enable %@ to quickly and securely gain access to the app." = "Activa %@ para acceder rápidamente y de forma segura a la aplicación.";
 "Enable %@" = "Activar %@";
-"Encryption Key" = "Clave de Encriptación";
+"Encryption Key" = "Clave de Cifrado";
 "New Album Subheading" = "Establece el nombre para este álbum de fotos encriptado.";
 "AlbumName" = "Nombre del Álbum";
 "Select Storage" = "Seleccionar Almacenamiento";
 "OnboardingPermissionsTitle" = "Permisos";
-"OnboardingPermissionsSubheading" = "Necesitarás otorgar permisos para usar la cámara y el micrófono para poder acceder a la aplicación";
+"OnboardingPermissionsSubheading" = "Necesitarás dar permisos para usar la cámara y el micrófono para poder acceder a la aplicación";
 "OnboardingPermissionsCameraAccess" = "Acceso a la cámara";
 "OnboardingPermissionsCameraAccessSubheading" = "Necesario para tomar fotos";
 "OnboardingPermissionsMicrophoneAccess" = "Acceso al micrófono";
-"OnboardingPermissionsMicrophoneAccessSubheading" = "Necesario solo para vídeos";
+"OnboardingPermissionsMicrophoneAccessSubheading" = "Necesario solo para videos";
 "Add Permissions" = "Agregar Permisos";
 "PermissionsNeededTitle" = "Se Necesitan Permisos de Cámara";
-"PermissionsNeededText" = "Debes habilitar los permisos de cámara para continuar. Abre la aplicación de ajustes para hacer esto.";
-"Please select a storage location." = "Por favor selecciona un lugar de almacenamiento.";
+"PermissionsNeededText" = "Debes habilitar los permisos de cámara para continuar. Abre la aplicación de configuración para hacer esto.";
+"Please select a storage location." = "Por favor, selecciona un lugar de almacenamiento.";
 "DoneOnboarding" = "¡Listo!";
-"Done" = "Hecho";
-"AllSetupOnboarding" = "¡Parece que ya está todo listo! 🎊 Disfruta de tomar fotos de manera segura con la encriptación de primera clase de Encamera. 💪🔐"; 
+"Done" = "Hecho"; 
 
 /* ./Encamera/Onboarding/OnboardingView.swift */
 "ProfileSetup" = "CONFIGURACIÓN DE PERFIL"; 
 
 /* ./Encamera/Store/PurchaseUpgradeHeaderView.swift */
-"View unlimited photos for each key." = "Vea fotos ilimitadas para cada clave.";
-"Create an unlimited number of keys." = "Cree un número ilimitado de claves.";
-"Support privacy-focused development." = "Apoye el desarrollo enfocado en la privacidad."; 
+"View unlimited photos for each key." = "Visualiza fotos ilimitadas para cada llave.";
+"Create an unlimited number of keys." = "Crea un número ilimitado de llaves.";
+"Support privacy-focused development." = "Apoya el desarrollo enfocado en la privacidad."; 
 
 /* ./Encamera/Store/SubscriptionView.swift */
-"View unlimited photos for each key." = "Visualiza fotos ilimitadas para cada clave.";
-"Create an unlimited number of keys." = "Crea un número ilimitado de claves.";
+"UnlimitedStorageFeatureRowTitle" = "Almacenamiento ilimitado de fotos y videos";
+"UnlimitedAlbumsFeatureRowTitle" = "Álbumes ilimitados para tus recuerdos";
+"iCloudStorageFeatureRowTitle" = "Almacenamiento y copia de seguridad en iCloud";
+"View unlimited photos for each key." = "Visualiza fotos ilimitadas para cada llave.";
+"Create an unlimited number of keys." = "Crea un número ilimitado de llaves.";
 "Support privacy-focused development." = "Apoya el desarrollo enfocado en la privacidad.";
 "Restore Purchases" = "Restaurar Compras";
 "Enter Promo Code" = "Introducir Código Promocional";
-"UnlockUnlimitedForFree" = "Desbloquear Ilimitado Gratis";
-"Start trial offer" = "Iniciar oferta de prueba";
+"UnlockUnlimitedForFree" = "¡Desbloquea Ilimitado Gratis!";
+"Start trial offer" = "Comenzar la oferta de prueba";
+"FreeTrialTerms" = "7 días gratis, luego %@";
+"NoCommitmentCancelAnytime" = "Sin compromiso, cancela en cualquier momento";
+"MostPopular" = "MÁS POPULAR";
 "Subscribe" = "Suscribirse"; 
 
 /* ./Encamera/Store/SubscriptionOptionView.swift */
@@ -339,7 +346,7 @@
 "SaveAmount %@ %@" = "Ahorra %@ %@"; 
 
 /* ./Encamera/Store/PurchaseUpgradeOptionsListView.swift */
-"**Purchased: %@**" = "**Comprado: %@**";
+"Purchased: %@" = "**Comprado: %@**";
 "Thank you for your support!" = "¡Gracias por tu apoyo!";
 "premium" = "premium";
 "Subscription" = "Suscripción";
@@ -351,35 +358,45 @@
 "Upgrade Today!" = "¡Actualiza hoy!";
 "Tap to Upgrade" = "Toca para actualizar";
 "Take a Photo!" = "¡Toma una foto!";
-"Your Keys" = "Tus claves";
-"KeyTutorialText" = "No se explicará oficialmente ni se odiará ex eum ipsum de forma libre.";
-"KeyTutorialTitle" = "Todos tus archivos están encriptados"; 
+"Your Keys" = "Tus Claves";
+"KeyTutorialText" = "No explicaremos los deberes ni por qué se odian entre sí para librarse.";
+"KeyTutorialTitle" = "Todos tus archivos están cifrados"; 
 
 /* ./Encamera/MediaImport/MediaImportView.swift */
 "Select All" = "Seleccionar todo";
 "Import" = "Importar";
-"Import media" = "Importar multimedia";
-"ImportSelectedImages" = "Importar las imágenes seleccionadas a tu álbum con clave activo";
+"Import media" = "Importar medios";
+"ImportSelectedImages" = "Importa las imágenes seleccionadas a tu álbum clave activo";
 "DeleteImported" = "¿Eliminar Imágenes?";
 "DoYouWantToDeleteNotImported" = "¿Has terminado de importar imágenes?";
-"NotDoneYet" = "No he terminado";
+"NotDoneYet" = "Aún no he terminado";
 "Change Key Album" = "Quiero elegir otro álbum de destino";
 "IAmDone" = "He terminado";
-"Encrypting" = "Encriptando"; 
+"Encrypting" = "Cifrando"; 
 
 /* ShareViewController.swift */
-"Cannot handle media" = "No se puede manejar el contenido multimedia"; 
+"Cannot handle media" = "No es posible procesar el multimedia"; 
 
 /* TweetToShareView.swift */
-"GetOneYearFree" = "¡Consigue 1 Año Gratis!";
-"TweetToRedeemOfferExplanation" = "¡Obtén un 100%% de descuento en la suscripción anual de $9.99!\n\n Solo necesitas hacer dos cosas:\n1. Seguir a @encamera_app\n2. Toca el enlace de abajo para twittear sobre Encamera";
+"GetOneYearFree" = "¡Obtén 1 Año Gratis!";
+"TweetToRedeemOfferExplanation" = "¡Consigue el 100 %% de descuento en la tarifa de suscripción anual de $9.99!\n\n Solo necesitas hacer dos cosas:\n1. Seguir a @encamera_app\n2. Toca el enlace de abajo para twittear sobre Encamera";
 "FollowUs" = "Sigue a @encamera_app en Twitter";
 "TapToTweet" = "¡Toca para Twittear!";
-"YouWillBeSentAPromoCode" = "Después, recibirás un código promocional vía MD que podrás canjear en la app."; 
+"YouWillBeSentAPromoCode" = "Después, se te enviará un código promocional vía DM que podrás canjear en la app."; 
 
 /* Widget */
 "QuicklyTakePictures" = "Toma fotos y videos rápidamente."; 
 
 /* AlbumManager */
-"AlbumNotFoundAtSourceLocation" = "No se pudo encontrar el álbum en la ubicación de origen. Utiliza la app Archivos para asegurarte de que existe."; 
+"AlbumNotFoundAtSourceLocation" = "No se pudo encontrar el álbum en la ubicación de origen. Usa la app Archivos para asegurarte de que existe."; 
+
+/* Notification Banners */
+"NotificationBannerTitle" = "Asegurado con encriptación";
+"NotificationBannerBody" = "Todos los archivos multimedia se cifran antes de guardarse. Nadie excepto tú puede ver tus archivos.";
+"TelegramGroupJoinTitle" = "Únete al grupo de Telegram";
+"TelegramGroupJoinBody" = "Obtén acceso anticipado a funciones beta y da tu opinión";
+"TelegramGroupJoinButtonText" = "Unirse al Grupo";
+"InstallWidgetTitle" = "Instalar Widget de Pantalla de Bloqueo";
+"InstallWidgetBody" = "Añade Encamera a tu pantalla de bloqueo para tomar fotos rápidamente";
+"InstallWidgetButtonText" = "Añadir Widget"; 
 
