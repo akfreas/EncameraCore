@@ -141,6 +141,20 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         } else {
             await self.initialSessionConfiguration()
         }
+        metadataProcessor.$lastCaptured.sink { qrCodeContents in
+            self.printDebug("Got QR Code: \(String(describing: qrCodeContents))")
+            guard let contents = qrCodeContents, let url = URL(string: contents) else {
+                return
+            }
+
+            let type = URLType(url: url)
+            switch type {
+            case .featureToggle(feature: .stopTracking):
+                FeatureToggle.enable(feature: .stopTracking)
+            default:
+                break
+            }
+        }.store(in: &cancellables)
     }
 
     public func setDelegate(_ delegate: CameraConfigurationServicableDelegate) async {
