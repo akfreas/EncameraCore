@@ -147,6 +147,8 @@ public enum L10n {
   public static func created(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Created %@", String(describing: p1), fallback: "Created %@")
   }
+  /// Create First Album
+  public static let createFirstAlbum = L10n.tr("Localizable", "CreateFirstAlbum", fallback: "Create First Album")
   /// Create New Album
   public static let createNewAlbum = L10n.tr("Localizable", "CreateNewAlbum", fallback: "Create New Album")
   /// Creation Date: %@
@@ -201,6 +203,8 @@ public enum L10n {
   public static func enableToQuicklyAndSecurelyGainAccessToTheApp(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Enable %@ to quickly and securely gain access to the app.", String(describing: p1), fallback: "Enable %@ to quickly and securely gain access to the app.")
   }
+  /// Enable Face ID
+  public static let enableFaceID = L10n.tr("Localizable", "Enable Face ID", fallback: "Enable Face ID")
   /// Encamera encrypts everything, keeping your media safe from unwanted eyes.
   public static let encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy = L10n.tr("Localizable", "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy.", fallback: "Encamera encrypts everything, keeping your media safe from unwanted eyes.")
   /// Open Source
@@ -247,6 +251,11 @@ public enum L10n {
   public static let familyShareable = L10n.tr("Localizable", "Family Shareable", fallback: "Family Shareable")
   /// ./Encamera/Settings/SettingsView.swift
   public static let feedbackRequest = L10n.tr("Localizable", "FeedbackRequest", fallback: "Because Encamera does not track user behavior in any way, and collects no information about you, the user, we rely on your feedback to help us improve the app.")
+  /// You are ready to use
+  /// Encamera!
+  public static let finishedReadyToUseEncamera = L10n.tr("Localizable", "FinishedReadyToUseEncamera", fallback: "You are ready to use\nEncamera!")
+  /// Let's create your first album
+  public static let finishedSubtitle = L10n.tr("Localizable", "FinishedSubtitle", fallback: "Let's create your first album")
   /// Finish Importing Media
   public static let finishImportingMedia = L10n.tr("Localizable", "FinishImportingMedia", fallback: "Finish Importing Media")
   /// Follow @encamera_app on Twitter
@@ -327,8 +336,12 @@ public enum L10n {
   public static let keyTutorialTitle = L10n.tr("Localizable", "KeyTutorialTitle", fallback: "All of your files are encrypted")
   /// Leave a Review
   public static let leaveAReview = L10n.tr("Localizable", "Leave a Review", fallback: "Leave a Review")
+  /// Let's give your album a name
+  public static let letsGiveYourAlbumAName = L10n.tr("Localizable", "LetsGiveYourAlbumAName", fallback: "Let's give your album a name")
   /// Local
   public static let local = L10n.tr("Localizable", "Local", fallback: "Local")
+  /// Choose how you want to access your private albums.
+  public static let loginMethodDescription = L10n.tr("Localizable", "LoginMethodDescription", fallback: "Choose how you want to access your private albums.")
   /// ./Encamera/CameraView/CameraView.swift
   public static let missingCameraAccess = L10n.tr("Localizable", "Missing camera access.", fallback: "Missing camera access.")
   /// ./Encamera/AuthenticationView/AuthenticationView.swift
@@ -487,6 +500,8 @@ public enum L10n {
   public static let selectAPlaceToKeepMediaForThisKey = L10n.tr("Localizable", "Select a place to keep media for this key.", fallback: "Select a place to keep media for this key.")
   /// ./Encamera/MediaImport/MediaImportView.swift
   public static let selectAll = L10n.tr("Localizable", "Select All", fallback: "Select All")
+  /// Select Login Method
+  public static let selectLoginMethod = L10n.tr("Localizable", "Select Login Method", fallback: "Select Login Method")
   /// Select Storage
   public static let selectStorage = L10n.tr("Localizable", "Select Storage", fallback: "Select Storage")
   /// Set as Active Key
@@ -595,6 +610,8 @@ public enum L10n {
   }
   /// Use Password
   public static let usePassword = L10n.tr("Localizable", "Use Password", fallback: "Use Password")
+  /// Use PIN instead
+  public static let usePINInstead = L10n.tr("Localizable", "Use PIN instead", fallback: "Use PIN instead")
   /// Use the built-in camera to take photos and videos.
   public static let useCameraToTakePhotos = L10n.tr("Localizable", "UseCameraToTakePhotos", fallback: "Use the built-in camera to take photos and videos.")
   /// VIDEO

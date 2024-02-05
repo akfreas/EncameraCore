@@ -381,3 +381,11 @@
 "InstallWidgetBody" = "Add Encamera to your lock screen to quickly take pictures";
 "InstallWidgetButtonText" = "Add Widget";
 
+"Enable Face ID" = "Enable Face ID";
+"Use PIN instead" = "Use PIN instead";
+"Select Login Method" = "Select Login Method";
+"LoginMethodDescription" = "Choose how you want to access your private albums.";
+"FinishedReadyToUseEncamera" = "You are ready to use\nEncamera!";
+"FinishedSubtitle" = "Let's create your first album";
+"CreateFirstAlbum" = "Create First Album";
+"LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";  
