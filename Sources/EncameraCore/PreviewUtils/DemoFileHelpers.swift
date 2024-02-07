@@ -326,7 +326,7 @@ public class DemoKeyManager: KeyManager {
 }
 
 public class DemoOnboardingManager: OnboardingManaging {
-    required public init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager) {
+    required public init(keyManager: KeyManager = DemoKeyManager(), authManager: AuthManager = DemoAuthManager(), settingsManager: SettingsManager = SettingsManager()) {
         
     }
     

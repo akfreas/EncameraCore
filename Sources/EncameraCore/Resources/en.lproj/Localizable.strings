@@ -389,3 +389,11 @@
 "FinishedSubtitle" = "Let's create your first album";
 "CreateFirstAlbum" = "Create First Album";
 "LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";  
+"SetPinCode" = "Set Pin Code";
+"SetPinCodeSubtitle" = "This pin will be used to securely login in your app. Make sure you remember it!";
+"RepeatPinCode" = "Repeat Pin Code";
+"RepeatPinCodeSubtitle" = "Repeat your Pin code to confirm.";
+"ConfirmPinCode" = "Confirm Pin Code";
+"PinCodeDoesNotMatch" = "Pin Code Does Not Match";
+"FinishedOnboardingTitle" = "You are ready to use Encamera!";
+"FinishedOnboardingSubtitle" = "Let's secure some media";

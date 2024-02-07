@@ -123,6 +123,8 @@ public enum L10n {
   public static let close = L10n.tr("Localizable", "Close", fallback: "Close")
   /// Confirm adding key
   public static let confirmAddingKey = L10n.tr("Localizable", "Confirm adding key", fallback: "Confirm adding key")
+  /// Confirm Pin Code
+  public static let confirmPinCode = L10n.tr("Localizable", "ConfirmPinCode", fallback: "Confirm Pin Code")
   /// Confirm Storage
   public static let confirmStorage = L10n.tr("Localizable", "ConfirmStorage", fallback: "Confirm Storage")
   /// ./Encamera/Tutorial/ChooseStorageModal.swift
@@ -251,6 +253,10 @@ public enum L10n {
   public static let familyShareable = L10n.tr("Localizable", "Family Shareable", fallback: "Family Shareable")
   /// ./Encamera/Settings/SettingsView.swift
   public static let feedbackRequest = L10n.tr("Localizable", "FeedbackRequest", fallback: "Because Encamera does not track user behavior in any way, and collects no information about you, the user, we rely on your feedback to help us improve the app.")
+  /// Let's secure some media
+  public static let finishedOnboardingSubtitle = L10n.tr("Localizable", "FinishedOnboardingSubtitle", fallback: "Let's secure some media")
+  /// You are ready to use Encamera!
+  public static let finishedOnboardingTitle = L10n.tr("Localizable", "FinishedOnboardingTitle", fallback: "You are ready to use Encamera!")
   /// You are ready to use
   /// Encamera!
   public static let finishedReadyToUseEncamera = L10n.tr("Localizable", "FinishedReadyToUseEncamera", fallback: "You are ready to use\nEncamera!")
@@ -336,8 +342,9 @@ public enum L10n {
   public static let keyTutorialTitle = L10n.tr("Localizable", "KeyTutorialTitle", fallback: "All of your files are encrypted")
   /// Leave a Review
   public static let leaveAReview = L10n.tr("Localizable", "Leave a Review", fallback: "Leave a Review")
-  /// Let's give your album a name
-  public static let letsGiveYourAlbumAName = L10n.tr("Localizable", "LetsGiveYourAlbumAName", fallback: "Let's give your album a name")
+  /// Let's give your
+  /// album a name
+  public static let letsGiveYourAlbumAName = L10n.tr("Localizable", "LetsGiveYourAlbumAName", fallback: "Let's give your\nalbum a name")
   /// Local
   public static let local = L10n.tr("Localizable", "Local", fallback: "Local")
   /// Choose how you want to access your private albums.
@@ -450,6 +457,8 @@ public enum L10n {
   public static let photo = L10n.tr("Localizable", "PHOTO", fallback: "PHOTO")
   /// Photo limit reached
   public static let photoLimitReached = L10n.tr("Localizable", "Photo limit reached", fallback: "Photo limit reached")
+  /// Pin Code Does Not Match
+  public static let pinCodeDoesNotMatch = L10n.tr("Localizable", "PinCodeDoesNotMatch", fallback: "Pin Code Does Not Match")
   /// Please select a storage location.
   public static let pleaseSelectAStorageLocation = L10n.tr("Localizable", "Please select a storage location.", fallback: "Please select a storage location.")
   /// Please enter a name for the album
@@ -468,6 +477,10 @@ public enum L10n {
   public static let rename = L10n.tr("Localizable", "Rename", fallback: "Rename")
   /// Repeat Password
   public static let repeatPassword = L10n.tr("Localizable", "Repeat Password", fallback: "Repeat Password")
+  /// Repeat Pin Code
+  public static let repeatPinCode = L10n.tr("Localizable", "RepeatPinCode", fallback: "Repeat Pin Code")
+  /// Repeat your Pin code to confirm.
+  public static let repeatPinCodeSubtitle = L10n.tr("Localizable", "RepeatPinCodeSubtitle", fallback: "Repeat your Pin code to confirm.")
   /// Restore Purchases
   public static let restorePurchases = L10n.tr("Localizable", "Restore Purchases", fallback: "Restore Purchases")
   /// Roadmap & Feature Requests
@@ -510,6 +523,10 @@ public enum L10n {
   public static let setPassword = L10n.tr("Localizable", "Set Password", fallback: "Set Password")
   /// Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later.
   public static let setAPasswordWarning = L10n.tr("Localizable", "SetAPasswordWarning", fallback: "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later.")
+  /// Set Pin Code
+  public static let setPinCode = L10n.tr("Localizable", "SetPinCode", fallback: "Set Pin Code")
+  /// This pin will be used to securely login in your app. Make sure you remember it!
+  public static let setPinCodeSubtitle = L10n.tr("Localizable", "SetPinCodeSubtitle", fallback: "This pin will be used to securely login in your app. Make sure you remember it!")
   /// Settings
   public static let settings = L10n.tr("Localizable", "Settings", fallback: "Settings")
   /// Share
