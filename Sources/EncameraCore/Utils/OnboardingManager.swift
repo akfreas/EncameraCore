@@ -13,6 +13,7 @@ public enum OnboardingState: Codable, Equatable {
     case notStarted
     case hasPasswordAndNotOnboarded
     case hasOnboardingAndNoPassword
+    case hasOnboardingAndNoPasswordButHasBiometrics
 //
 //    static func ==(lhs: OnboardingState, rhs: OnboardingState) -> Bool {
 //        switch (lhs, rhs) {
@@ -93,6 +94,8 @@ public class OnboardingManagerObservable {
                 showOnboarding = true
             case .hasOnboardingAndNoPassword:
                 showOnboarding = true
+            case .hasOnboardingAndNoPasswordButHasBiometrics:
+                showOnboarding = false
             }
             shouldShowOnboarding = showOnboarding
         }
@@ -138,9 +141,9 @@ public class OnboardingManager: OnboardingManaging {
     }
     
     public func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {
-        debugPrint("onboarding state", state)
+
         switch state {
-        case .completed:
+        case .completed, .hasOnboardingAndNoPasswordButHasBiometrics:
             try validate(state: state, settings: settings)
             do {
                 try settingsManager.saveSettings(settings)
@@ -210,7 +213,7 @@ private extension OnboardingManager {
         do {
             
             let state = try JSONDecoder().decode(OnboardingState.self, from: savedState)
-            if case .completed = state, passwordExists == false {
+            if case .completed = state, passwordExists == false && authManager.useBiometricsForAuth == false {
                 return .hasOnboardingAndNoPassword
             }
             
