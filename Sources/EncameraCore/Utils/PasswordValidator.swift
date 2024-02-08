@@ -38,12 +38,12 @@ public enum PasswordValidation {
 public struct PasswordValidator {
     
     public init() {}
-    public func validate(password: String) -> PasswordValidation {
+    public static func validate(password: String) -> PasswordValidation {
         let validationState: PasswordValidation
         switch (password) {
         case password where password.count > PasswordValidation.maxPasswordLength:
             validationState = .invalidTooLong
-        case password where password.count <= PasswordValidation.minPasswordLength:
+        case password where password.count < PasswordValidation.minPasswordLength:
             validationState = .invalidTooShort
         default:
             validationState = .valid
@@ -52,7 +52,7 @@ public struct PasswordValidator {
 
     }
     
-    public func validatePasswordPair(_ password1: String, password2: String) -> PasswordValidation {
+    public static func validatePasswordPair(_ password1: String, password2: String) -> PasswordValidation {
         let validationState: PasswordValidation
         switch (password1, password2) {
         case (password2, password1):
