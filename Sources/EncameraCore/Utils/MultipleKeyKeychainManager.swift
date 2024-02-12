@@ -112,7 +112,6 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         // Select 10 random words
         let selectedWords = (0..<10).compactMap { _ in words.randomElement()?.lowercased() }
 
-        // Use the first word as the salt and the rest as parts of the password
         return try generateKeyFromPasswordComponents(selectedWords, name: name)
     }
 
@@ -155,11 +154,13 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         let passphraseQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem,
-            kSecReturnData as String: true
         ]
 
+        var withOptions: [String: Any] = passphraseQuery
+        withOptions[kSecReturnData as String] = true
+
         var item: CFTypeRef?
-        let queryResult = SecItemCopyMatching(passphraseQuery as CFDictionary, &item)
+        let queryResult = SecItemCopyMatching(withOptions as CFDictionary, &item)
 
         switch queryResult {
         case errSecSuccess:
@@ -224,15 +225,17 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
-        var query = key.keychainQueryDictForKeychain
+        guard var query = try getKeyQuery(for: key.name) as? [String: Any] else {
+            throw KeyManagerError.typeError
+        }
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = SecItemCopyMatching(key.keychainQueryDictForUpdate as CFDictionary, &item)
 
         switch status {
         case errSecSuccess:
             // Key exists, update it
             let updateQuery: [String: Any] = [kSecValueData as String: Data(key.keyBytes)]
-            let updateStatus = SecItemUpdate(query as CFDictionary, updateQuery as CFDictionary)
+            let updateStatus = SecItemUpdate(key.keychainQueryDictForUpdate as CFDictionary, updateQuery as CFDictionary)
             try checkStatus(status: updateStatus)
         case errSecItemNotFound:
             // Key does not exist, add it
@@ -306,7 +309,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     public func deleteKey(_ key: PrivateKey) throws {
         try checkAuthenticated()
         let key = try getKey(by: key.name)
-        let query = key.keychainQueryDictForKeychain
+        let query = key.keychainQueryDictForInsertToKeychain
         let status = SecItemDelete(query as CFDictionary)
         try checkStatus(status: status, defaultError: .deleteKeychainItemsFailed)
         if currentKey?.name == key.name {
@@ -447,8 +450,8 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 }
 
 private extension MultipleKeyKeychainManager {
-    func checkStatus(status: OSStatus, defaultError: KeyManagerError = .unhandledError) throws {
-        determineOSStatus(status: status)
+    func checkStatus(status: OSStatus, defaultError: KeyManagerError? = nil) throws {
+        let throwDefault = defaultError ?? .unhandledError(determineOSStatus(status: status))
         switch status {
         case errSecItemNotFound:
             throw KeyManagerError.notFound
@@ -457,7 +460,7 @@ private extension MultipleKeyKeychainManager {
         case errSecSuccess:
             break
         default:
-            throw defaultError
+            throw throwDefault
         }
     }
     
@@ -518,7 +521,7 @@ private extension MultipleKeyKeychainManager {
     }
     
     private func createKeychainQueryForWrite(with key: PrivateKey, backupToiCloud: Bool) -> CFDictionary {
-        var query = key.keychainQueryDictForKeychain
+        var query = key.keychainQueryDictForInsertToKeychain
         if backupToiCloud {
             query[kSecAttrSynchronizable as String] = kCFBooleanTrue
         } else {
@@ -537,12 +540,11 @@ private extension MultipleKeyKeychainManager {
 
 private extension PrivateKey {
     
-    var keychainQueryDict: [String: Any] {
+    var keychainQueryDictForUpdate: [String: Any] {
         [
             kSecClass as String: kSecClassKey,
             kSecAttrLabel as String: name.data(using: .utf8)!,
-            kSecAttrCreationDate as String: creationDate,
-            kSecValueData as String: Data(keyBytes)
+            kSecAttrApplicationLabel as String: applicationLabel
         ]
     }
     
@@ -550,10 +552,15 @@ private extension PrivateKey {
         "\(KeychainConstants.applicationTag).\(name)"
     }
     
-    var keychainQueryDictForKeychain: [String: Any] {
-        var query = keychainQueryDict
-        query[kSecAttrApplicationLabel as String] = applicationLabel
-        query[kSecAttrSynchronizable as String] = kSecAttrSynchronizableAny
-        return query
+    var keychainQueryDictForInsertToKeychain: [String: Any] {
+        [
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+            kSecAttrApplicationLabel as String: applicationLabel,
+            kSecClass as String: kSecClassKey,
+            kSecAttrLabel as String: name.data(using: .utf8)!,
+            kSecAttrCreationDate as String: creationDate,
+            kSecValueData as String: Data(keyBytes)
+        ]
     }
+
 }

@@ -70,13 +70,13 @@ extension SecretFileHandlerInt {
                 debugPrint("Could not create stream with key")
                 return Fail(error: SecretFilesError.keyError).eraseToAnyPublisher()
             }
-            
+
             return ChunkedFileProcessingPublisher(sourceFileHandle: fileHandler, blockSize: Int(blockSize)).tryMap { (bytes, progress, _) -> Data in
                 guard let (message, _) = streamDec.pull(cipherText: bytes) else {
                     throw SecretFilesError.decryptError
                 }
                 progressSubject.send(progress)
-                   return Data(message)
+                return Data(message)
             }.eraseToAnyPublisher()
         } catch {
             debugPrint("error decrypting", error)

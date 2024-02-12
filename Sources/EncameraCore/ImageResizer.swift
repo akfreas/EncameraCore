@@ -27,7 +27,9 @@ public struct ImageResizer {
     }
     
     public func resize(data: Data) -> UIImage? {
-        guard let image = UIImage(data: data) else {return nil}
+        guard let image = UIImage(data: data) else {
+            return nil
+        }
         return resize(image: image )
     }
 }

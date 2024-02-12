@@ -517,6 +517,8 @@ public enum L10n {
   public static let selectLoginMethod = L10n.tr("Localizable", "Select Login Method", fallback: "Select Login Method")
   /// Select Storage
   public static let selectStorage = L10n.tr("Localizable", "Select Storage", fallback: "Select Storage")
+  /// Select an Option
+  public static let selectAnOption = L10n.tr("Localizable", "SelectAnOption", fallback: "Select an Option")
   /// Set as Active Key
   public static let setAsActiveKey = L10n.tr("Localizable", "Set as Active Key", fallback: "Set as Active Key")
   /// Set Password

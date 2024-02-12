@@ -126,15 +126,12 @@ public class DemoFileEnumerator: FileAccess {
         return URL(fileURLWithPath: "")
     }
 
-    
-    
     typealias MediaTypeHandling = Data
-    
-
 
     public func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
+        return []
         let retVal: [T] = (7...11).map { val in
-            let url = Bundle(for: type(of: self)).url(forResource: "\(val)", withExtension: "JPG")!
+            let url = Bundle(for: type(of: self)).url(forResource: "\(val)", withExtension: "jpg")!
             debugPrint("URL: \(url)")
             return T(source: url, mediaType: .photo, id: "\(val)")
 //            if let url = Bundle(for: type(of: self)).url(forResource: "\(val)", withExtension: "JPG")! {
@@ -221,16 +218,22 @@ public class DemoKeyManager: KeyManager {
         return nil
     }
 
+
+
     public func createBackupDocument() throws -> String {
         return ""
     }
     public func retrieveKeyPassphrase() throws -> [String] {
-        return []
+        return ["your", "cool", "cat"]
     }
     public func passwordExists() -> Bool {
         return hasExistingPassword
     }
     public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
+        return DemoPrivateKey.dummyKey()
+    }
+
+    @discardableResult public func generateKeyFromPasswordComponents(_ components: [String], name: String) throws -> PrivateKey {
         return DemoPrivateKey.dummyKey()
     }
 

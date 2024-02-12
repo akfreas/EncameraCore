@@ -11,7 +11,7 @@ import Combine
 
 public enum KeyManagerError: ErrorDescribable {
     case deleteKeychainItemsFailed
-    case unhandledError
+    case unhandledError(String)
     case notAuthenticatedError
     case keyNameError
     case notFound
@@ -23,13 +23,14 @@ public enum KeyManagerError: ErrorDescribable {
     case keyDerivationFailed
     case dictionaryLoadError
     case dictionaryTooSmall
+    case typeError
 
     public var displayDescription: String {
         switch self {
         case .deleteKeychainItemsFailed:
             return L10n.couldNotDeleteKeychainItems
-        case .unhandledError:
-            return "Unhandled error"
+        case .unhandledError(let error):
+            return "Unhandled error: \(error)"
         case .notAuthenticatedError:
             return L10n.notAuthenticatedForThisOperation
         case .keyNameError:
@@ -52,10 +53,39 @@ public enum KeyManagerError: ErrorDescribable {
             return "Could not load dictionary"
         case .dictionaryTooSmall:
             return "Dictionary too small"
+        case .typeError:
+            return "Type error"
         }
+
     }
     
 }
+
+extension KeyManagerError: Equatable {
+    public static func ==(lhs: KeyManagerError, rhs: KeyManagerError) -> Bool {
+        switch (lhs, rhs) {
+        case (.deleteKeychainItemsFailed, .deleteKeychainItemsFailed),
+             (.notAuthenticatedError, .notAuthenticatedError),
+             (.keyNameError, .keyNameError),
+             (.notFound, .notFound),
+             (.dataError, .dataError),
+             (.keyExists, .keyExists),
+             (.invalidPassword, .invalidPassword),
+             (.invalidInput, .invalidInput),
+             (.invalidSalt, .invalidSalt),
+             (.keyDerivationFailed, .keyDerivationFailed),
+             (.dictionaryLoadError, .dictionaryLoadError),
+             (.dictionaryTooSmall, .dictionaryTooSmall),
+             (.typeError, .typeError):
+            return true
+        case (.unhandledError(let lhsError), .unhandledError(let rhsError)):
+            return lhsError == rhsError
+        default:
+            return false
+        }
+    }
+}
+
 
 public protocol KeyManager {
     
@@ -72,6 +102,7 @@ public protocol KeyManager {
     func update(key: PrivateKey, backupToiCloud: Bool) throws
     func generateNewKey(name: String, backupToiCloud: Bool) throws -> PrivateKey
     func generateKeyUsingRandomWords(name: String) throws -> PrivateKey
+    @discardableResult func generateKeyFromPasswordComponents(_ components: [String], name: String) throws -> PrivateKey
     func retrieveKeyPassphrase() throws -> [String]
     func validateKeyName(name: String) throws
     func createBackupDocument() throws -> String

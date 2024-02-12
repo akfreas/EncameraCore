@@ -6,8 +6,7 @@
 //
 
 import Foundation
-func determineOSStatus(status: OSStatus) {
-    #if DEBUG
+func determineOSStatus(status: OSStatus) -> String {
     var printString = ""
     switch status {
     case errSecSuccess: printString += "errSecSuccess"
@@ -581,6 +580,5 @@ func determineOSStatus(status: OSStatus) {
     default:
         fatalError()
     }
-    debugPrint("OS Status", printString)
-    #endif
+    return printString
 }
