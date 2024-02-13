@@ -72,6 +72,10 @@ extension SecretFileHandlerInt {
             }
 
             return ChunkedFileProcessingPublisher(sourceFileHandle: fileHandler, blockSize: Int(blockSize)).tryMap { (bytes, progress, _) -> Data in
+                if progress > 0.999 {
+                    debugPrint("[Decrypt] Read \(bytes.count) bytes from encrypted file")
+                }
+
                 if bytes.count == 0 {
                     return Data()
                 }
@@ -147,11 +151,16 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
                     writeBlockSizeOperation = nil
             }
             return try await withCheckedThrowingContinuation { continuation in
-                
+                var final = false
                 ChunkedFileProcessingPublisher(sourceFileHandle: sourceHandler, blockSize: defaultBlockSize)
                     .map({ (bytes, progress, isFinal)  -> Data in
+                        final = isFinal
                         debugPrint("Is final \(isFinal)")
                         let message = streamEnc.push(message: bytes, tag: isFinal ? .FINAL : .MESSAGE)!
+                        if isFinal {
+                            debugPrint("[Encrypt] Read \(bytes.count) bytes from cleartext file")
+
+                        }
                         writeBlockSizeOperation?(message)
                         self.progressSubject.send(progress)
                         return Data(message)
@@ -169,7 +178,17 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
                         }
                     } receiveValue: { data in
                         do {
+
                             try destinationHandler.write(contentsOf: data)
+                            if final {
+                                debugPrint("[Encrypt] Wrote \(data.count) encrypted bytes to file")
+                                let hexString = data.map { String(format: "%02x", $0) }.joined()
+                                debugPrint("[Encrypt] hex \(hexString)")
+
+                                let string = String(data: data, encoding: .utf8)!
+                                debugPrint("[Encrypt] \(string)")
+
+                            }
                         } catch {
                             debugPrint("Error writing in recieve: \(error)")
                             continuation.resume(throwing: error)
@@ -227,6 +246,11 @@ private extension SecretFileHandler {
                         switch recieveCompletion {
                         case .finished:
                             let media = CleartextMedia(source: destinationURL)
+                            do {
+                                try destinationHandler.closeReader()
+                            } catch {
+                                debugPrint("Error closing reader \(error)")
+                            }
                             continuation.resume(returning: media)
                         case .failure(let error):
                             continuation.resume(throwing: error)
@@ -234,6 +258,12 @@ private extension SecretFileHandler {
                 } receiveValue: { data in
                     do {
                         try destinationHandler.write(contentsOf: data)
+                        if data.count != self.defaultBlockSize {
+                            debugPrint("[Decrypt] Wrote \(data.count) decrypted bytes to file")
+                            let hexString = String(data: data, encoding: .utf8)!
+                            debugPrint("[Decrypt] \(hexString)")
+                        }
+
                     } catch {
                         continuation.resume(throwing: SecretFilesError.destinationFileAccessError)
                     }
