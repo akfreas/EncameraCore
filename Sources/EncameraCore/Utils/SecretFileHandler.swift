@@ -13,7 +13,7 @@ import Combine
 public enum SecretFilesError: Error {
     case keyError
     case encryptError
-    case decryptError
+    case decryptError(String)
     case sourceFileAccessError
     case destinationFileAccessError
     case createThumbnailError
@@ -61,7 +61,7 @@ extension SecretFileHandlerInt {
             headerBytes?.copyBytes(to: &headerBuffer, count: headerBytesCount)
             
             guard let blockSizeInfo = try fileHandler.read(upToCount: 8) else {
-                throw SecretFilesError.decryptError
+                throw SecretFilesError.decryptError("Could not read blockSizeInfo")
             }
             let blockSize: UInt32 = blockSizeInfo.withUnsafeBytes({ $0.load(as: UInt32.self)
             })
@@ -72,15 +72,19 @@ extension SecretFileHandlerInt {
             }
 
             return ChunkedFileProcessingPublisher(sourceFileHandle: fileHandler, blockSize: Int(blockSize)).tryMap { (bytes, progress, _) -> Data in
+                if bytes.count == 0 {
+                    return Data()
+                }
                 guard let (message, _) = streamDec.pull(cipherText: bytes) else {
-                    throw SecretFilesError.decryptError
+                    // The final chunk cannot be decrypted and results in the error below
+                    throw SecretFilesError.decryptError("Could not decrypt cyphertext")
                 }
                 progressSubject.send(progress)
                 return Data(message)
             }.eraseToAnyPublisher()
         } catch {
             debugPrint("error decrypting", error)
-            return Fail(error: SecretFilesError.decryptError).eraseToAnyPublisher()
+            return Fail(error: error).eraseToAnyPublisher()
         }
     }
 }
@@ -102,13 +106,13 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
     var cancellables = Set<AnyCancellable>()
 
     private let defaultBlockSize: Int = 20480
-        
-    func decrypt<T>() async throws -> CleartextMedia<T> where T : MediaSourcing {
-        switch T.self {
+
+    func decrypt<Source>() async throws -> CleartextMedia<Source> where Source : MediaSourcing {
+        switch Source.self {
         case is URL.Type:
-            return try await decryptFile() as! CleartextMedia<T>
+            return try await decryptFile() as! CleartextMedia<Source>
         case is Data.Type:
-            return try await decryptInMemory() as! CleartextMedia<T>
+            return try await decryptInMemory() as! CleartextMedia<Source>
         default:
             fatalError()
         }
@@ -146,6 +150,7 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
                 
                 ChunkedFileProcessingPublisher(sourceFileHandle: sourceHandler, blockSize: defaultBlockSize)
                     .map({ (bytes, progress, isFinal)  -> Data in
+                        debugPrint("Is final \(isFinal)")
                         let message = streamEnc.push(message: bytes, tag: isFinal ? .FINAL : .MESSAGE)!
                         writeBlockSizeOperation?(message)
                         self.progressSubject.send(progress)
@@ -163,7 +168,12 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
                             continuation.resume(throwing: SecretFilesError.encryptError)
                         }
                     } receiveValue: { data in
-                        try? destinationHandler.write(contentsOf: data)
+                        do {
+                            try destinationHandler.write(contentsOf: data)
+                        } catch {
+                            debugPrint("Error writing in recieve: \(error)")
+                            continuation.resume(throwing: error)
+                        }
                     }.store(in: &self.cancellables)
             }
             
@@ -189,8 +199,8 @@ private extension SecretFileHandler {
                     
                 case .finished:
                     break
-                case .failure(_):
-                    continuation.resume(throwing: SecretFilesError.decryptError)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
                 }
                 
             } receiveValue: { [self] data in
@@ -218,8 +228,8 @@ private extension SecretFileHandler {
                         case .finished:
                             let media = CleartextMedia(source: destinationURL)
                             continuation.resume(returning: media)
-                        case .failure(_):
-                            continuation.resume(throwing: SecretFilesError.decryptError)
+                        case .failure(let error):
+                            continuation.resume(throwing: error)
                         }
                 } receiveValue: { data in
                     do {
@@ -231,8 +241,9 @@ private extension SecretFileHandler {
             }
             
         } catch {
+            debugPrint("Error decrypting \(error)")
             try FileManager.default.removeItem(at: destinationURL)
-            throw SecretFilesError.destinationFileAccessError
+            throw error
         }
     }
 

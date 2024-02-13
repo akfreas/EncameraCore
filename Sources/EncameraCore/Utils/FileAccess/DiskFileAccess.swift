@@ -185,8 +185,7 @@ extension DiskFileAccess: FileReader {
         if FileManager.default.fileExists(atPath: targetURL.path) {
             return CleartextMedia(source: targetURL)
         }
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted, targetURL: targetURL
-        )
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted, targetURL: targetURL)
         fileHandler.progress
             .receive(on: DispatchQueue.main)
             .sink { percent in

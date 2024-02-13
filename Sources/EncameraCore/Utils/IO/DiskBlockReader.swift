@@ -33,7 +33,16 @@ class DiskBlockReader: FileLikeBlockReader {
     }
     
     func read(upToCount count: Int) throws -> Data? {
-        return try fileHandle?.read(upToCount: count)
+        let offset = (try! fileHandle?.offset() ?? 0) + UInt64(count)
+
+        print("Source: \(source.lastPathComponent), offset: \(offset), chunk size: \(count), length: \(size), remaining: \(Int(size) - Int(offset))")
+        if let retval = try fileHandle?.read(upToCount: count) {
+            print("Length of data: \(retval.count)")
+            return retval
+        } else {
+            let rv = try fileHandle?.readToEnd()
+            return rv
+        }
     }
     
     func closeReader() throws {

@@ -40,8 +40,7 @@ class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Sub
             var byteCount: UInt64 = 0
             while true {
                 guard let data = try sourceFileHandle.read(upToCount: blockSize) else {
-                    subscriber?.receive(completion: .failure(ChunkedFilesError.sourceFileAccessError))
-                    return
+                    break
                 }
 
                 let final = data.count < blockSize
@@ -53,7 +52,6 @@ class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Sub
 
                 let _ = subscriber?.receive((byteArray, progress, final))
 
-                if final { break }
             }
             try sourceFileHandle.closeReader()
             subscriber?.receive(completion: .finished)
@@ -62,7 +60,7 @@ class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Sub
         }
     }
     func cancel() {
-        try? sourceFileHandle.closeReader()
+//        try? sourceFileHandle.closeReader()
     }
 }
 
