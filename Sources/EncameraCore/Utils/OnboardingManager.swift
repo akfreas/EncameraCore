@@ -13,22 +13,21 @@ public enum OnboardingState: Codable, Equatable {
     case notStarted
     case hasPasswordAndNotOnboarded
     case hasOnboardingAndNoPassword
-    case hasOnboardingAndNoPasswordButHasBiometrics
-//
-//    static func ==(lhs: OnboardingState, rhs: OnboardingState) -> Bool {
-//        switch (lhs, rhs) {
-//        case (.notStarted, .notStarted):
-//            return true
-//        case (.completed(let saved1), .completed(let saved2)):
-//            return saved1 == saved2
-//        case (.hasPasswordAndNotOnboarded, .hasPasswordAndNotOnboarded):
-//            return true
-//        case (.hasOnboardingAndNoPassword, .hasOnboardingAndNoPassword):
-//            return true
-//        default:
-//            return false
-//        }
-//    }
+
+    func showOnboarding() -> Bool {
+        let show: Bool
+        switch self {
+        case .completed:
+            show = false
+        case .notStarted:
+            show = true
+        case .hasPasswordAndNotOnboarded:
+            show = true
+        case .hasOnboardingAndNoPassword:
+            show = true
+        }
+        return show
+    }
 }
 
 
@@ -84,24 +83,12 @@ public protocol OnboardingManaging {
 public class OnboardingManagerObservable {
     @Published public var onboardingState: OnboardingState = .notStarted {
         didSet {
-            let showOnboarding: Bool
-            switch onboardingState {
-            case .completed:
-                showOnboarding = false
-            case .notStarted:
-                showOnboarding = true
-            case .hasPasswordAndNotOnboarded:
-                showOnboarding = true
-            case .hasOnboardingAndNoPassword:
-                showOnboarding = true
-            case .hasOnboardingAndNoPasswordButHasBiometrics:
-                showOnboarding = false
-            }
-            shouldShowOnboarding = showOnboarding
+            shouldShowOnboarding = onboardingState.showOnboarding()
         }
     }
-    
+
     @Published public var shouldShowOnboarding: Bool = true
+    
 
 }
 
@@ -128,6 +115,7 @@ public class OnboardingManager: OnboardingManaging {
     }
     
     func validate(state: OnboardingState, settings: SavedSettings) throws {
+
         guard case .completed = state else {
             throw OnboardingManagerError.incorrectStateForOperation
         }
@@ -143,7 +131,7 @@ public class OnboardingManager: OnboardingManaging {
     public func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {
 
         switch state {
-        case .completed, .hasOnboardingAndNoPasswordButHasBiometrics:
+        case .completed:
             try validate(state: state, settings: settings)
             do {
                 try settingsManager.saveSettings(settings)
@@ -173,7 +161,8 @@ public class OnboardingManager: OnboardingManaging {
     }
     
     @discardableResult public func loadOnboardingState() throws -> OnboardingState {
-        observables.onboardingState = try getOnboardingStateFromDefaults()
+        let state = try getOnboardingStateFromDefaults()
+        observables.onboardingState = state
         return observables.onboardingState
     }
     

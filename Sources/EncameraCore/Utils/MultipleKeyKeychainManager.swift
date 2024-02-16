@@ -112,6 +112,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         // Select 10 random words
         let selectedWords = (0..<10).compactMap { _ in words.randomElement()?.lowercased() }
 
+        // Use the first word as the salt and the rest as parts of the password
         return try generateKeyFromPasswordComponents(selectedWords, name: name)
     }
 
@@ -225,31 +226,16 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
-        guard var query = try getKeyQuery(for: key.name) as? [String: Any] else {
-            throw KeyManagerError.typeError
-        }
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(key.keychainQueryDictForUpdate as CFDictionary, &item)
-
-        switch status {
-        case errSecSuccess:
-            // Key exists, update it
+        if let existingKey = try? getKey(by: key.name) {
             let updateQuery: [String: Any] = [kSecValueData as String: Data(key.keyBytes)]
-            let updateStatus = SecItemUpdate(key.keychainQueryDictForUpdate as CFDictionary, updateQuery as CFDictionary)
+            let updateStatus = SecItemUpdate(existingKey.keychainQueryDictForKeychain as CFDictionary, updateQuery as CFDictionary)
             try checkStatus(status: updateStatus)
-        case errSecItemNotFound:
-            // Key does not exist, add it
-            if backupToiCloud {
-                query[kSecAttrSynchronizable as String] = kCFBooleanTrue
-            } else {
-                query[kSecAttrSynchronizable as String] = kCFBooleanFalse
-            }
-            query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
-            let addStatus = SecItemAdd(query as CFDictionary, nil)
+
+        } else {
+
+            let addStatus = SecItemAdd(key.keychainQueryDictForKeychain as CFDictionary, nil)
             try checkStatus(status: addStatus)
-        default:
-            // Handle other errors
-            try checkStatus(status: status)
+
         }
 
         if setNewKeyToCurrent {
@@ -309,7 +295,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     public func deleteKey(_ key: PrivateKey) throws {
         try checkAuthenticated()
         let key = try getKey(by: key.name)
-        let query = key.keychainQueryDictForInsertToKeychain
+        let query = key.keychainQueryDictForKeychain
         let status = SecItemDelete(query as CFDictionary)
         try checkStatus(status: status, defaultError: .deleteKeychainItemsFailed)
         if currentKey?.name == key.name {
@@ -521,7 +507,7 @@ private extension MultipleKeyKeychainManager {
     }
     
     private func createKeychainQueryForWrite(with key: PrivateKey, backupToiCloud: Bool) -> CFDictionary {
-        var query = key.keychainQueryDictForInsertToKeychain
+        var query = key.keychainQueryDictForKeychain
         if backupToiCloud {
             query[kSecAttrSynchronizable as String] = kCFBooleanTrue
         } else {
@@ -539,28 +525,28 @@ private extension MultipleKeyKeychainManager {
 }
 
 private extension PrivateKey {
-    
-    var keychainQueryDictForUpdate: [String: Any] {
-        [
-            kSecClass as String: kSecClassKey,
-            kSecAttrLabel as String: name.data(using: .utf8)!,
-            kSecAttrApplicationLabel as String: applicationLabel
-        ]
-    }
+
     
     var applicationLabel: String {
         "\(KeychainConstants.applicationTag).\(name)"
     }
-    
-    var keychainQueryDictForInsertToKeychain: [String: Any] {
+
+    var keychainQueryDictForUpdate: [String: Any] {
         [
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
-            kSecAttrApplicationLabel as String: applicationLabel,
             kSecClass as String: kSecClassKey,
             kSecAttrLabel as String: name.data(using: .utf8)!,
             kSecAttrCreationDate as String: creationDate,
-            kSecValueData as String: Data(keyBytes)
         ]
     }
 
+    var keychainQueryDictForKeychain: [String: Any] {
+        [
+            kSecClass as String: kSecClassKey,
+            kSecAttrLabel as String: name.data(using: .utf8)!,
+            kSecAttrCreationDate as String: creationDate,
+            kSecValueData as String: Data(keyBytes),
+            kSecAttrApplicationLabel as String: applicationLabel,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+        ]
+    }
 }
