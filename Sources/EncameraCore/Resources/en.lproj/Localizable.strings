@@ -398,3 +398,4 @@
 "FinishedOnboardingTitle" = "You are ready to use Encamera!";
 "FinishedOnboardingSubtitle" = "Let's secure some media";
 "SelectAnOption" = "Select an Option";
+"PinCodeMismatch" = "Pincodes are not the same";

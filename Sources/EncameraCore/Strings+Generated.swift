@@ -459,6 +459,8 @@ public enum L10n {
   public static let photoLimitReached = L10n.tr("Localizable", "Photo limit reached", fallback: "Photo limit reached")
   /// Pin Code Does Not Match
   public static let pinCodeDoesNotMatch = L10n.tr("Localizable", "PinCodeDoesNotMatch", fallback: "Pin Code Does Not Match")
+  /// Pincodes are not the same
+  public static let pinCodeMismatch = L10n.tr("Localizable", "PinCodeMismatch", fallback: "Pincodes are not the same")
   /// Please select a storage location.
   public static let pleaseSelectAStorageLocation = L10n.tr("Localizable", "Please select a storage location.", fallback: "Please select a storage location.")
   /// Please enter a name for the album
