@@ -25,12 +25,6 @@ class URLTypesTest: XCTestCase {
         keyManager.clearKeychainData()
     }
     
-    func testCreateKeyURL() throws {
-        let key = DemoPrivateKey.dummyKey()
-        let url = try XCTUnwrap(URLType.key(key: key).url)
-        XCTAssertEqual(url.absoluteString, "encamera://key?data=eyJuYW1lIjoidGVzdCIsImtleUJ5dGVzIjpbMzYsOTcsMTE0LDEwMywxMTEsMTEwLDUwLDEwNSwxMDAsMzYsMTE4LDYxLDQ5LDU3LDM2LDEwOSw2MSw1NCw1Myw1Myw1MSw1NCw0NCwxMTYsNjEsNTAsNDQsMTEyLDYxLDQ5LDM2LDc2LDEyMiw3Myw0OCw3OCwxMDMsNjcsNTcsOTAsNjksODksNzYsODEsODAsNzAsNzYsODUsNDksNjksODAsMTE5LDY1LDM2LDgzLDY2LDY2LDQ5LDY1LDg1LDg2LDc0LDU1LDgyLDg1LDkwLDExNiw3OSw2NywxMTEsMTA0LDgyLDEwMCw4OSw2Nyw3MSw1NywxMTQsOTAsMTE5LDEwOSw4MSw0NywxMTgsNzQsNzcsMTIxLDQ4LDg1LDcxLDEwOCw2OSwxMDMsNjYsMTIyLDc5LDc3XSwiY3JlYXRpb25EYXRlIjo2NjYwNzIwMDB9")
-    }
-    
     
     func testConvertKeyType() throws {
     

@@ -103,12 +103,12 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
 
     private let defaultBlockSize: Int = 20480
         
-    func decrypt<T>() async throws -> CleartextMedia<T> where T : MediaSourcing {
-        switch T.self {
+    func decrypt<MediaType>() async throws -> CleartextMedia<MediaType> where MediaType : MediaSourcing {
+        switch MediaType.self {
         case is URL.Type:
-            return try await decryptFile() as! CleartextMedia<T>
+            return try await decryptFile() as! CleartextMedia<MediaType>
         case is Data.Type:
-            return try await decryptInMemory() as! CleartextMedia<T>
+            return try await decryptInMemory() as! CleartextMedia<MediaType>
         default:
             fatalError()
         }

@@ -11,13 +11,12 @@ import XCTest
 
 class PasswordValidatorTests: XCTestCase {
     
-    private let validator = PasswordValidator()
     
     func testCheckPasswordValid() throws {
         let firstPassword = "q1w2e3r4"
         let secondPassword = "q1w2e3r4"
         
-        let result = validator.validatePasswordPair(firstPassword, password2: secondPassword)
+        let result = PasswordValidator.validatePasswordPair(firstPassword, password2: secondPassword)
         XCTAssertEqual(result, .valid)
     }
     
@@ -25,7 +24,7 @@ class PasswordValidatorTests: XCTestCase {
         let firstPassword = "q1w2e3r4223"
         let secondPassword = "q1w2e3r4"
         
-        let result = validator.validatePasswordPair(firstPassword, password2: secondPassword)
+        let result = PasswordValidator.validatePasswordPair(firstPassword, password2: secondPassword)
         XCTAssertEqual(result, .invalidDifferent)
     }
     
@@ -33,14 +32,14 @@ class PasswordValidatorTests: XCTestCase {
         let firstPassword = "1111111111111111111111111111111"
         let secondPassword = "1111111111111111111111111111111"
         
-        let result = validator.validatePasswordPair(firstPassword, password2: secondPassword)
+        let result = PasswordValidator.validatePasswordPair(firstPassword, password2: secondPassword)
         XCTAssertEqual(result, .invalidTooLong)
     }
     
     func testCheckPasswordInvalidTooShort() throws {
         let firstPassword = "123"
         let secondPassword = "123"
-        let result = validator.validatePasswordPair(firstPassword, password2: secondPassword)
+        let result = PasswordValidator.validatePasswordPair(firstPassword, password2: secondPassword)
         XCTAssertEqual(result, .invalidTooShort)
 
     }
