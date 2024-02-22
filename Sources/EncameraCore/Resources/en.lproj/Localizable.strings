@@ -399,3 +399,9 @@
 "FinishedOnboardingSubtitle" = "Let's secure some media";
 "SelectAnOption" = "Select an Option";
 "PinCodeMismatch" = "Pincodes are not the same";
+"EmptyAlbumTakeAPictureHeading" = "Create a new memory";
+"EmptyAlbumTakeAPictureSubtitle" = "Open your camera and take a pic";
+"EmptyAlbumTakeAPictureActionTitle" = "Take a picture";
+"EmptyAlbumImportPhotosHeading" = "Secure your pics";
+"EmptyAlbumImportPhotosSubtitle" = "Import pictures from your camera roll";
+"EmptyAlbumImportPhotosActionTitle" = "Import Pictures";

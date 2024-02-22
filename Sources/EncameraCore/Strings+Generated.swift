@@ -197,6 +197,18 @@ public enum L10n {
   public static let downloadingFromICloud = L10n.tr("Localizable", "Downloading from iCloud", fallback: "Downloading from iCloud")
   /// Are you done importing images?
   public static let doYouWantToDeleteNotImported = L10n.tr("Localizable", "DoYouWantToDeleteNotImported", fallback: "Are you done importing images?")
+  /// Import Pictures
+  public static let emptyAlbumImportPhotosActionTitle = L10n.tr("Localizable", "EmptyAlbumImportPhotosActionTitle", fallback: "Import Pictures")
+  /// Secure your pics
+  public static let emptyAlbumImportPhotosHeading = L10n.tr("Localizable", "EmptyAlbumImportPhotosHeading", fallback: "Secure your pics")
+  /// Import pictures from your camera roll
+  public static let emptyAlbumImportPhotosSubtitle = L10n.tr("Localizable", "EmptyAlbumImportPhotosSubtitle", fallback: "Import pictures from your camera roll")
+  /// Take a picture
+  public static let emptyAlbumTakeAPictureActionTitle = L10n.tr("Localizable", "EmptyAlbumTakeAPictureActionTitle", fallback: "Take a picture")
+  /// Create a new memory
+  public static let emptyAlbumTakeAPictureHeading = L10n.tr("Localizable", "EmptyAlbumTakeAPictureHeading", fallback: "Create a new memory")
+  /// Open your camera and take a pic
+  public static let emptyAlbumTakeAPictureSubtitle = L10n.tr("Localizable", "EmptyAlbumTakeAPictureSubtitle", fallback: "Open your camera and take a pic")
   /// Enable %@
   public static func enable(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Enable %@", String(describing: p1), fallback: "Enable %@")
