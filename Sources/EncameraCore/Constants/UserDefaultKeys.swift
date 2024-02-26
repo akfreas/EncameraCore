@@ -26,6 +26,7 @@ public enum UserDefaultKey {
     case showCameraOnLaunch
     case lastAppLaunchVersion
     case usesPinPassword
+    case lockoutEnd
 
     var rawValue: String {
         switch self {

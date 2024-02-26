@@ -394,7 +394,9 @@
 "RepeatPinCode" = "Repeat Pin Code";
 "RepeatPinCodeSubtitle" = "Repeat your Pin code to confirm.";
 "ConfirmPinCode" = "Confirm Pin Code";
-"PinCodeDoesNotMatch" = "Pin Code Does Not Match";
+"IncorrectPinCode" = "Wrong PIN Code. Please try again.";
+"PinCodeDoesNotMatch" = "PIN doesn’t match. Please try again.";
+"PinCodeLockTryAgainIn" = "Too many attempts. Please wait for %@";
 "FinishedOnboardingTitle" = "You are ready to use Encamera!";
 "FinishedOnboardingSubtitle" = "Let's secure some media";
 "SelectAnOption" = "Select an Option";

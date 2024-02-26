@@ -213,11 +213,21 @@ public class DeviceAuthManager: AuthManager {
     
     public func authorize(with password: String, using keyManager: KeyManager) throws {
         let newState: AuthManagerState
-        let check = try keyManager.checkPassword(password)
-        if check {
-            newState = .authenticated(with: .password)
-        } else {
-            newState = .unauthenticated
+        do {
+            let check = try keyManager.checkPassword(password)
+            if check {
+                newState = .authenticated(with: .password)
+            } else {
+                newState = .unauthenticated
+            }
+        } catch let keyManagerError as KeyManagerError {
+            if keyManagerError == .invalidPassword {
+                throw AuthManagerError.passwordIncorrect
+            } else {
+                throw keyManagerError
+            }
+        } catch {
+            throw error
         }
         authState = newState
     }

@@ -310,6 +310,8 @@ public enum L10n {
   public static let importMedia = L10n.tr("Localizable", "Import media", fallback: "Import media")
   /// Import the selected images to your currently active key album
   public static let importSelectedImages = L10n.tr("Localizable", "ImportSelectedImages", fallback: "Import the selected images to your currently active key album")
+  /// Wrong PIN Code. Please try again.
+  public static let incorrectPinCode = L10n.tr("Localizable", "IncorrectPinCode", fallback: "Wrong PIN Code. Please try again.")
   /// Add Encamera to your lock screen to quickly take pictures
   public static let installWidgetBody = L10n.tr("Localizable", "InstallWidgetBody", fallback: "Add Encamera to your lock screen to quickly take pictures")
   /// Add Widget
@@ -469,8 +471,12 @@ public enum L10n {
   public static let photo = L10n.tr("Localizable", "PHOTO", fallback: "PHOTO")
   /// Photo limit reached
   public static let photoLimitReached = L10n.tr("Localizable", "Photo limit reached", fallback: "Photo limit reached")
-  /// Pin Code Does Not Match
-  public static let pinCodeDoesNotMatch = L10n.tr("Localizable", "PinCodeDoesNotMatch", fallback: "Pin Code Does Not Match")
+  /// PIN doesn’t match. Please try again.
+  public static let pinCodeDoesNotMatch = L10n.tr("Localizable", "PinCodeDoesNotMatch", fallback: "PIN doesn’t match. Please try again.")
+  /// Too many attempts. Please wait for %@
+  public static func pinCodeLockTryAgainIn(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "PinCodeLockTryAgainIn", String(describing: p1), fallback: "Too many attempts. Please wait for %@")
+  }
   /// Pincodes are not the same
   public static let pinCodeMismatch = L10n.tr("Localizable", "PinCodeMismatch", fallback: "Pincodes are not the same")
   /// Please select a storage location.
