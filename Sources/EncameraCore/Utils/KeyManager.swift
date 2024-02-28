@@ -108,6 +108,7 @@ public protocol KeyManager {
     func createBackupDocument() throws -> String
     func checkPassword(_ password: String) throws -> Bool
     func setPassword(_ password: String) throws
+    func setOrUpdatePassword(_ password: String) throws
     func passwordExists() -> Bool
     func changePassword(newPassword: String, existingPassword: String) throws
 }

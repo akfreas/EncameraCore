@@ -195,6 +195,10 @@ public enum L10n {
   public static let doneOnboarding = L10n.tr("Localizable", "DoneOnboarding", fallback: "Done!")
   /// Downloading from iCloud
   public static let downloadingFromICloud = L10n.tr("Localizable", "Downloading from iCloud", fallback: "Downloading from iCloud")
+  /// Do you remember your pin?
+  public static let doYouRememberYourPin = L10n.tr("Localizable", "DoYouRememberYourPin", fallback: "Do you remember your pin?")
+  /// If you don't, you can set a new one by going to 'Change Pin'
+  public static let doYouRememberYourPinSubtitle = L10n.tr("Localizable", "DoYouRememberYourPinSubtitle", fallback: "If you don't, you can set a new one by going to 'Change Pin'")
   /// Are you done importing images?
   public static let doYouWantToDeleteNotImported = L10n.tr("Localizable", "DoYouWantToDeleteNotImported", fallback: "Are you done importing images?")
   /// Import Pictures
@@ -259,6 +263,8 @@ public enum L10n {
   public static let errorDeletingAllFiles = L10n.tr("Localizable", "Error deleting all files", fallback: "Error deleting all files")
   /// ./Encamera/KeyManagement/KeyEntry.swift
   public static let errorSavingKey = L10n.tr("Localizable", "Error saving key", fallback: "Error saving key")
+  /// Error saving password
+  public static let errorSavingPassword = L10n.tr("Localizable", "ErrorSavingPassword", fallback: "Error saving password")
   /// Face ID
   public static let faceID = L10n.tr("Localizable", "Face ID", fallback: "Face ID")
   /// ./Encamera/Styles/ViewModifiers/PurchaseOptionViewModifier.swift
@@ -302,6 +308,8 @@ public enum L10n {
   public static let iCloud = L10n.tr("Localizable", "iCloud", fallback: "iCloud")
   /// iCloud storage & backup
   public static let iCloudStorageFeatureRowTitle = L10n.tr("Localizable", "iCloudStorageFeatureRowTitle", fallback: "iCloud storage & backup")
+  /// I Forgot
+  public static let iForgot = L10n.tr("Localizable", "IForgot", fallback: "I Forgot")
   /// IMAGE SAVED TO ALBUM
   public static let imageSavedToAlbum = L10n.tr("Localizable", "ImageSavedToAlbum", fallback: "IMAGE SAVED TO ALBUM")
   /// Import
@@ -322,6 +330,8 @@ public enum L10n {
   public static let introStorageExplanation = L10n.tr("Localizable", "IntroStorageExplanation", fallback: "Your media is safely secured behind a key and stored locally on your device or iCloud.")
   /// Invalid Password
   public static let invalidPassword = L10n.tr("Localizable", "Invalid Password", fallback: "Invalid Password")
+  /// I Remember my Pin
+  public static let iRemember = L10n.tr("Localizable", "IRemember", fallback: "I Remember my Pin")
   /// Join Telegram Group
   public static let joinTelegramGroup = L10n.tr("Localizable", "Join Telegram Group", fallback: "Join Telegram Group")
   /// Keep your encrypted data safe by using %@.
@@ -363,6 +373,8 @@ public enum L10n {
   public static let local = L10n.tr("Localizable", "Local", fallback: "Local")
   /// Choose how you want to access your private albums.
   public static let loginMethodDescription = L10n.tr("Localizable", "LoginMethodDescription", fallback: "Choose how you want to access your private albums.")
+  /// Make sure you remember your pin code!
+  public static let makeSureYouRememberYourPin = L10n.tr("Localizable", "MakeSureYouRememberYourPin", fallback: "Make sure you remember your pin code!")
   /// ./Encamera/CameraView/CameraView.swift
   public static let missingCameraAccess = L10n.tr("Localizable", "Missing camera access.", fallback: "Missing camera access.")
   /// ./Encamera/AuthenticationView/AuthenticationView.swift
@@ -479,6 +491,8 @@ public enum L10n {
   }
   /// Pincodes are not the same
   public static let pinCodeMismatch = L10n.tr("Localizable", "PinCodeMismatch", fallback: "Pincodes are not the same")
+  /// Pin successfully changed
+  public static let pinSuccessfullyChanged = L10n.tr("Localizable", "PinSuccessfullyChanged", fallback: "Pin successfully changed")
   /// Please select a storage location.
   public static let pleaseSelectAStorageLocation = L10n.tr("Localizable", "Please select a storage location.", fallback: "Please select a storage location.")
   /// Please enter a name for the album

@@ -267,7 +267,7 @@ public class DeviceAuthManager: AuthManager {
     }
     
     public func authorizeWithBiometrics() async throws {
-        guard let method = availableBiometric, useBiometricsForAuth == true else {
+        guard let method = availableBiometric else {
             throw AuthManagerError.biometricsNotAvailable
         }
         let result = try await evaluateWithBiometrics()

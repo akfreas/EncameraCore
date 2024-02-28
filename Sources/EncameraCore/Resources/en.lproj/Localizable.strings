@@ -407,3 +407,10 @@
 "EmptyAlbumImportPhotosHeading" = "Secure your pics";
 "EmptyAlbumImportPhotosSubtitle" = "Import pictures from your camera roll";
 "EmptyAlbumImportPhotosActionTitle" = "Import Pictures";
+"PinSuccessfullyChanged" = "Pin successfully changed";
+"MakeSureYouRememberYourPin" = "Make sure you remember your pin code!";
+"ErrorSavingPassword" = "Error saving password";
+"DoYouRememberYourPin" = "Do you remember your pin?";
+"DoYouRememberYourPinSubtitle" = "If you don't, you can set a new one by going to 'Change Pin'";
+"IRemember" = "I Remember my Pin";
+"IForgot" = "I Forgot";

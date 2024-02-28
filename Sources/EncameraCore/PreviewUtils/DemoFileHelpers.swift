@@ -219,7 +219,10 @@ public class DemoKeyManager: KeyManager {
     }
 
 
+    public func setOrUpdatePassword(_ password: String) throws {
 
+    }
+    
     public func createBackupDocument() throws -> String {
         return ""
     }
@@ -334,7 +337,7 @@ public class DemoOnboardingManager: OnboardingManaging {
     }
     
     public func generateOnboardingFlow() -> [OnboardingFlowScreen] {
-        return [.intro]
+        return [.setPinCode]
     }
     
     public func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {

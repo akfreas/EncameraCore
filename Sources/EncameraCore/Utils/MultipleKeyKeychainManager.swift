@@ -378,7 +378,25 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         
         try checkStatus(status: setPasswordStatus)
     }
-    
+
+    public func setOrUpdatePassword(_ password: String) throws {
+        let hashed = try hashFrom(password: password)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.account
+        ]
+        let update: [String: Any] = [
+            kSecValueData as String: hashed
+        ]
+
+        let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
+        if status == errSecItemNotFound {
+            try setPassword(password)
+        } else {
+            try checkStatus(status: status)
+        }
+    }
+
     public func changePassword(newPassword: String, existingPassword: String) throws {
         guard try checkPassword(existingPassword) == true else {
             throw KeyManagerError.invalidPassword
