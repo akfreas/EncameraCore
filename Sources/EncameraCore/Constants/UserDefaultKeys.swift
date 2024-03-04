@@ -21,12 +21,13 @@ public enum UserDefaultKey {
     case lastVersionReviewRequested
     case hasOpenedAlbum
     case keyTutorialClosed
-    case launchCount
     case currentAlbumID
     case showCameraOnLaunch
-    case lastAppLaunchVersion
     case usesPinPassword
     case lockoutEnd
+    case launchCountKey
+    case lastVersionKey
+
 
     var rawValue: String {
         switch self {

@@ -66,7 +66,11 @@ public struct UserDefaultUtils {
     public static func removeObject(forKey key: UserDefaultKey) {
         return defaults.removeObject(forKey: key.rawValue)
     }
-    
+
+    public static func dictionary(forKey key: UserDefaultKey) -> [String: Any]? {
+        return defaults.dictionary(forKey: key.rawValue)
+    }
+
     public static func data(forKey key: UserDefaultKey) -> Data? {
         defaults.data(forKey: key.rawValue)
     }

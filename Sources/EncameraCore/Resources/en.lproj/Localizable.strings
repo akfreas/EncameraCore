@@ -414,3 +414,7 @@
 "DoYouRememberYourPinSubtitle" = "If you don't, you can set a new one by going to 'Change Pin'";
 "IRemember" = "I Remember my Pin";
 "IForgot" = "I Forgot";
+"TakeSurveyTitle" = "Want 3 Months Free?";
+"TakeSurveyBody" = "Give us your feedback and get 3 months for free";
+"TakeSurveyButtonText" = "Take Survey";
+

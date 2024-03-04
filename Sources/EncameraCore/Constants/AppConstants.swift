@@ -25,4 +25,5 @@ public enum AppConstants {
     public static let appStoreURL = "https://apps.apple.com/us/app/encamera-encrypted-photo-vault/id1639202616"
     public static let pinCodeLength = 4
     public static let lockoutTime: TimeInterval = 300
+    public static let maxCharacterAlbumName = 20
 }

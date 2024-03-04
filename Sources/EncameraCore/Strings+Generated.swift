@@ -609,6 +609,12 @@ public enum L10n {
   public static let takeAPhoto = L10n.tr("Localizable", "Take a Photo!", fallback: "Take a Photo!")
   /// Take another photo
   public static let takeAnotherPhoto = L10n.tr("Localizable", "TakeAnotherPhoto", fallback: "Take another photo")
+  /// Give us your feedback and get 3 months for free
+  public static let takeSurveyBody = L10n.tr("Localizable", "TakeSurveyBody", fallback: "Give us your feedback and get 3 months for free")
+  /// Take Survey
+  public static let takeSurveyButtonText = L10n.tr("Localizable", "TakeSurveyButtonText", fallback: "Take Survey")
+  /// Want 3 Months Free?
+  public static let takeSurveyTitle = L10n.tr("Localizable", "TakeSurveyTitle", fallback: "Want 3 Months Free?")
   /// TAKE YOUR FIRST PICTURE
   public static let takeYourFirstPicture = L10n.tr("Localizable", "TakeYourFirstPicture", fallback: "TAKE YOUR FIRST PICTURE")
   /// Tap the 
