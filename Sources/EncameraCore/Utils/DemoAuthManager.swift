@@ -23,7 +23,9 @@ public class DemoAuthManager: AuthManager {
     public var isAuthenticated: Bool = false
     
     public var canAuthenticateWithBiometrics: Bool = true
-    
+
+    public var deviceBiometryType: AuthenticationMethod? = .faceID
+
     public func deauthorize() {
         
     }

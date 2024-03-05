@@ -79,6 +79,7 @@ public protocol AuthManager {
     var availableBiometric: AuthenticationMethod? { get }
     var useBiometricsForAuth: Bool { get set }
     var canAuthenticateWithBiometrics: Bool { get }
+    var deviceBiometryType: AuthenticationMethod? { get }
     func deauthorize()
     func checkAuthorizationWithCurrentPolicy() async throws
     func authorize(with password: String, using keyManager: KeyManager) throws
@@ -104,9 +105,14 @@ public class DeviceAuthManager: AuthManager {
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else {
             return .none
         }
-        _availableBiometric = AuthenticationMethod.methodFrom(biometryType: context.biometryType)
+        _availableBiometric = deviceBiometryType
         return _availableBiometric
     }
+
+    public var deviceBiometryType: AuthenticationMethod? {
+        AuthenticationMethod.methodFrom(biometryType: context.biometryType)
+    }
+
     var _useBiometricsForAuth: Bool?
     public var useBiometricsForAuth: Bool {
         get {
@@ -114,7 +120,7 @@ public class DeviceAuthManager: AuthManager {
                 return _useBiometricsForAuth
             }
             guard let settings = try? settingsManager.loadSettings(),
-                  let useBiometrics = settings.useBiometricsForAuth else {
+                  let useBiometrics = settings.useBiometricsForAuth, availableBiometric != .none  else {
                 return false
             }
             self._useBiometricsForAuth = useBiometrics
@@ -233,15 +239,19 @@ public class DeviceAuthManager: AuthManager {
     }
     
     @discardableResult public func evaluateWithBiometrics() async throws -> Bool {
-        cancelNotificationObservers()
 
         guard let method = availableBiometric else {
             throw AuthManagerError.biometricsNotAvailable
         }
+
+        defer {
+            setupNotificationObservers()
+        }
+
         do {
             debugPrint("Attempting LA auth")
+            cancelNotificationObservers()
             let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: L10n.keepYourEncryptedDataSafeByUsing(method.nameForMethod))
-            setupNotificationObservers()
             return result
         } catch let localAuthError as LAError {
             debugPrint("LAError", localAuthError)

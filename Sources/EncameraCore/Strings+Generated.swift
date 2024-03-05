@@ -565,6 +565,10 @@ public enum L10n {
   public static let setPinCodeSubtitle = L10n.tr("Localizable", "SetPinCodeSubtitle", fallback: "This pin will be used to securely login in your app. Make sure you remember it!")
   /// Settings
   public static let settings = L10n.tr("Localizable", "Settings", fallback: "Settings")
+  /// Face ID is Disabled
+  public static let settingsFaceIdDisabled = L10n.tr("Localizable", "SettingsFaceIdDisabled", fallback: "Face ID is Disabled")
+  /// SettingsFaceIdOpenSettings
+  public static let settingsFaceIdOpenSettings = L10n.tr("Localizable", "SettingsFaceIdOpenSettings", fallback: "SettingsFaceIdOpenSettings")
   /// Share
   public static let share = L10n.tr("Localizable", "Share", fallback: "Share")
   /// Share Decrypted
@@ -714,6 +718,10 @@ public enum L10n {
   public enum KeyCopiedToClipboard {
     /// Key copied to clipboard. Store this in a password manager or other secure place.
     public static let storeThisInAPasswordManagerOrOtherSecurePlace = L10n.tr("Localizable", "Key copied to clipboard. Store this in a password manager or other secure place.", fallback: "Key copied to clipboard. Store this in a password manager or other secure place.")
+  }
+  public enum YouHaveDisabledFaceIDForEncamera {
+    /// You have disabled Face ID for Encamera. Enable it in Settings to login with Face ID.
+    public static let enableItInSettingsToLoginWithFaceID = L10n.tr("Localizable", "You have disabled Face ID for Encamera. Enable it in Settings to login with Face ID.", fallback: "You have disabled Face ID for Encamera. Enable it in Settings to login with Face ID.")
   }
 }
 // swiftlint:enable explicit_type_interface function_parameter_count identifier_name line_length
