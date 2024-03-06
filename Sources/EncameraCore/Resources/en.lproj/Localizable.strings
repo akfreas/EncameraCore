@@ -418,4 +418,4 @@
 "TakeSurveyBody" = "Give us your feedback and get 3 months for free";
 "TakeSurveyButtonText" = "Take Survey";
 "SettingsFaceIdDisabled" = "Face ID is Disabled";
-"SettingsFaceIdOpenSettings"; "You have disabled Face ID for Encamera. Enable it in Settings to login with Face ID.";
+"SettingsFaceIdOpenSettings" = "You have disabled Face ID for Encamera. Enable it in Settings to login with Face ID.";
