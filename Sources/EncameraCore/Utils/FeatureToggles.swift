@@ -22,8 +22,7 @@ public struct FeatureToggle {
         UserDefaultUtils.set(true, forKey: .featureToggle(feature: feature))
     }
     public static func isEnabled(feature: Feature) -> Bool {
-        return true
-//        return UserDefaultUtils.bool(forKey: .featureToggle(feature: feature))
+        return UserDefaultUtils.bool(forKey: .featureToggle(feature: feature))
     }
     
 }
