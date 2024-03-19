@@ -105,6 +105,8 @@ public enum L10n {
   public static let biometricsFailed = L10n.tr("Localizable", "Biometrics failed", fallback: "Biometrics failed")
   /// Biometrics unavailable
   public static let biometricsUnavailable = L10n.tr("Localizable", "Biometrics unavailable", fallback: "Biometrics unavailable")
+  /// Buy once. Use forever.
+  public static let buyOnceUseForever = L10n.tr("Localizable", "BuyOnceUseForever", fallback: "Buy once. Use forever.")
   /// Cancel
   public static let cancel = L10n.tr("Localizable", "Cancel", fallback: "Cancel")
   /// ShareViewController.swift
@@ -505,6 +507,8 @@ public enum L10n {
   public static let privacyPolicy = L10n.tr("Localizable", "Privacy Policy", fallback: "Privacy Policy")
   /// ./Encamera/Onboarding/OnboardingView.swift
   public static let profileSetup = L10n.tr("Localizable", "ProfileSetup", fallback: "PROFILE SETUP")
+  /// Purchase
+  public static let purchaseProduct = L10n.tr("Localizable", "PurchaseProduct", fallback: "Purchase")
   /// Widget
   public static let quicklyTakePictures = L10n.tr("Localizable", "QuicklyTakePictures", fallback: "Quickly take pictures and video.")
   /// Rename
@@ -553,6 +557,8 @@ public enum L10n {
   public static let selectStorage = L10n.tr("Localizable", "Select Storage", fallback: "Select Storage")
   /// Select an Option
   public static let selectAnOption = L10n.tr("Localizable", "SelectAnOption", fallback: "Select an Option")
+  /// Select a Product
+  public static let selectProduct = L10n.tr("Localizable", "SelectProduct", fallback: "Select a Product")
   /// Set as Active Key
   public static let setAsActiveKey = L10n.tr("Localizable", "Set as Active Key", fallback: "Set as Active Key")
   /// Set Password
@@ -637,6 +643,10 @@ public enum L10n {
   public static let termsOfUse = L10n.tr("Localizable", "Terms of Use", fallback: "Terms of Use")
   /// Thank you for your support!
   public static let thankYouForYourSupport = L10n.tr("Localizable", "Thank you for your support!", fallback: "Thank you for your support!")
+  /// Thanks for purchasing a lifetime license!
+  public static let thanksForPurchasingLifetime = L10n.tr("Localizable", "ThanksForPurchasingLifetime", fallback: "Thanks for purchasing a lifetime license!")
+  /// You rock and you will unlock new benefits soon.
+  public static let thanksForPurchasingLifetimeSubtitle = L10n.tr("Localizable", "ThanksForPurchasingLifetimeSubtitle", fallback: "You rock and you will unlock new benefits soon.")
   /// ./Encamera/ImageViewing/DecryptErrorExplanation.swift
   public static let theMediaYouTriedToOpenCouldNotBeDecrypted = L10n.tr("Localizable", "The media you tried to open could not be decrypted.", fallback: "The media you tried to open could not be decrypted.")
   /// This will save the media to your library.

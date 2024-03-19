@@ -63,7 +63,7 @@
 "Leave a Review" = "Leave a Review";
 "Password successfully changed" = "Password successfully changed";
 "GetPremium" = "Get Premium";
-"PremiumUnlockTheseBenefits" = "Unlock all of these amazing benefits today";
+"PremiumUnlockTheseBenefits" = "Unlimited albums and iCloud storage";
 "Restore Purchases" = "Restore Purchases";
 "Settings" = "Settings";
 "Join Telegram Group" = "Join Telegram Group";
@@ -332,7 +332,7 @@
 "Subscription" = "Subscription";
 "One-Time Purchase" = "One-Time Purchase";
 /* ./Encamera/Store/PurchaseUpgradeView.swift */
-"Start trial offer" = "Start trial offer";
+"Start trial offer" = "Start free trial";
 "Subscribe" = "Subscribe";
 "Upgrade Today!" = "Upgrade Today!";
 "Tap to Upgrade" = "Tap to Upgrade";
@@ -419,3 +419,8 @@
 "TakeSurveyButtonText" = "Take Survey";
 "SettingsFaceIdDisabled" = "Face ID is Disabled";
 "SettingsFaceIdOpenSettings" = "You have disabled Face ID for Encamera. Enable it in Settings to login with Face ID.";
+"PurchaseProduct" = "Purchase";
+"SelectProduct" = "Select a Product";
+"BuyOnceUseForever" = "Buy once. Use forever.";
+"ThanksForPurchasingLifetime" = "Thanks for purchasing a lifetime license!";
+"ThanksForPurchasingLifetimeSubtitle" = "You rock and you will unlock new benefits soon.";

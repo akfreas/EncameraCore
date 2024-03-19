@@ -12,7 +12,7 @@ import Combine
 @MainActor
 public final class StoreProductController: ObservableObject {
     @Published public var products: [OneTimePurchase] = []
-    @Published public var purchasedProducts: [OneTimePurchase] = []
+    @Published public var purchasedProduct: OneTimePurchase?
     @Published private(set) public var isEntitled: Bool = false
     @Published private(set) var purchaseError: (any LocalizedError)?
     
@@ -69,7 +69,7 @@ public final class StoreProductController: ObservableObject {
             }
             purchased += products.filter({$0.product.id == transaction.productID})
         }
-        purchasedProducts = purchased
-        isEntitled = purchasedProducts.isEmpty == false
+        purchasedProduct = purchased.first
+        isEntitled = purchasedProduct != nil
     }
 }

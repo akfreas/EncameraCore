@@ -20,12 +20,23 @@ import StoreKit
     ]
     
     public static let productIDs: Array<String> = [
+        lifetimeUnlimitedBasic,
     ]
     
     public static let allProductIDs: Array<String> = {
         return subscriptionIDs + productIDs
     }()
-    
+
+    @MainActor
+    public var activePurchase: (any Purchasable)? {
+        if let currentSubscription = subscriptionController.entitledSubscription {
+            return currentSubscription
+        } else if let currentProduct = productController.purchasedProduct {
+            return currentProduct
+        }
+        return nil
+    }
+
     public static let shared = StoreActor()
     
     private var loadedProducts: [String: Product] = [:]
@@ -54,6 +65,16 @@ import StoreKit
         return loadedProducts[productID]
     }
     
+    @MainActor
+    public func hasPurchased<T: Purchasable>(product: T?) -> Bool {
+        if let subscription = product as? ServiceSubscription {
+            return subscriptionController.entitledSubscription == subscription
+        } else if let oneTimePurchase = product as? OneTimePurchase {
+            return productController.purchasedProduct == oneTimePurchase
+        }
+        return false
+    }
+
     public func presentCodeRedemptionSheet() {
         if #available(iOS 16.0, *) {
             Task {
@@ -110,14 +131,18 @@ import StoreKit
     
     private func loadProducts() async {
         do {
-            let products = try await Product.products(for: Self.allProductIDs)
+            let subscriptionProducts = try await Product.products(for: Self.subscriptionIDs)
+            let lifetimeProducts = try await Product.products(for: Self.productIDs)
+
             try Task.checkCancellation()
-            loadedProducts = products.reduce(into: [:]) {
+            loadedProducts = subscriptionProducts.reduce(into: [:]) {
                 $0[$1.id] = $1
             }
             
             Task(priority: .utility) { @MainActor in
-                self.subscriptionController.subscriptions = products.compactMap({ ServiceSubscription(subscription: $0) }).sorted { product1, product2 in
+                self.subscriptionController.subscriptions = subscriptionProducts
+                    .compactMap({ ServiceSubscription(product: $0, savings: savings(currentSubscription: $0, subscriptions: subscriptionProducts)) })
+                    .sorted { product1, product2 in
                     if product1.id.contains("yearly") {
                         return true
                     } else {
@@ -126,7 +151,7 @@ import StoreKit
                 }
                 await self.subscriptionController.updateEntitlement()
 
-                self.productController.products = products
+                self.productController.products = lifetimeProducts
                     .compactMap({ OneTimePurchase(product: $0) })
                 await self.productController.updateEntitlement()
             }
@@ -136,7 +161,35 @@ import StoreKit
         }
         productLoadingTask = nil
     }
-    
+
+    private nonisolated func savings(currentSubscription: Product, subscriptions: [Product]) -> SubscriptionSavings? {
+        guard currentSubscription.subscription?.subscriptionPeriod.unit == .year else {
+            return nil
+        }
+        print("Subscription: \(currentSubscription.id)", "Subscriptions: \(subscriptions)")
+        guard let yearlySubscription = subscriptions.first(where: { $0.id == StoreActor.unlimitedYearlyID }) else {
+            return nil
+        }
+        guard let monthlySubscription = subscriptions.first(where: { $0.id == StoreActor.unlimitedMonthlyID }) else {
+            return nil
+        }
+
+        let yearlyPriceForMonthlySubscription = 12 * monthlySubscription.price
+        let amountSaved = yearlyPriceForMonthlySubscription - yearlySubscription.price
+
+        guard amountSaved > 0 else {
+            return nil
+        }
+
+        let monthlyPrice = yearlySubscription.price / 12
+
+        return SubscriptionSavings(totalSavings: amountSaved,
+                                   granularPrice: monthlyPrice,
+                                   granularPricePeriod: .month,
+                                   priceFormatStyle: currentSubscription.priceFormatStyle,
+                                   subscriptionPeriodUnitFormatStyle: currentSubscription.subscriptionPeriodUnitFormatStyle)
+    }
+
     private func handle(transaction: VerificationResult<StoreKit.Transaction>) async {
         guard case .verified(let transaction) = transaction else {
             print("Received unverified transaction: \(transaction)")
