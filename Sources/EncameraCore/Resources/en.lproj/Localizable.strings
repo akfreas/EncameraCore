@@ -424,3 +424,11 @@
 "BuyOnceUseForever" = "Buy once. Use forever.";
 "ThanksForPurchasingLifetime" = "Thanks for purchasing a lifetime license!";
 "ThanksForPurchasingLifetimeSubtitle" = "You rock and you will unlock new benefits soon.";
+"ImportKeyPhrase" = "Import Key Phrase";
+"EnterKeyPhrase" = "Enter Key Phrase";
+"EnterKeyPhraseDescription" = "Enter the key phrase you want to import. Separate each word with a space.\nThis will overwrite your current key phrase.";
+"Import" = "Import";
+"OverwriteKeyPhrase" = "Overwrite Key Phrase?";
+"OverwriteAreYouSure" = "Are you sure you want to overwrite your current key phrase? You will not be able to access any media encrypted with the current key phrase.";
+"ImSure" = "I'm Sure";
+"ErrorImportingKeyPhrase" = "Error importing key phrase";

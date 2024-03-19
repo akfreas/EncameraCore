@@ -241,6 +241,11 @@ public enum L10n {
   public static let enterPassword = L10n.tr("Localizable", "Enter Password", fallback: "Enter Password")
   /// Enter Promo Code
   public static let enterPromoCode = L10n.tr("Localizable", "Enter Promo Code", fallback: "Enter Promo Code")
+  /// Enter Key Phrase
+  public static let enterKeyPhrase = L10n.tr("Localizable", "EnterKeyPhrase", fallback: "Enter Key Phrase")
+  /// Enter the key phrase you want to import. Separate each word with a space.
+  /// This will overwrite your current key phrase.
+  public static let enterKeyPhraseDescription = L10n.tr("Localizable", "EnterKeyPhraseDescription", fallback: "Enter the key phrase you want to import. Separate each word with a space.\nThis will overwrite your current key phrase.")
   /// Enter your password
   public static let enterYourPassword = L10n.tr("Localizable", "EnterYourPassword", fallback: "Enter your password")
   /// Erase
@@ -265,6 +270,8 @@ public enum L10n {
   public static let errorDeletingAllFiles = L10n.tr("Localizable", "Error deleting all files", fallback: "Error deleting all files")
   /// ./Encamera/KeyManagement/KeyEntry.swift
   public static let errorSavingKey = L10n.tr("Localizable", "Error saving key", fallback: "Error saving key")
+  /// Error importing key phrase
+  public static let errorImportingKeyPhrase = L10n.tr("Localizable", "ErrorImportingKeyPhrase", fallback: "Error importing key phrase")
   /// Error saving password
   public static let errorSavingPassword = L10n.tr("Localizable", "ErrorSavingPassword", fallback: "Error saving password")
   /// Face ID
@@ -318,8 +325,12 @@ public enum L10n {
   public static let `import` = L10n.tr("Localizable", "Import", fallback: "Import")
   /// Import media
   public static let importMedia = L10n.tr("Localizable", "Import media", fallback: "Import media")
+  /// Import Key Phrase
+  public static let importKeyPhrase = L10n.tr("Localizable", "ImportKeyPhrase", fallback: "Import Key Phrase")
   /// Import the selected images to your currently active key album
   public static let importSelectedImages = L10n.tr("Localizable", "ImportSelectedImages", fallback: "Import the selected images to your currently active key album")
+  /// I'm Sure
+  public static let imSure = L10n.tr("Localizable", "ImSure", fallback: "I'm Sure")
   /// Wrong PIN Code. Please try again.
   public static let incorrectPinCode = L10n.tr("Localizable", "IncorrectPinCode", fallback: "Wrong PIN Code. Please try again.")
   /// Add Encamera to your lock screen to quickly take pictures
@@ -457,6 +468,10 @@ public enum L10n {
   public static let openSourceExplanation = L10n.tr("Localizable", "OpenSourceExplanation", fallback: "Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.")
   /// Or
   public static let or = L10n.tr("Localizable", "Or", fallback: "Or")
+  /// Are you sure you want to overwrite your current key phrase? You will not be able to access any media encrypted with the current key phrase.
+  public static let overwriteAreYouSure = L10n.tr("Localizable", "OverwriteAreYouSure", fallback: "Are you sure you want to overwrite your current key phrase? You will not be able to access any media encrypted with the current key phrase.")
+  /// Overwrite Key Phrase?
+  public static let overwriteKeyPhrase = L10n.tr("Localizable", "OverwriteKeyPhrase", fallback: "Overwrite Key Phrase?")
   /// Password
   public static let password = L10n.tr("Localizable", "Password", fallback: "Password")
   /// Password incorrect
@@ -501,8 +516,8 @@ public enum L10n {
   public static let pleaseEnterAnAlbumName = L10n.tr("Localizable", "PleaseEnterAnAlbumName", fallback: "Please enter a name for the album")
   /// premium
   public static let premium = L10n.tr("Localizable", "premium", fallback: "premium")
-  /// Unlock all of these amazing benefits today
-  public static let premiumUnlockTheseBenefits = L10n.tr("Localizable", "PremiumUnlockTheseBenefits", fallback: "Unlock all of these amazing benefits today")
+  /// Unlimited albums and iCloud storage
+  public static let premiumUnlockTheseBenefits = L10n.tr("Localizable", "PremiumUnlockTheseBenefits", fallback: "Unlimited albums and iCloud storage")
   /// Privacy Policy
   public static let privacyPolicy = L10n.tr("Localizable", "Privacy Policy", fallback: "Privacy Policy")
   /// ./Encamera/Onboarding/OnboardingView.swift
@@ -594,7 +609,7 @@ public enum L10n {
   /// Skip for now
   public static let skipForNow = L10n.tr("Localizable", "Skip for now", fallback: "Skip for now")
   /// ./Encamera/Store/PurchaseUpgradeView.swift
-  public static let startTrialOffer = L10n.tr("Localizable", "Start trial offer", fallback: "Start trial offer")
+  public static let startTrialOffer = L10n.tr("Localizable", "Start trial offer", fallback: "Start free trial")
   /// Where do you want to store your media? Each key will store data in its own directory once encrypted.
   public static let storageLocationOnboarding = L10n.tr("Localizable", "Storage location onboarding", fallback: "Where do you want to store your media? Each key will store data in its own directory once encrypted.")
   /// Storage Settings
