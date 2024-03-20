@@ -432,3 +432,4 @@
 "OverwriteAreYouSure" = "Are you sure you want to overwrite your current key phrase? You will not be able to access any media encrypted with the current key phrase.";
 "ImSure" = "I'm Sure";
 "ErrorImportingKeyPhrase" = "Error importing key phrase";
+"YourRecoveryPhrase" = "Your Recovery Phrase";

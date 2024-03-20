@@ -10,7 +10,7 @@ import Foundation
 public enum Feature: String {
     case enableVideo
     case stopTracking
-
+    case recoveryPhrase
     var userDefaultsKey: String {
         return "feature_" +  rawValue
     }
