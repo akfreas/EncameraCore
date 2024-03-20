@@ -134,7 +134,7 @@
 "AddPhotos" = "Add Photos";
 "DeleteAlbum" = "Delete Album";
 "ViewInFiles" = "View in Files App";
-"MoveAlbumStorage" = "Move Album";
+"MoveAlbumStorage" = "Change Storage";
 "Delete" = "Delete";
 "Delete All Key Data" = "Delete Media & Key";
 "Save Key to iCloud" = "Save Key to iCloud";
@@ -344,7 +344,7 @@
 /* ./Encamera/MediaImport/MediaImportView.swift */
 "Select All" = "Select All";
 "Import" = "Import";
-"Import media" = "Import media";
+"Import media" = "Add Pictures and Video";
 "ImportSelectedImages" = "Import the selected images to your currently active key album";
 "DeleteImported" = "Delete Images?";
 "DoYouWantToDeleteNotImported" = "Are you done importing images?";
