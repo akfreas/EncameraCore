@@ -438,3 +438,25 @@
 "TakeSurveyButtonText" = "Umfrage teilnehmen";
 "SettingsFaceIdDisabled" = "Face ID ist deaktiviert";
 "SettingsFaceIdOpenSettings" = "Sie haben Face ID für Encamera deaktiviert. Aktivieren Sie es in den Einstellungen, um sich mit Face ID anzumelden.";
+
+"ThanksForPurchasingLifetimeSubtitle" = "Du rockst und wirst bald neue Vorteile freischalten.";
+"OverwriteKeyPhrase" = "Schlüsselphrase überschreiben?";
+"ErrorImportingKeyPhrase" = "Fehler beim Importieren der Schlüsselphrase";
+"PostPurchaseView.ReviewButton" = "Hilf uns mit einer Bewertung";
+"BuyOnceUseForever" = "Einmal kaufen. Für immer nutzen.";
+"PostPurchaseView.MaybeLater" = "Vielleicht später";
+"PostPurchaseView.Subtext2" = "In der Zwischenzeit würden wir es sehr schätzen, wenn Sie uns mit einer Bewertung im App Store helfen könnten";
+"EnterKeyPhrase" = "Schlüsselphrase eingeben";
+"PostPurchaseView.ThanksForYourPurchase" = "Danke für Ihren Kauf!";
+"YourRecoveryPhrase" = "Ihr Wiederherstellungsphrase";
+"Error deleting key. Please try again." = "Fehler beim Löschen des Schlüssels. Bitte versuchen Sie es erneut.";
+"SaveAmount %@ $@" = "SPEICHERN %@";
+"OverwriteAreYouSure" = "Sind Sie sicher, dass Sie Ihre aktuelle Schlüsselphrase überschreiben möchten? Sie werden nicht in der Lage sein, auf Medien zuzugreifen, die mit der aktuellen Schlüsselphrase verschlüsselt wurden.";
+"ImSure" = "Ich bin sicher";
+"ImportKeyPhrase" = "Schlüsselphrase importieren";
+"PurchaseProduct" = "Kaufen";
+"EnterKeyPhraseDescription" = "Geben Sie die Schlüsselphrase ein, die Sie importieren möchten. Trennen Sie jedes Wort mit einem Leerzeichen.\nDies wird Ihre aktuelle Schlüsselphrase überschreiben.";
+"ThanksForPurchasingLifetime" = "Vielen Dank für den Kauf einer lebenslangen Lizenz!";
+"Keep your encrypted data safe by using %@." = "Halten Sie Ihre verschlüsselten Daten sicher, indem Sie %@ verwenden.";
+"SelectProduct" = "Wählen Sie ein Produkt";
+"PostPurchaseView.Subtext1" = "Sie sind einer der frühen Unterstützer von Encamera und wir danken Ihnen für die Unterstützung!";
