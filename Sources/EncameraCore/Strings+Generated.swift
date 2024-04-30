@@ -323,8 +323,8 @@ public enum L10n {
   public static let imageSavedToAlbum = L10n.tr("Localizable", "ImageSavedToAlbum", fallback: "IMAGE SAVED TO ALBUM")
   /// Import
   public static let `import` = L10n.tr("Localizable", "Import", fallback: "Import")
-  /// Import media
-  public static let importMedia = L10n.tr("Localizable", "Import media", fallback: "Import media")
+  /// Add Pictures and Video
+  public static let importMedia = L10n.tr("Localizable", "Import media", fallback: "Add Pictures and Video")
   /// Import Key Phrase
   public static let importKeyPhrase = L10n.tr("Localizable", "ImportKeyPhrase", fallback: "Import Key Phrase")
   /// Import the selected images to your currently active key album
@@ -396,8 +396,8 @@ public enum L10n {
   public static let modalUpgradeText = L10n.tr("Localizable", "ModalUpgradeText", fallback: "Upgrade to premium to unlock unlimited photos")
   /// MOST POPULAR
   public static let mostPopular = L10n.tr("Localizable", "MostPopular", fallback: "MOST POPULAR")
-  /// Move Album
-  public static let moveAlbumStorage = L10n.tr("Localizable", "MoveAlbumStorage", fallback: "Move Album")
+  /// Change Storage
+  public static let moveAlbumStorage = L10n.tr("Localizable", "MoveAlbumStorage", fallback: "Change Storage")
   /// You can have multiple keys for different purposes, e.g. one named "Documents" and another "Personal".
   public static let multipleKeysForMultiplePurposesExplanation = L10n.tr("Localizable", "MultipleKeysForMultiplePurposesExplanation", fallback: "You can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".")
   /// New Album
@@ -726,6 +726,8 @@ public enum L10n {
   public static let youTookYourFirstPhoto📸🥳 = L10n.tr("Localizable", "You took your first photo! 📸 🥳", fallback: "You took your first photo! 📸 🥳")
   /// Your Keys
   public static let yourKeys = L10n.tr("Localizable", "Your Keys", fallback: "Your Keys")
+  /// Your Recovery Phrase
+  public static let yourRecoveryPhrase = L10n.tr("Localizable", "YourRecoveryPhrase", fallback: "Your Recovery Phrase")
   /// Afterwards, you will be sent a promo code via DM that you can redeem in the app.
   public static let youWillBeSentAPromoCode = L10n.tr("Localizable", "YouWillBeSentAPromoCode", fallback: "Afterwards, you will be sent a promo code via DM that you can redeem in the app.")
   public enum EnterTheNameOfTheKeyToDeleteItForever {
@@ -743,6 +745,18 @@ public enum L10n {
   public enum KeyCopiedToClipboard {
     /// Key copied to clipboard. Store this in a password manager or other secure place.
     public static let storeThisInAPasswordManagerOrOtherSecurePlace = L10n.tr("Localizable", "Key copied to clipboard. Store this in a password manager or other secure place.", fallback: "Key copied to clipboard. Store this in a password manager or other secure place.")
+  }
+  public enum PostPurchaseView {
+    /// Maybe Later
+    public static let maybeLater = L10n.tr("Localizable", "PostPurchaseView.MaybeLater", fallback: "Maybe Later")
+    /// Help us with a review
+    public static let reviewButton = L10n.tr("Localizable", "PostPurchaseView.ReviewButton", fallback: "Help us with a review")
+    /// You are one of the early supporters of Encamera and we thank you for the support!
+    public static let subtext1 = L10n.tr("Localizable", "PostPurchaseView.Subtext1", fallback: "You are one of the early supporters of Encamera and we thank you for the support!")
+    /// In the meantime, we will highly appreciate if you could help us with a Review on the App Store
+    public static let subtext2 = L10n.tr("Localizable", "PostPurchaseView.Subtext2", fallback: "In the meantime, we will highly appreciate if you could help us with a Review on the App Store")
+    /// Thanks for your purchase!
+    public static let thanksForYourPurchase = L10n.tr("Localizable", "PostPurchaseView.ThanksForYourPurchase", fallback: "Thanks for your purchase!")
   }
 }
 // swiftlint:enable explicit_type_interface function_parameter_count identifier_name line_length

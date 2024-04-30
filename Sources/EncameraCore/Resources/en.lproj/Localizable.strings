@@ -433,3 +433,8 @@
 "ImSure" = "I'm Sure";
 "ErrorImportingKeyPhrase" = "Error importing key phrase";
 "YourRecoveryPhrase" = "Your Recovery Phrase";
+"PostPurchaseView.ThanksForYourPurchase" = "Thanks for your purchase!";
+"PostPurchaseView.Subtext1" = "You are one of the early supporters of Encamera and we thank you for the support!";
+"PostPurchaseView.Subtext2" = "In the meantime, we will highly appreciate if you could help us with a Review on the App Store";
+"PostPurchaseView.ReviewButton" = "Help us with a review";
+"PostPurchaseView.MaybeLater" = "Maybe Later";
