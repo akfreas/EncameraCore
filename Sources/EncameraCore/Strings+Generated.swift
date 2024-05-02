@@ -746,6 +746,82 @@ public enum L10n {
     /// Key copied to clipboard. Store this in a password manager or other secure place.
     public static let storeThisInAPasswordManagerOrOtherSecurePlace = L10n.tr("Localizable", "Key copied to clipboard. Store this in a password manager or other secure place.", fallback: "Key copied to clipboard. Store this in a password manager or other secure place.")
   }
+  public enum Notification {
+    /// Unknown notification identifier
+    public static let unknownIdentifier = L10n.tr("Localizable", "Notification.UnknownIdentifier", fallback: "Unknown notification identifier")
+    public enum ImageSaveReminder {
+      /// Hope you like Encamera - This is why we need you to help us with a review. Tap here!
+      public static let body = L10n.tr("Localizable", "Notification.ImageSaveReminder.Body", fallback: "Hope you like Encamera - This is why we need you to help us with a review. Tap here!")
+      /// We would like your support 🙏
+      public static let title = L10n.tr("Localizable", "Notification.ImageSaveReminder.Title", fallback: "We would like your support 🙏")
+    }
+    public enum ImageSecurityReminder {
+      /// You can also save videos to your albums, not only images. Try it now and secure some!
+      public static let body = L10n.tr("Localizable", "Notification.ImageSecurityReminder.Body", fallback: "You can also save videos to your albums, not only images. Try it now and secure some!")
+      /// Did you know? 🤔
+      public static let title = L10n.tr("Localizable", "Notification.ImageSecurityReminder.Title", fallback: "Did you know? 🤔")
+    }
+    public enum ImportImages {
+      /// Prompting user to import more images for security.
+      public static let prompt = L10n.tr("Localizable", "Notification.ImportImages.Prompt", fallback: "Prompting user to import more images for security.")
+    }
+    public enum InactiveUserReminder {
+      /// Don’t forget to secure more images by adding them to your album. Import now!
+      public static let body = L10n.tr("Localizable", "Notification.InactiveUserReminder.Body", fallback: "Don’t forget to secure more images by adding them to your album. Import now!")
+      /// Your images might be at risk 🚨
+      public static let title = L10n.tr("Localizable", "Notification.InactiveUserReminder.Title", fallback: "Your images might be at risk 🚨")
+    }
+    public enum Permission {
+      /// Error requesting local notification permissions: %@
+      public static func error(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "Notification.Permission.Error", String(describing: p1), fallback: "Error requesting local notification permissions: %@")
+      }
+      /// Local notification permissions granted.
+      public static let granted = L10n.tr("Localizable", "Notification.Permission.Granted", fallback: "Local notification permissions granted.")
+      /// Error requesting remote notification permissions: %@
+      public static func remoteError(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "Notification.Permission.RemoteError", String(describing: p1), fallback: "Error requesting remote notification permissions: %@")
+      }
+    }
+    public enum PremiumPage {
+      /// Navigating to the premium plan purchase page.
+      public static let navigation = L10n.tr("Localizable", "Notification.PremiumPage.Navigation", fallback: "Navigating to the premium plan purchase page.")
+    }
+    public enum PremiumReminder {
+      /// Use code 'ENCAMERA20' to get a 20% discount on any plan. Hurry up!
+      public static func body(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "Notification.PremiumReminder.Body", p1, fallback: "Use code 'ENCAMERA20' to get a 20% discount on any plan. Hurry up!")
+      }
+      /// 20% Discount - Limited time 📅
+      public static func title(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "Notification.PremiumReminder.Title", p1, fallback: "20% Discount - Limited time 📅")
+      }
+    }
+    public enum ReviewPage {
+      /// Navigating to the review submission page.
+      public static let navigation = L10n.tr("Localizable", "Notification.ReviewPage.Navigation", fallback: "Navigating to the review submission page.")
+    }
+    public enum Scheduling {
+      /// Error scheduling notification: %@
+      public static func error(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "Notification.Scheduling.Error", String(describing: p1), fallback: "Error scheduling notification: %@")
+      }
+    }
+    public enum VideoSave {
+      /// Showing educational content on how to save videos.
+      public static let educationalContent = L10n.tr("Localizable", "Notification.VideoSave.EducationalContent", fallback: "Showing educational content on how to save videos.")
+    }
+    public enum WidgetReminder {
+      /// Don’t forget to add the widget on the lock screen and take images quickly. See how!
+      public static let body = L10n.tr("Localizable", "Notification.WidgetReminder.Body", fallback: "Don’t forget to add the widget on the lock screen and take images quickly. See how!")
+      /// Take directly encrypted photos 📸
+      public static let title = L10n.tr("Localizable", "Notification.WidgetReminder.Title", fallback: "Take directly encrypted photos 📸")
+    }
+    public enum WidgetSetup {
+      /// Guiding user to add a widget to the lock screen.
+      public static let guidance = L10n.tr("Localizable", "Notification.WidgetSetup.Guidance", fallback: "Guiding user to add a widget to the lock screen.")
+    }
+  }
   public enum PostPurchaseView {
     /// Maybe Later
     public static let maybeLater = L10n.tr("Localizable", "PostPurchaseView.MaybeLater", fallback: "Maybe Later")
