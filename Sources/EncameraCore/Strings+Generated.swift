@@ -788,14 +788,10 @@ public enum L10n {
       public static let navigation = L10n.tr("Localizable", "Notification.PremiumPage.Navigation", fallback: "Navigating to the premium plan purchase page.")
     }
     public enum PremiumReminder {
-      /// Use code 'ENCAMERA20' to get a 20% discount on any plan. Hurry up!
-      public static func body(_ p1: Int) -> String {
-        return L10n.tr("Localizable", "Notification.PremiumReminder.Body", p1, fallback: "Use code 'ENCAMERA20' to get a 20% discount on any plan. Hurry up!")
-      }
-      /// 20% Discount - Limited time 📅
-      public static func title(_ p1: Int) -> String {
-        return L10n.tr("Localizable", "Notification.PremiumReminder.Title", p1, fallback: "20% Discount - Limited time 📅")
-      }
+      /// Use code 'ENCAMERA20' to get a 20%% discount on any plan. Hurry up!
+      public static let body = L10n.tr("Localizable", "Notification.PremiumReminder.Body", fallback: "Use code 'ENCAMERA20' to get a 20%% discount on any plan. Hurry up!")
+      /// 20%% Discount - Limited time 📅
+      public static let title = L10n.tr("Localizable", "Notification.PremiumReminder.Title", fallback: "20%% Discount - Limited time 📅")
     }
     public enum ReviewPage {
       /// Navigating to the review submission page.

@@ -476,6 +476,6 @@
 "Notification.UnknownIdentifier" = "Identificador de notificación desconocido";
 "Notification.ImageSecurityReminder.Body" = "También puedes guardar videos en tus álbumes, no solo imágenes. ¡Inténtalo ahora y asegura algunos!";
 "Notification.PremiumPage.Navigation" = "Navegando a la página de compra del plan premium.";
-"Notification.PremiumReminder.Title" = "20% de descuento - Tiempo limitado 📅";
-"Notification.PremiumReminder.Body" = "Usa el código 'ENCAMERA20' para obtener un 20% de descuento en cualquier plan. ¡Apúrate!";
+"Notification.PremiumReminder.Title" = "20%% de descuento - Tiempo limitado 📅";
+"Notification.PremiumReminder.Body" = "Usa el código 'ENCAMERA20' para obtener un 20%% de descuento en cualquier plan. ¡Apúrate!";
 "Notification.InactiveUserReminder.Title" = "Tus imágenes podrían estar en riesgo 🚨";

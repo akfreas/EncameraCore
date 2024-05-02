@@ -22,9 +22,9 @@ public class NotificationManager {
     public class func requestLocalNotificationPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
             if granted {
-                print("Local notification permissions granted.")
+                print(L10n.Notification.Permission.granted)
             } else if let error = error {
-                print("Error requesting local notification permissions: \(error)")
+                print(L10n.Notification.Permission.error(error.localizedDescription))
             }
         }
     }
@@ -36,29 +36,29 @@ public class NotificationManager {
                     application.registerForRemoteNotifications()
                 }
             } else if let error = error {
-                print("Error requesting remote notification permissions: \(error)")
+                print(L10n.Notification.Permission.remoteError(error.localizedDescription))
             }
         }
     }
 
     public class func scheduleNotificationForPremiumReminder() {
-        scheduleNotification(identifier: "premiumReminder", title: "20% Discount - Limited time 📅", body: "Use code 'ENCAMERA20' to get a 20% discount on any plan. Hurry up!", delay: oneDayInSeconds)
+        scheduleNotification(identifier: "premiumReminder", title: L10n.Notification.PremiumReminder.title, body: L10n.Notification.PremiumReminder.body, delay: oneDayInSeconds)
     }
 
     public class func scheduleNotificationForImageSaveReminder() {
-        scheduleNotification(identifier: "imageSaveReminder", title: "We would like your support 🙏", body: "Hope you like Encamera - This is why we need you to help us with a review. Tap here!", delay: oneDayInSeconds)
+        scheduleNotification(identifier: "imageSaveReminder", title: L10n.Notification.ImageSaveReminder.title, body: L10n.Notification.ImageSaveReminder.body, delay: oneDayInSeconds)
     }
 
     public class func scheduleNotificationForImageSecurityReminder() {
-        scheduleNotification(identifier: "imageSecurityReminder", title: "Did you know? 🤔", body: "You can also save videos to your albums, not only images. Try it now and secure some!", delay: oneDayInSeconds)
+        scheduleNotification(identifier: "imageSecurityReminder", title: L10n.Notification.ImageSecurityReminder.title, body: L10n.Notification.ImageSecurityReminder.body, delay: oneDayInSeconds)
     }
 
     public class func scheduleNotificationForInactiveUserReminder() {
-        scheduleNotification(identifier: "inactiveUserReminder", title: "Your images might be at risk 🚨", body: "Don’t forget to secure more images by adding them to your album. Import now!", delay: threeDaysInSeconds)
+        scheduleNotification(identifier: "inactiveUserReminder", title: L10n.Notification.InactiveUserReminder.title, body: L10n.Notification.InactiveUserReminder.body, delay: threeDaysInSeconds)
     }
 
     public class func scheduleNotificationForWidgetReminder() {
-        scheduleNotification(identifier: "widgetReminder", title: "Take directly encrypted photos 📸", body: "Don’t forget to add the widget on the lock screen and take images quickly. See how!", delay: oneDayInSeconds)
+        scheduleNotification(identifier: "widgetReminder", title: L10n.Notification.WidgetReminder.title, body: L10n.Notification.WidgetReminder.body, delay: oneDayInSeconds)
     }
 
     public class func cancelNotificationForPremiumReminder() {
@@ -94,35 +94,29 @@ public class NotificationManager {
         case "widgetReminder":
             handleWidgetReminder()
         default:
-            print("Unknown notification identifier")
+            print(L10n.Notification.unknownIdentifier)
         }
     }
 
     public class func handlePremiumReminder() {
-        // Navigate to premium plan purchase page
-        print("Navigating to the premium plan purchase page.")
+        print(L10n.Notification.PremiumPage.navigation)
     }
 
     public class func handleImageSaveReminder() {
-        // Navigate to review submission page
-        print("Navigating to the review submission page.")
+        print(L10n.Notification.ReviewPage.navigation)
     }
 
     public class func handleImageSecurityReminder() {
-        // Show educational content about saving videos
-        print("Showing educational content on how to save videos.")
+        print(L10n.Notification.VideoSave.educationalContent)
     }
 
     public class func handleInactiveUserReminder() {
-        // Prompt user to import images to secure them
-        print("Prompting user to import more images for security.")
+        print(L10n.Notification.ImportImages.prompt)
     }
 
     public class func handleWidgetReminder() {
-        // Guide user to add widget to lock screen
-        print("Guiding user to add a widget to the lock screen.")
+        print(L10n.Notification.WidgetSetup.guidance)
     }
-
 
     private class func scheduleNotification(identifier: String, title: String, body: String, delay: TimeInterval) {
         let content = UNMutableNotificationContent()
@@ -134,7 +128,7 @@ public class NotificationManager {
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("Error scheduling notification: \(error)")
+                print(L10n.Notification.Scheduling.error(error.localizedDescription))
             }
         }
     }

@@ -441,8 +441,8 @@
 "Notification.Permission.Granted" = "Local notification permissions granted.";
 "Notification.Permission.Error" = "Error requesting local notification permissions: %@";
 "Notification.Permission.RemoteError" = "Error requesting remote notification permissions: %@";
-"Notification.PremiumReminder.Title" = "20% Discount - Limited time 📅";
-"Notification.PremiumReminder.Body" = "Use code 'ENCAMERA20' to get a 20% discount on any plan. Hurry up!";
+"Notification.PremiumReminder.Title" = "20%% Discount - Limited time 📅";
+"Notification.PremiumReminder.Body" = "Use code 'ENCAMERA20' to get a 20%% discount on any plan. Hurry up!";
 "Notification.ImageSaveReminder.Title" = "We would like your support 🙏";
 "Notification.ImageSaveReminder.Body" = "Hope you like Encamera - This is why we need you to help us with a review. Tap here!";
 "Notification.ImageSecurityReminder.Title" = "Did you know? 🤔";

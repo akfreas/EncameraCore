@@ -477,6 +477,6 @@
 "Notification.UnknownIdentifier" = "Unbekannter Benachrichtigungsidentifikator";
 "Notification.ImageSecurityReminder.Body" = "Sie können auch Videos in Ihren Alben speichern, nicht nur Bilder. Probieren Sie es jetzt aus und sichern Sie sich einige!";
 "Notification.PremiumPage.Navigation" = "Navigieren Sie zur Kaufseite des Premium-Plans.";
-"Notification.PremiumReminder.Title" = "20% Rabatt - Begrenzte Zeit \uD83D\uDCC5";
-"Notification.PremiumReminder.Body" = "Verwenden Sie den Code 'ENCAMERA20', um 20% Rabatt auf jeden Plan zu erhalten. Beeilen Sie sich!";
+"Notification.PremiumReminder.Title" = "20%% Rabatt - Begrenzte Zeit \uD83D\uDCC5";
+"Notification.PremiumReminder.Body" = "Verwenden Sie den Code 'ENCAMERA20', um 20%% Rabatt auf jeden Plan zu erhalten. Beeilen Sie sich!";
 "Notification.InactiveUserReminder.Title" = "Ihre Bilder könnten gefährdet sein \uD83D\uDDE8";
