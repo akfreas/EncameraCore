@@ -99,7 +99,9 @@ public class NotificationManager {
     }
 
     public class func handlePremiumReminder() {
-        print(L10n.Notification.PremiumPage.navigation)
+        if let url = URL(string: "https://apps.apple.com/redeem?ctx=offercodes&id=1639202616&code=ENCAMERA20") {
+            UIApplication.shared.open(url)
+        }
     }
 
     public class func handleImageSaveReminder() {
