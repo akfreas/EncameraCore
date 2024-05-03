@@ -5,17 +5,17 @@ public class NotificationManager {
 
     class var oneDayInSeconds: TimeInterval {
         #if DEBUG
-        return 60
+        return 20
         #else
-        return 86400
+        return 24 * 60 * 60
         #endif
     }
 
     class var threeDaysInSeconds: TimeInterval {
         #if DEBUG
-        return 60
+        return 20
         #else
-        return 259200
+        return 3 * oneDayInSeconds
         #endif
     }
 
