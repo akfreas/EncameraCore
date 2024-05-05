@@ -235,7 +235,9 @@ public class DemoKeyManager: KeyManager {
     public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
         return DemoPrivateKey.dummyKey()
     }
-
+    public func moveAllKeysToiCloud() throws {
+        
+    }
     @discardableResult public func generateKeyFromPasswordComponents(_ components: [String], name: String) throws -> PrivateKey {
         return DemoPrivateKey.dummyKey()
     }

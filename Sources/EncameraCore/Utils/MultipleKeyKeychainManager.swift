@@ -243,6 +243,15 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }
     }
 
+    public func moveAllKeysToiCloud() throws {
+        try checkAuthenticated()
+
+        let keys = try storedKeys()
+        for key in keys {
+            try update(key: key, backupToiCloud: true)
+        }
+    }
+
     public func update(key: PrivateKey, backupToiCloud: Bool) throws {
         try checkAuthenticated()
         var updateDict: [String: Any] = [:]

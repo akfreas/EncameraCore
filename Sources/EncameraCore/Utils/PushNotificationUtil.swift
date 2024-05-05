@@ -20,26 +20,23 @@ public class NotificationManager {
     }
 
     public class func requestLocalNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-            if granted {
-                print(L10n.Notification.Permission.granted)
-            } else if let error = error {
-                print(L10n.Notification.Permission.error(error.localizedDescription))
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            if settings.authorizationStatus == .notDetermined {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+                    Task { @MainActor in
+                        if granted {
+                            EventTracking.trackNotificationPermissionsGranted()
+                        } else if let error = error {
+                            print(L10n.Notification.Permission.error(error.localizedDescription))
+                        } else {
+                            EventTracking.trackNotificationPermissionsDenied()
+                        }
+                    }
+                }
             }
         }
     }
 
-    public class func requestRemoteNotificationPermission(application: UIApplication) {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-            if granted {
-                DispatchQueue.main.async {
-                    application.registerForRemoteNotifications()
-                }
-            } else if let error = error {
-                print(L10n.Notification.Permission.remoteError(error.localizedDescription))
-            }
-        }
-    }
 
     public class func scheduleNotificationForPremiumReminder() {
         scheduleNotification(identifier: "premiumReminder", title: L10n.Notification.PremiumReminder.title, body: L10n.Notification.PremiumReminder.body, delay: oneDayInSeconds)

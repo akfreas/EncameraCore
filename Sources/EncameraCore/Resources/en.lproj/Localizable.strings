@@ -458,3 +458,4 @@
 "Notification.ImportImages.Prompt" = "Prompting user to import more images for security.";
 "Notification.WidgetSetup.Guidance" = "Guiding user to add a widget to the lock screen.";
 "Notification.Scheduling.Error" = "Error scheduling notification: %@";
+"Settings.Version" = "Version";
