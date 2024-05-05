@@ -830,6 +830,10 @@ public enum L10n {
     /// Thanks for your purchase!
     public static let thanksForYourPurchase = L10n.tr("Localizable", "PostPurchaseView.ThanksForYourPurchase", fallback: "Thanks for your purchase!")
   }
+  public enum Settings {
+    /// Version
+    public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
+  }
 }
 // swiftlint:enable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:enable nesting type_body_length type_name vertical_whitespace_opening_braces

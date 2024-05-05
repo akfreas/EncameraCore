@@ -480,3 +480,5 @@
 "Notification.PremiumReminder.Title" = "20%% Rabatt - Begrenzte Zeit \uD83D\uDCC5";
 "Notification.PremiumReminder.Body" = "Verwenden Sie den Code 'ENCAMERA20', um 20%% Rabatt auf jeden Plan zu erhalten. Beeilen Sie sich!";
 "Notification.InactiveUserReminder.Title" = "Ihre Bilder könnten gefährdet sein \uD83D\uDDE8";
+
+"Settings.Version" = "Version";
