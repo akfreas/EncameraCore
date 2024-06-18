@@ -122,6 +122,8 @@ public class NotificationManager {
     private class func scheduleNotification(identifier: NotificationIdentifier, title: String, body: String, delay: TimeInterval) {
         cancelScheduledNotification(identifier: identifier)
         UserDefaultUtils.increaseInteger(forKey: .notificationScheduledCount(identifier: identifier))
+        debugPrint("Scheduling notification for \(identifier.rawValue) in \(delay) seconds")
+        debugPrint("Count for identifier is \(UserDefaultUtils.integer(forKey: .notificationScheduledCount(identifier: identifier)))")
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -137,6 +139,7 @@ public class NotificationManager {
     }
 
     private class func cancelScheduledNotification(identifier: NotificationIdentifier) {
+        debugPrint("Cancelling notification for \(identifier.rawValue)")
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier.rawValue])
     }
 }
