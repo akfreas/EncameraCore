@@ -9,23 +9,13 @@ public enum NotificationIdentifier: String {
     case widgetReminder
 }
 
-
 public class NotificationManager {
 
-
-    class var oneDayInSeconds: TimeInterval {
+    class func seconds(forDays days: Int) -> TimeInterval {
         #if DEBUG
         return 20
         #else
-        return 24 * 60 * 60
-        #endif
-    }
-
-    class var threeDaysInSeconds: TimeInterval {
-        #if DEBUG
-        return 20
-        #else
-        return 3 * oneDayInSeconds
+        return TimeInterval(days) * 24 * 60 * 60
         #endif
     }
 
@@ -46,24 +36,23 @@ public class NotificationManager {
     }
 
     public class func scheduleNotificationForPremiumReminder() {
-        scheduleNotification(identifier: .premiumReminder, title: L10n.Notification.PremiumReminder.title, body: L10n.Notification.PremiumReminder.body, delay: oneDayInSeconds)
+        scheduleNotification(identifier: .premiumReminder, title: L10n.Notification.PremiumReminder.title, body: L10n.Notification.PremiumReminder.body, delay: seconds(forDays: 1))
     }
 
     public class func scheduleNotificationForLeaveReviewReminder() {
-        scheduleNotification(identifier: .leaveAReviewReminder, title: L10n.Notification.ImageSaveReminder.title, body: L10n.Notification.ImageSaveReminder.body, delay: oneDayInSeconds)
+        scheduleNotification(identifier: .leaveAReviewReminder, title: L10n.Notification.ImageSaveReminder.title, body: L10n.Notification.ImageSaveReminder.body, delay: seconds(forDays: 4))
     }
 
     public class func scheduleNotificationForImageSecurityReminder() {
-
-        scheduleNotification(identifier: .imageSecurityReminder, title: L10n.Notification.ImageSecurityReminder.title, body: L10n.Notification.ImageSecurityReminder.body, delay: oneDayInSeconds)
+        scheduleNotification(identifier: .imageSecurityReminder, title: L10n.Notification.ImageSecurityReminder.title, body: L10n.Notification.ImageSecurityReminder.body, delay: seconds(forDays: 1))
     }
 
     public class func scheduleNotificationForInactiveUserReminder() {
-        scheduleNotification(identifier: .inactiveUserReminder, title: L10n.Notification.InactiveUserReminder.title, body: L10n.Notification.InactiveUserReminder.body, delay: threeDaysInSeconds)
+        scheduleNotification(identifier: .inactiveUserReminder, title: L10n.Notification.InactiveUserReminder.title, body: L10n.Notification.InactiveUserReminder.body, delay: seconds(forDays: 3))
     }
 
     public class func scheduleNotificationForWidgetReminder() {
-        scheduleNotification(identifier: .widgetReminder, title: L10n.Notification.WidgetReminder.title, body: L10n.Notification.WidgetReminder.body, delay: oneDayInSeconds)
+        scheduleNotification(identifier: .widgetReminder, title: L10n.Notification.WidgetReminder.title, body: L10n.Notification.WidgetReminder.body, delay: seconds(forDays: 2))
     }
 
     public class func cancelNotificationForPremiumReminder() {
