@@ -29,6 +29,8 @@ public enum UserDefaultKey {
     case lastVersionKey
     case photoAddedCount
     case videoAddedCount
+    case widgetOpenCount
+    case notificationScheduledCount(identifier: NotificationIdentifier)
 
 
     var rawValue: String {
@@ -37,6 +39,8 @@ public enum UserDefaultKey {
             return "\(UserDefaultKey.directoryPrefix)\(album.name)"
         case .featureToggle(feature: let feature):
             return "featureToggle_\(feature)"
+        case .notificationScheduledCount(identifier: let identifier):
+            return "notificationScheduledCount_\(identifier)"
         default:
             return String(describing: self)
         

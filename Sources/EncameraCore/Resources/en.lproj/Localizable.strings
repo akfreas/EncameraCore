@@ -395,7 +395,7 @@
 "AlbumDetailView.AddFirstImage" = "Add your first image";
 "AlbumDetailView.AddFirstImageSubtitle" = "Import an image from your album or open the camera and take a new picture for this album";
 "AlbumDetailView.ImportButton" = "Import Pictures";
-"AlbumDetailView.OpenCamera" = "Open Camera";
+"AlbumDetailView.OpenCamera" = "Take a New Picture";
 "LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";
 "SetPinCode" = "Set Pin Code";
 "SetPinCodeSubtitle" = "This pin will be used to securely login in your app. Make sure you remember it!";

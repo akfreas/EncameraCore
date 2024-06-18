@@ -1,7 +1,17 @@
 import UIKit
 import UserNotifications
 
+public enum NotificationIdentifier: String {
+    case premiumReminder
+    case leaveAReviewReminder
+    case imageSecurityReminder
+    case inactiveUserReminder
+    case widgetReminder
+}
+
+
 public class NotificationManager {
+
 
     class var oneDayInSeconds: TimeInterval {
         #if DEBUG
@@ -35,94 +45,101 @@ public class NotificationManager {
         return settings.authorizationStatus == .authorized
     }
 
-
     public class func scheduleNotificationForPremiumReminder() {
-        scheduleNotification(identifier: "premiumReminder", title: L10n.Notification.PremiumReminder.title, body: L10n.Notification.PremiumReminder.body, delay: oneDayInSeconds)
+        scheduleNotification(identifier: .premiumReminder, title: L10n.Notification.PremiumReminder.title, body: L10n.Notification.PremiumReminder.body, delay: oneDayInSeconds)
     }
 
-    public class func scheduleNotificationForImageSaveReminder() {
-        scheduleNotification(identifier: "imageSaveReminder", title: L10n.Notification.ImageSaveReminder.title, body: L10n.Notification.ImageSaveReminder.body, delay: oneDayInSeconds)
+    public class func scheduleNotificationForLeaveReviewReminder() {
+        scheduleNotification(identifier: .leaveAReviewReminder, title: L10n.Notification.ImageSaveReminder.title, body: L10n.Notification.ImageSaveReminder.body, delay: oneDayInSeconds)
     }
 
     public class func scheduleNotificationForImageSecurityReminder() {
-        scheduleNotification(identifier: "imageSecurityReminder", title: L10n.Notification.ImageSecurityReminder.title, body: L10n.Notification.ImageSecurityReminder.body, delay: oneDayInSeconds)
+
+        scheduleNotification(identifier: .imageSecurityReminder, title: L10n.Notification.ImageSecurityReminder.title, body: L10n.Notification.ImageSecurityReminder.body, delay: oneDayInSeconds)
     }
 
     public class func scheduleNotificationForInactiveUserReminder() {
-        scheduleNotification(identifier: "inactiveUserReminder", title: L10n.Notification.InactiveUserReminder.title, body: L10n.Notification.InactiveUserReminder.body, delay: threeDaysInSeconds)
+        scheduleNotification(identifier: .inactiveUserReminder, title: L10n.Notification.InactiveUserReminder.title, body: L10n.Notification.InactiveUserReminder.body, delay: threeDaysInSeconds)
     }
 
     public class func scheduleNotificationForWidgetReminder() {
-        scheduleNotification(identifier: "widgetReminder", title: L10n.Notification.WidgetReminder.title, body: L10n.Notification.WidgetReminder.body, delay: oneDayInSeconds)
+        scheduleNotification(identifier: .widgetReminder, title: L10n.Notification.WidgetReminder.title, body: L10n.Notification.WidgetReminder.body, delay: oneDayInSeconds)
     }
 
     public class func cancelNotificationForPremiumReminder() {
-        cancelScheduledNotification(identifier: "premiumReminder")
+        cancelScheduledNotification(identifier: .premiumReminder)
     }
 
-    public class func cancelNotificationForImageSaveReminder() {
-        cancelScheduledNotification(identifier: "imageSaveReminder")
+    public class func cancelNotificationForLeaveReviewReminder() {
+        cancelScheduledNotification(identifier: .leaveAReviewReminder)
     }
 
     public class func cancelNotificationForImageSecurityReminder() {
-        cancelScheduledNotification(identifier: "imageSecurityReminder")
+        cancelScheduledNotification(identifier: .imageSecurityReminder)
     }
 
     public class func cancelNotificationForInactiveUserReminder() {
-        cancelScheduledNotification(identifier: "inactiveUserReminder")
+        cancelScheduledNotification(identifier: .inactiveUserReminder)
     }
 
     public class func cancelNotificationForWidgetReminder() {
-        cancelScheduledNotification(identifier: "widgetReminder")
+        cancelScheduledNotification(identifier: .widgetReminder)
     }
 
     public class func handleNotificationOpen(with identifier: String) {
-        switch identifier {
-        case "premiumReminder":
-            handlePremiumReminder()
-        case "imageSaveReminder":
-            handleImageSaveReminder()
-        case "imageSecurityReminder":
-            handleImageSecurityReminder()
-        case "inactiveUserReminder":
-            handleInactiveUserReminder()
-        case "widgetReminder":
-            handleWidgetReminder()
-        default:
+        guard let notificationIdentifier = NotificationIdentifier(rawValue: identifier) else {
             print(L10n.Notification.unknownIdentifier)
+            return
+        }
+
+        switch notificationIdentifier {
+        case .premiumReminder:
+            handlePremiumReminder()
+        case .leaveAReviewReminder:
+            handleLeaveAReviewReminder()
+        case .imageSecurityReminder:
+            handleImageSecurityReminder()
+        case .inactiveUserReminder:
+            handleInactiveUserReminder()
+        case .widgetReminder:
+            handleWidgetReminder()
         }
     }
 
-    public class func handlePremiumReminder() {
+    private class func handlePremiumReminder() {
         if let url = URL(string: "https://apps.apple.com/redeem?ctx=offercodes&id=1639202616&code=ENCAMERA20") {
             UIApplication.shared.open(url)
         }
     }
 
-    public class func handleImageSaveReminder() {
-        print(L10n.Notification.ReviewPage.navigation)
+    private class func handleLeaveAReviewReminder() {
+        Task { @MainActor in
+            AskForReviewUtil.openAppStoreReview()
+        }
     }
 
-    public class func handleImageSecurityReminder() {
+    private class func handleImageSecurityReminder() {
         print(L10n.Notification.VideoSave.educationalContent)
     }
 
-    public class func handleInactiveUserReminder() {
+    private class func handleInactiveUserReminder() {
         print(L10n.Notification.ImportImages.prompt)
     }
 
-    public class func handleWidgetReminder() {
+    private class func handleWidgetReminder() {
         print(L10n.Notification.WidgetSetup.guidance)
     }
 
-    private class func scheduleNotification(identifier: String, title: String, body: String, delay: TimeInterval) {
+    private class func scheduleNotification(identifier: NotificationIdentifier, title: String, body: String, delay: TimeInterval) {
+        cancelScheduledNotification(identifier: identifier)
+        UserDefaultUtils.increaseInteger(forKey: .notificationScheduledCount(identifier: identifier))
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = UNNotificationSound.default
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false)
-        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        let request = UNNotificationRequest(identifier: identifier.rawValue, content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
                 print(L10n.Notification.Scheduling.error(error.localizedDescription))
@@ -130,7 +147,7 @@ public class NotificationManager {
         }
     }
 
-    private class func cancelScheduledNotification(identifier: String) {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+    private class func cancelScheduledNotification(identifier: NotificationIdentifier) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier.rawValue])
     }
 }

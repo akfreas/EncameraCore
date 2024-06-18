@@ -735,8 +735,8 @@ public enum L10n {
     public static let addFirstImageSubtitle = L10n.tr("Localizable", "AlbumDetailView.AddFirstImageSubtitle", fallback: "Import an image from your album or open the camera and take a new picture for this album")
     /// Import Pictures
     public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Pictures")
-    /// Open Camera
-    public static let openCamera = L10n.tr("Localizable", "AlbumDetailView.OpenCamera", fallback: "Open Camera")
+    /// Take a New Picture
+    public static let openCamera = L10n.tr("Localizable", "AlbumDetailView.OpenCamera", fallback: "Take a New Picture")
   }
   public enum EnterTheNameOfTheKeyToDeleteItForever {
     /// Enter the name of the key to delete it forever. All media will remain saved.
@@ -834,12 +834,12 @@ public enum L10n {
       public static let title = L10n.tr("Localizable", "NotificationBanner.LeaveAReview.Title", fallback: "We need your help!")
     }
     public enum Reddit {
-      /// Join the Encamera subreddit to discuss the app and give feedback
-      public static let body = L10n.tr("Localizable", "NotificationBanner.Reddit.Body", fallback: "Join the Encamera subreddit to discuss the app and give feedback")
+      /// Join the Encamera subreddit to follow the latest and give feedback
+      public static let body = L10n.tr("Localizable", "NotificationBanner.Reddit.Body", fallback: "Join the Encamera subreddit to follow the latest and give feedback")
       /// Join Subreddit
       public static let button = L10n.tr("Localizable", "NotificationBanner.Reddit.Button", fallback: "Join Subreddit")
-      /// Join the Encamera Community
-      public static let title = L10n.tr("Localizable", "NotificationBanner.Reddit.Title", fallback: "Join the Encamera Community")
+      /// Are you on Reddit?
+      public static let title = L10n.tr("Localizable", "NotificationBanner.Reddit.Title", fallback: "Are you on Reddit?")
     }
   }
   public enum PostPurchaseView {
