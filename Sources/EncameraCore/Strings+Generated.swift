@@ -826,6 +826,22 @@ public enum L10n {
       public static let guidance = L10n.tr("Localizable", "Notification.WidgetSetup.Guidance", fallback: "Guiding user to add a widget to the lock screen.")
     }
   }
+  public enum NotificationBanner {
+    public enum LeaveAReview {
+      /// If you like Encamera, help us out with a review!
+      public static let body = L10n.tr("Localizable", "NotificationBanner.LeaveAReview.Body", fallback: "If you like Encamera, help us out with a review!")
+      /// We need your help!
+      public static let title = L10n.tr("Localizable", "NotificationBanner.LeaveAReview.Title", fallback: "We need your help!")
+    }
+    public enum Reddit {
+      /// Join the Encamera subreddit to discuss the app and give feedback
+      public static let body = L10n.tr("Localizable", "NotificationBanner.Reddit.Body", fallback: "Join the Encamera subreddit to discuss the app and give feedback")
+      /// Join Subreddit
+      public static let button = L10n.tr("Localizable", "NotificationBanner.Reddit.Button", fallback: "Join Subreddit")
+      /// Join the Encamera Community
+      public static let title = L10n.tr("Localizable", "NotificationBanner.Reddit.Title", fallback: "Join the Encamera Community")
+    }
+  }
   public enum PostPurchaseView {
     /// Maybe Later
     public static let maybeLater = L10n.tr("Localizable", "PostPurchaseView.MaybeLater", fallback: "Maybe Later")

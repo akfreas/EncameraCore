@@ -10,7 +10,11 @@ import StoreKit
 import UIKit
 
 public class AskForReviewUtil {
-    
+
+    public static var reviewURL: URL {
+        return URL(string: AppConstants.appStoreURL)!.appending(queryItems: [URLQueryItem(name: "action", value: "write-review")])
+    }
+
     public static func askForReviewIfNeeded() {
         // If the app doesn't store the count, this returns 0.
         var count = UserDefaultUtils.integer(forKey: .viewGalleryCount)
@@ -47,12 +51,10 @@ public class AskForReviewUtil {
         
     }
 
+
+
     @MainActor
     public static func openAppStoreReview() {
-        guard let writeReviewURL = URL(string: AppConstants.appStoreURL)?.appending(queryItems: [URLQueryItem(name: "action", value: "write-review")]) else {
-            return
-        }
-        
-        UIApplication.shared.open(writeReviewURL, options: [:], completionHandler: nil)
+        UIApplication.shared.open(reviewURL, options: [:], completionHandler: nil)
     }
 }

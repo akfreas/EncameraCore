@@ -379,6 +379,11 @@
 "InstallWidgetTitle" = "Install Lock Screen Widget";
 "InstallWidgetBody" = "Add Encamera to your lock screen to quickly take pictures";
 "InstallWidgetButtonText" = "Add Widget";
+"NotificationBanner.LeaveAReview.Title" = "We need your help!";
+"NotificationBanner.LeaveAReview.Body" = "If you like Encamera, help us out with a review!";
+"NotificationBanner.Reddit.Title" = "Are you on Reddit?";
+"NotificationBanner.Reddit.Body" = "Join the Encamera subreddit to follow the latest and give feedback";
+"NotificationBanner.Reddit.Button" = "Join Subreddit";
 
 "Enable Face ID" = "Enable Face ID";
 "Use PIN instead" = "Use PIN instead";
