@@ -65,7 +65,6 @@
 "Restore Purchases" = "Käufe wiederherstellen";
 "Settings" = "Einstellungen";
 "Join Telegram Group" = "Telegram-Gruppe beitreten";
-"Contact" = "Kontakt";
 "Privacy Policy" = "Datenschutzrichtlinie";
 "Terms of Use" = "Nutzungsbedingungen";
 "Erase" = "Löschen";
@@ -482,3 +481,5 @@
 "Notification.InactiveUserReminder.Title" = "Ihre Bilder könnten gefährdet sein \uD83D\uDDE8";
 
 "Settings.Version" = "Version";
+
+"Settings.Contact" = "Kontaktieren Sie den Support";

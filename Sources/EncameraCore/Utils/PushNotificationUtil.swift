@@ -19,22 +19,20 @@ public class NotificationManager {
         #endif
     }
 
-    public class func requestLocalNotificationPermission() {
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            if settings.authorizationStatus == .notDetermined {
-                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-                    Task { @MainActor in
-                        if granted {
-                            EventTracking.trackNotificationPermissionsGranted()
-                        } else if let error = error {
-                            print(L10n.Notification.Permission.error(error.localizedDescription))
-                        } else {
-                            EventTracking.trackNotificationPermissionsDenied()
-                        }
-                    }
+    public class func requestLocalNotificationPermission() async throws -> Bool {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        if settings.authorizationStatus == .notDetermined {
+            let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+            await MainActor.run {
+                if granted {
+                    EventTracking.trackNotificationPermissionsGranted()
+                } else {
+                    EventTracking.trackNotificationPermissionsDenied()
                 }
             }
+            return granted
         }
+        return settings.authorizationStatus == .authorized
     }
 
 

@@ -65,7 +65,6 @@
 "Restore Purchases" = "Restaurar Compras";
 "Settings" = "Ajustes";
 "Join Telegram Group" = "Unirse al grupo de Telegram";
-"Contact" = "Contacto";
 "Privacy Policy" = "Política de Privacidad";
 "Terms of Use" = "Términos de Uso";
 "Erase" = "Borrar";
@@ -481,3 +480,5 @@
 "Notification.InactiveUserReminder.Title" = "Tus imágenes podrían estar en riesgo 🚨";
 
 "Settings.Version" = "Versión";
+
+"Settings.Contact" = "Contactar Soporte";

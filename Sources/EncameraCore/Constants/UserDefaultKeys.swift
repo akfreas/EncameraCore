@@ -27,6 +27,8 @@ public enum UserDefaultKey {
     case lockoutEnd
     case launchCountKey
     case lastVersionKey
+    case photoAddedCount
+    case videoAddedCount
 
 
     var rawValue: String {

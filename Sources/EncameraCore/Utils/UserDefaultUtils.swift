@@ -33,7 +33,13 @@ public struct UserDefaultUtils {
         set(currentValue, forKey: key)
         
     }
-    
+
+    public static func increaseInteger(forKey key: UserDefaultKey, by number: Int) {
+        var currentValue = value(forKey: key) as? Int ?? 0
+        currentValue += number
+        set(currentValue, forKey: key)
+    }
+
     public static func publisher(for observedKey: UserDefaultKey) -> AnyPublisher<Any?, Never> {
         return defaultsPublisher.filter { key, value in
             return observedKey == key

@@ -131,8 +131,6 @@ public enum L10n {
   public static let confirmStorage = L10n.tr("Localizable", "ConfirmStorage", fallback: "Confirm Storage")
   /// ./Encamera/Tutorial/ChooseStorageModal.swift
   public static let congratulations = L10n.tr("Localizable", "Congratulations!", fallback: "Congratulations!")
-  /// Contact
-  public static let contact = L10n.tr("Localizable", "Contact", fallback: "Contact")
   /// Picture taken overlay
   public static let coolPicture = L10n.tr("Localizable", "CoolPicture", fallback: "That's a cool picture!")
   /// Copied to Clipboard
@@ -730,6 +728,16 @@ public enum L10n {
   public static let yourRecoveryPhrase = L10n.tr("Localizable", "YourRecoveryPhrase", fallback: "Your Recovery Phrase")
   /// Afterwards, you will be sent a promo code via DM that you can redeem in the app.
   public static let youWillBeSentAPromoCode = L10n.tr("Localizable", "YouWillBeSentAPromoCode", fallback: "Afterwards, you will be sent a promo code via DM that you can redeem in the app.")
+  public enum AlbumDetailView {
+    /// Add your first image
+    public static let addFirstImage = L10n.tr("Localizable", "AlbumDetailView.AddFirstImage", fallback: "Add your first image")
+    /// Import an image from your album or open the camera and take a new picture for this album
+    public static let addFirstImageSubtitle = L10n.tr("Localizable", "AlbumDetailView.AddFirstImageSubtitle", fallback: "Import an image from your album or open the camera and take a new picture for this album")
+    /// Import Pictures
+    public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Pictures")
+    /// Open Camera
+    public static let openCamera = L10n.tr("Localizable", "AlbumDetailView.OpenCamera", fallback: "Open Camera")
+  }
   public enum EnterTheNameOfTheKeyToDeleteItForever {
     /// Enter the name of the key to delete it forever. All media will remain saved.
     public static let allMediaWillRemainSaved = L10n.tr("Localizable", "Enter the name of the key to delete it forever. All media will remain saved.", fallback: "Enter the name of the key to delete it forever. All media will remain saved.")
@@ -831,6 +839,8 @@ public enum L10n {
     public static let thanksForYourPurchase = L10n.tr("Localizable", "PostPurchaseView.ThanksForYourPurchase", fallback: "Thanks for your purchase!")
   }
   public enum Settings {
+    /// Contact Support
+    public static let contact = L10n.tr("Localizable", "Settings.Contact", fallback: "Contact Support")
     /// Version
     public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
   }

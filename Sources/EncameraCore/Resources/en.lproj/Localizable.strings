@@ -67,7 +67,6 @@
 "Restore Purchases" = "Restore Purchases";
 "Settings" = "Settings";
 "Join Telegram Group" = "Join Telegram Group";
-"Contact" = "Contact";
 "Privacy Policy" = "Privacy Policy";
 "Terms of Use" = "Terms of Use";
 "Erase" = "Erase";
@@ -388,7 +387,11 @@
 "FinishedReadyToUseEncamera" = "You are ready to use\nEncamera!";
 "FinishedSubtitle" = "Let's create your first album";
 "CreateFirstAlbum" = "Create First Album";
-"LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";  
+"AlbumDetailView.AddFirstImage" = "Add your first image";
+"AlbumDetailView.AddFirstImageSubtitle" = "Import an image from your album or open the camera and take a new picture for this album";
+"AlbumDetailView.ImportButton" = "Import Pictures";
+"AlbumDetailView.OpenCamera" = "Open Camera";
+"LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";
 "SetPinCode" = "Set Pin Code";
 "SetPinCodeSubtitle" = "This pin will be used to securely login in your app. Make sure you remember it!";
 "RepeatPinCode" = "Repeat Pin Code";
@@ -459,3 +462,4 @@
 "Notification.WidgetSetup.Guidance" = "Guiding user to add a widget to the lock screen.";
 "Notification.Scheduling.Error" = "Error scheduling notification: %@";
 "Settings.Version" = "Version";
+"Settings.Contact" = "Contact Support";
