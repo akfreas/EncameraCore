@@ -11,7 +11,7 @@ public enum AppConstants {
     
     public static var authenticationTimeout: RunLoop.SchedulerTimeType.Stride = 20
     public static var deeplinkSchema = "encamera"
-    public static var thumbnailWidth: CGFloat = 200
+    public static var thumbnailWidth: CGFloat = 100
     public static var blockingBlurRadius: CGFloat = 20.0
     public static var defaultCornerRadius: CGFloat = 10.0
     public static var numberOfPhotosBeforeInitialTutorial: Double = 1

@@ -8,29 +8,33 @@ enum ImageResizingError: Error {
 
 public struct ImageResizer {
     var targetWidth: CGFloat
-    
-    public func resize(at url: URL) -> UIImage? {
+
+    public func resize(at url: URL, quality: CGFloat) -> UIImage? {
         guard let image = UIImage(contentsOfFile: url.path) else {
             return nil
         }
-        
-        return self.resize(image: image)
+
+        return self.resize(image: image, quality: quality)
     }
-    
-    public func resize(image: UIImage) -> UIImage {
+
+    public func resize(image: UIImage, quality: CGFloat) -> UIImage? {
         let originalSize = image.size
-        let targetSize = CGSize(width: targetWidth, height: targetWidth*originalSize.height/originalSize.width)
+        let targetSize = CGSize(width: targetWidth, height: targetWidth * originalSize.height / originalSize.width)
         let renderer = UIGraphicsImageRenderer(size: targetSize)
-        return renderer.image { (context) in
+        let resizedImage = renderer.image { (context) in
             image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
+        guard let jpegData = resizedImage.jpegData(compressionQuality: quality) else {
+            return nil
+        }
+        return UIImage(data: jpegData)
     }
-    
-    public func resize(data: Data) -> UIImage? {
+
+    public func resize(data: Data, quality: CGFloat) -> UIImage? {
         guard let image = UIImage(data: data) else {
             return nil
         }
-        return resize(image: image )
+        return resize(image: image, quality: quality)
     }
 }
 

@@ -7,7 +7,6 @@
 
 import Foundation
 import PiwikPROSDK
-import EncameraCore
 
 
 //let matomoTracker = MatomoTracker(siteId: "23", baseURL: URL(string: "https://demo2.matomo.org/piwik.php")!)

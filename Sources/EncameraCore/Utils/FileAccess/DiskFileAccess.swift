@@ -87,11 +87,14 @@ extension DiskFileAccess: FileReader {
         let preview = T(source: thumbnailPath, mediaType: .preview, id: media.id)
 
         do {
+            debugPrint("loadMediaPreview: Trying to load thumbnail", media.id)
             let existingPreview = try await loadMediaInMemory(media: preview) { _ in }
+            debugPrint("loadMediaPreview: Found existing thumbnail", media.id)
             return try PreviewModel(source: existingPreview)
         } catch {
             switch media.mediaType {
             case .photo:
+                debugPrint("loadMediaPreview: No thumbnail found for photo")
                 return try await createPreview(for: media)
             case .video:
                 // We are signaling here that there is no thumbnail for the
@@ -131,7 +134,9 @@ extension DiskFileAccess: FileReader {
         if var encrypted = media as? EncryptedMedia {
             if encrypted.needsDownload, 
                 let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
+                debugPrint("Downloading file from iCloud", encrypted.id)
                 encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { prog in
+                    debugPrint("Downloading file from iCloud", encrypted.id, prog)
                     progress(.downloading(progress: prog))
                 }
             }
@@ -336,6 +341,10 @@ extension DiskFileAccess: FileWriter {
                 print("Could not delete all files for \(type): ", error)
             }
         }
+    }
+    public static func deleteThumbnailDirectory() throws {
+        try LocalStorageModel.deletePreviewDirectory()
+        try iCloudStorageModel.deletePreviewDirectory()
     }
 
     public func moveAllMedia(for keyName: KeyName, toRenamedKey newKeyName: KeyName) async throws {

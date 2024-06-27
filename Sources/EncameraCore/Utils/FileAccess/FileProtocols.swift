@@ -48,6 +48,7 @@ public protocol FileWriter: FileEnumerator {
     func deleteMediaForKey() async throws
     func moveAllMedia(for keyName: KeyName, toRenamedKey newKeyName: KeyName) async throws
     func deleteAllMedia() async throws
+    static func deleteThumbnailDirectory() throws
 }
 
 public protocol FileAccess: FileEnumerator, FileReader, FileWriter {

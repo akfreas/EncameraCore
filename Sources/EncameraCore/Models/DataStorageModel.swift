@@ -11,7 +11,7 @@ import Combine
 public protocol DataStorageModel {
     var baseURL: URL { get }
     var album: Album { get }
-    var thumbnailDirectory: URL { get }
+    static var thumbnailDirectory: URL { get }
     var storageType: StorageType { get }
     
     init(album: Album)
@@ -94,7 +94,7 @@ extension DataStorageModel {
             onlyDirectories: true)
     }
 
-    public var thumbnailDirectory: URL {
+    public static var thumbnailDirectory: URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         let documentsDirectory = paths[0]
         let thumbnailDirectory = documentsDirectory.appendingPathComponent(AppConstants.previewDirectory, isDirectory: true)
@@ -102,8 +102,8 @@ extension DataStorageModel {
     }
     
     public func initializeDirectories() throws {
-        if FileManager.default.fileExists(atPath: thumbnailDirectory.path) == false {
-            try FileManager.default.createDirectory(atPath: thumbnailDirectory.path, withIntermediateDirectories: true)
+        if FileManager.default.fileExists(atPath: Self.thumbnailDirectory.path) == false {
+            try FileManager.default.createDirectory(atPath: Self.thumbnailDirectory.path, withIntermediateDirectories: true)
         }
         
         if FileManager.default.fileExists(atPath: URL.tempMediaDirectory.path) == false {
@@ -122,7 +122,7 @@ extension DataStorageModel {
     
     
     func previewURLForMedia<T: MediaDescribing>(_ media: T) -> URL {
-        let thumbnailPath = thumbnailDirectory.appendingPathComponent("\(media.id).\(MediaType.preview.fileExtension)")
+        let thumbnailPath = Self.thumbnailDirectory.appendingPathComponent("\(media.id).\(MediaType.preview.fileExtension)")
         return thumbnailPath
     }
     
@@ -132,6 +132,13 @@ extension DataStorageModel {
 
     public func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.fileExtension]) -> Int {
         return enumeratorForStorageDirectory(resourceKeys: Set(), fileExtensionFilter: matchingFileExtension).count
+    }
+
+    public static func deletePreviewDirectory() throws {
+        if FileManager.default.fileExists(atPath: thumbnailDirectory.path) == false {
+            return
+        }
+        try FileManager.default.removeItem(at: thumbnailDirectory)
     }
 
     static func deleteAllFiles() throws {

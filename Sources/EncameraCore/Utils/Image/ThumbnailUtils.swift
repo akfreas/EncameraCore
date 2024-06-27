@@ -49,10 +49,12 @@ public struct ThumbnailUtils {
             fatalError()
         }
         let resizer = ImageResizer(targetWidth: AppConstants.thumbnailWidth)
-        guard let thumbnailData = resizer.resize(data: thumbnailSourceData)?.pngData() else {
+        guard let thumbnailData = resizer.resize(data: thumbnailSourceData, quality: 1.0)?.pngData() else {
             fatalError()
         }
-        
+
+        debugPrint("Thumbnail size: \(MemorySizer.size(of: thumbnailData)) original size: \(MemorySizer.size(of: thumbnailSourceData))")
+
         return thumbnailData
     }
     

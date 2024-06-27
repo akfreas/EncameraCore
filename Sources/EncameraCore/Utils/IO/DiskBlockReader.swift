@@ -8,8 +8,8 @@
 import Foundation
 // TODO: rename to DiskBlockIO
 class DiskBlockReader: FileLikeBlockReader {
-    
-    
+
+
     var source: URL
     private var fileHandle: FileHandle?
     private var mode: BlockIOMode

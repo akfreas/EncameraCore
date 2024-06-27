@@ -149,6 +149,10 @@ public class DemoFileEnumerator: FileAccess {
         
     }
     
+    public static func deleteThumbnailDirectory() throws {
+
+    }
+
     public func loadLeadingThumbnail() async throws -> UIImage? {
 
         guard let last = mediaList.popLast() else {

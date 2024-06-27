@@ -209,5 +209,8 @@ extension AppGroupFileReader: FileWriter {
         try? FileManager.default.removeItem(at: containerUrl)
     }
     
-    
+    public static func deleteThumbnailDirectory() throws {
+        
+    }
+
 }
