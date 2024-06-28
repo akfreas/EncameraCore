@@ -483,3 +483,12 @@
 "Settings.Version" = "Version";
 
 "Settings.Contact" = "Kontaktieren Sie den Support";
+"NotificationBanner.LeaveAReview.Body" = "Wenn Ihnen Encamera gefällt, helfen Sie uns mit einer Bewertung!";
+"NotificationBanner.Reddit.Button" = "Subreddit beitreten";
+"AlbumDetailView.ImportButton" = "Bilder importieren";
+"AlbumDetailView.AddFirstImage" = "Fügen Sie Ihr erstes Bild hinzu";
+"AlbumDetailView.AddFirstImageSubtitle" = "Importieren Sie ein Bild aus Ihrem Album oder öffnen Sie die Kamera und machen Sie ein neues Bild für dieses Album";
+"NotificationBanner.Reddit.Body" = "Treten Sie dem Encamera-Subreddit bei, um das Neueste zu verfolgen und Feedback zu geben";
+"AlbumDetailView.OpenCamera" = "Machen Sie ein neues Bild";
+"NotificationBanner.LeaveAReview.Title" = "Wir brauchen Ihre Hilfe!";
+"NotificationBanner.Reddit.Title" = "Bist du auf Reddit?";
