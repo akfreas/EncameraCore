@@ -18,7 +18,9 @@ public class NotificationLogic {
                     NotificationManager.scheduleNotificationForInactiveUserReminder()
                 }
                 if UserDefaultUtils.integer(forKey: .photoAddedCount) + UserDefaultUtils.integer(forKey: .videoAddedCount) > 2
-                 && UserDefaultUtils.integer(forKey: .notificationScheduledCount(identifier: .widgetReminder)) < 2 {
+                 && UserDefaultUtils.integer(forKey: .notificationScheduledCount(identifier: .widgetReminder)) < 2
+                    && UserDefaultUtils.integer(forKey: .widgetOpenCount) == 0
+                {
                     NotificationManager.scheduleNotificationForWidgetReminder()
                 }
             }

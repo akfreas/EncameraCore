@@ -116,7 +116,9 @@ public class NotificationManager {
     }
 
     private class func handleWidgetReminder() {
-        print(L10n.Notification.WidgetSetup.guidance)
+        Task { @MainActor in
+            UIApplication.shared.open(AppConstants.widgetVimeoLink, options: [:], completionHandler: nil)
+        }
     }
 
     private class func scheduleNotification(identifier: NotificationIdentifier, title: String, body: String, delay: TimeInterval) {

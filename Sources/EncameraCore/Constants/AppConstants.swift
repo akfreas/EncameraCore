@@ -26,4 +26,5 @@ public enum AppConstants {
     public static let pinCodeLength = 4
     public static let lockoutTime: TimeInterval = 300
     public static let maxCharacterAlbumName = 20
+    public static let widgetVimeoLink = URL(string: "https://vimeo.com/896507875")!
 }
