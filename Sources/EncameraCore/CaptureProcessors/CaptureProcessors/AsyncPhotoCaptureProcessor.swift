@@ -13,8 +13,8 @@ import CoreImage
 import Combine
 
 public struct PhotoCaptureProcessorOutput {
-    public var photo: CleartextMedia<Data>?
-    public var livePhoto: CleartextMedia<URL>?
+    public var photo: CleartextMedia?
+    public var livePhoto: CleartextMedia?
 }
 
 public class AsyncPhotoCaptureProcessor: NSObject {
@@ -66,13 +66,13 @@ extension AsyncPhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
         if let error = error {
             debugPrint("Error capturing photo: \(error)")
         } else if let photoData = photo.fileDataRepresentation() {
-            currentOutput.photo = CleartextMedia(source: photoData, mediaType: .photo, id: photoId)
+            currentOutput.photo = CleartextMedia(source: .data(photoData), mediaType: .photo, id: photoId)
         }
     }
     
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingLivePhotoToMovieFileAt outputFileURL: URL, duration: CMTime, photoDisplayTime: CMTime, resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
         
-        let media = CleartextMedia(source: outputFileURL, mediaType: .video, id: photoId)
+        let media = CleartextMedia(source: .url(outputFileURL), mediaType: .video, id: photoId)
         currentOutput.livePhoto = media
     }
     

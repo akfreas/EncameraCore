@@ -66,7 +66,7 @@ public class AppGroupFileReader: FileAccess {
     }
     
     public func loadLeadingThumbnail() async throws -> UIImage? {
-        let media: [CleartextMedia<URL>] = await enumerateMedia()
+        let media: [CleartextMedia] = await enumerateMedia()
         guard let first = media.first else {
             return nil
         }
@@ -74,8 +74,8 @@ public class AppGroupFileReader: FileAccess {
         return UIImage(data: data)
     }
     
-    public func loadMediaPreview<T>(for media: T) async throws -> PreviewModel where T : MediaDescribing, T.MediaSource == URL {
-        guard let cleartext = media as? CleartextMedia<URL> else {
+    public func loadMediaPreview<T>(for media: T) async throws -> PreviewModel where T : MediaDescribing {
+        guard let cleartext = media as? CleartextMedia else {
             throw FileAccessError.unhandledMediaType
         }
         let thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: cleartext)
@@ -84,19 +84,19 @@ public class AppGroupFileReader: FileAccess {
         return preview
     }
     
-    public func loadMediaToURL<T>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<URL> where T : MediaDescribing {
-        guard let cleartext = media as? CleartextMedia<URL> else {
+    public func loadMediaToURL<T>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
+        guard let cleartext = media as? CleartextMedia else {
             throw FileAccessError.unhandledMediaType
         }
         return cleartext
     }
     
-    public func loadMediaInMemory<T>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
-        guard let cleartext = media as? CleartextMedia<URL> else {
+    public func loadMediaInMemory<T>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia where T : MediaDescribing {
+        guard let cleartext = media as? CleartextMedia, case .url(let url) = cleartext.source else {
             throw FileAccessError.unhandledMediaType
         }
-        let data = try Data(contentsOf: cleartext.source)
-        
+        let data = try Data(contentsOf: url)
+
         return CleartextMedia(source: data)
     }
     
@@ -111,11 +111,11 @@ extension AppGroupFileReader: FileEnumerator {
         
     }
     
-    public func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
+    public func enumerateMedia<T>() async -> [T] where T : MediaDescribing {
         guard let containerUrl = directoryModel?.baseURL else {
             fatalError("Could not get shared container url")
         }
-        guard T.self is CleartextMedia<URL>.Type else {
+        guard T.self is CleartextMedia.Type else {
             return []
         }
         
@@ -123,7 +123,7 @@ extension AppGroupFileReader: FileEnumerator {
             let mediaFiles = try FileManager.default.contentsOfDirectory(at: containerUrl, includingPropertiesForKeys: nil, options: [])
             
             let filteredMediaFiles = mediaFiles.filter { MediaType.supportedMediaFileExtensions.contains($0.pathExtension.lowercased()) }
-            let mapped: [CleartextMedia<URL>] = filteredMediaFiles.map { url in
+            let mapped: [CleartextMedia] = filteredMediaFiles.map { url in
                 CleartextMedia(source: url)
             }
             debugPrint("Files from app group", mediaFiles, filteredMediaFiles, mapped)
@@ -144,16 +144,15 @@ extension AppGroupFileReader: FileEnumerator {
 
 extension AppGroupFileReader: FileWriter {
     
-    @discardableResult public func save<T>(media: CleartextMedia<T>, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? where T : MediaSourcing {
-        if let cleartext = media as? CleartextMedia<Data>, let url = directoryModel?.baseURL {
+    @discardableResult public func save(media: CleartextMedia, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
+        if case .data(let source) = media.source, let url = directoryModel?.baseURL {
             let filename = "\(media.id).jpeg"
             let url = url.appendingPathComponent(filename)
 
             print("new url", url)
-            try cleartext.source.write(to: url)
+            try source.write(to: url)
             return nil
-        } else if let cleartext = media as? CleartextMedia<URL> {
-            let url = cleartext.source
+        } else if case .url(let url) = media.source {
             guard let containerUrl = directoryModel?.baseURL else {
                 fatalError("Could not get shared container url")
             }
@@ -162,7 +161,7 @@ extension AppGroupFileReader: FileWriter {
             let fileExtension = url.pathExtension
                     .replacingOccurrences(of: "JPG", with: "jpeg")
                     .replacingOccurrences(of: "jpg", with: "jpeg")
-            let filename = "\(cleartext.id).\(fileExtension)"
+            let filename = "\(media.id).\(fileExtension)"
             let destinationURL = containerUrl.appendingPathComponent(filename)
             debugPrint("Saving media to ", destinationURL)
             do {
@@ -174,11 +173,11 @@ extension AppGroupFileReader: FileWriter {
         return nil
     }
     
-    public func createPreview<T>(for media: T) async throws -> PreviewModel where T : MediaDescribing {
-        guard let cleartext = media as? CleartextMedia<URL> else {
+    public func createPreview(for media: CleartextMedia) async throws -> PreviewModel {
+        guard case .url = media.source else {
             throw FileAccessError.unhandledMediaType
         }
-        let thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: cleartext)
+        let thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: media)
         return PreviewModel(thumbnailMedia: thumb)
     }
     

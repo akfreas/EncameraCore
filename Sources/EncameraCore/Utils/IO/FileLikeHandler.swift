@@ -18,12 +18,10 @@ class FileLikeHandler<T: MediaDescribing>: FileLikeBlockReader {
     
     init(media: T, mode: BlockIOMode) throws {
         switch media.source {
-        case let source where source is Data:
-            self.reader = DataBlockReader(source: source as! Data)
-        case let source where media.source is URL:
-            self.reader = try DiskBlockReader(source: source as! URL, mode: mode)
-        default:
-            fatalError()
+        case .data(let source):
+            self.reader = DataBlockReader(source: source)
+        case .url(let source):
+            self.reader = try DiskBlockReader(source: source, mode: mode)
         }
     }
     

@@ -14,7 +14,7 @@ public enum SecretFilesError: Error {
     case keyError
     case encryptError
     case decryptError
-    case sourceFileAccessError
+    case sourceFileAccessError(String)
     case destinationFileAccessError
     case createThumbnailError
     case createVideoThumbnailError
@@ -32,7 +32,8 @@ protocol SecretFileHandling {
     var keyBytes: Array<UInt8> { get }
     var sodium: Sodium { get }
     func encrypt() async throws -> EncryptedMedia
-    func decrypt<T: MediaSourcing>() async throws -> CleartextMedia<T>
+    func decryptToURL() async throws -> CleartextMedia
+    func decryptInMemory() async throws -> CleartextMedia
 
 }
 
@@ -102,19 +103,6 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
     var cancellables = Set<AnyCancellable>()
 
     private let defaultBlockSize: Int = 20480
-        
-    func decrypt<MediaType>() async throws -> CleartextMedia<MediaType> where MediaType : MediaSourcing {
-        switch MediaType.self {
-        case is URL.Type:
-            return try await decryptFile() as! CleartextMedia<MediaType>
-        case is Data.Type:
-            return try await decryptInMemory() as! CleartextMedia<MediaType>
-        default:
-            fatalError()
-        }
-    }
-    
-    
     
     @discardableResult func encrypt() async throws -> EncryptedMedia {
                 
@@ -124,7 +112,7 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
         }
         guard let destinationURL = targetURL,
               let destinationMedia = EncryptedMedia(source: destinationURL, type: .video) else {
-            throw SecretFilesError.sourceFileAccessError
+            throw SecretFilesError.sourceFileAccessError("Could not create media")
         }
         do {
             let destinationHandler = try FileLikeHandler(media: destinationMedia, mode: .writing)
@@ -155,7 +143,7 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
 
                         case .finished:
                             guard let media = EncryptedMedia(source: destinationURL) else {
-                                continuation.resume(throwing: SecretFilesError.sourceFileAccessError)
+                                continuation.resume(throwing: SecretFilesError.sourceFileAccessError("Could not create media"))
                                 return
                             }
                             continuation.resume(returning: media)
@@ -169,49 +157,45 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
             
         } catch {
             debugPrint("Error encrypting \(error)")
-            throw SecretFilesError.sourceFileAccessError
+            throw SecretFilesError.sourceFileAccessError("Could not access source file")
         }
     }
     
    
-}
-
-private extension SecretFileHandler {
-    
-    private func decryptInMemory() async throws -> CleartextMedia<Data>  {
+    public func decryptInMemory() async throws -> CleartextMedia {
 
         return try await withCheckedThrowingContinuation { continuation in
-            
+
             self.decryptPublisher().reduce(Data()) { accum, next in
                 accum + next
             }.sink { complete in
                 switch complete {
-                    
+
                 case .finished:
                     break
                 case .failure(_):
                     continuation.resume(throwing: SecretFilesError.decryptError)
                 }
-                
+
             } receiveValue: { [self] data in
                 let image = CleartextMedia(source: data, mediaType: self.sourceMedia.mediaType, id: self.sourceMedia.id)
                 continuation.resume(returning: image)
             }.store(in: &self.cancellables)
         }
     }
-    
-    private func decryptFile() async throws -> CleartextMedia<URL> {
+
+    public func decryptToURL() async throws -> CleartextMedia {
         guard let destinationURL = self.targetURL else {
-            throw SecretFilesError.sourceFileAccessError
+            throw SecretFilesError.sourceFileAccessError("Target URL not set")
         }
         do {
             let destinationMedia = CleartextMedia(source: destinationURL)
             let destinationHandler = try FileLikeHandler(media: destinationMedia, mode: .writing)
             try destinationHandler.prepareIfDoesNotExist()
-            
+
 
             return try await withUnsafeThrowingContinuation { continuation in
-                
+
                 self.decryptPublisher()
                     .sink { recieveCompletion in
                         switch recieveCompletion {
@@ -229,7 +213,7 @@ private extension SecretFileHandler {
                     }
                 }.store(in: &self.cancellables)
             }
-            
+
         } catch {
             try FileManager.default.removeItem(at: destinationURL)
             throw SecretFilesError.destinationFileAccessError
@@ -237,4 +221,3 @@ private extension SecretFileHandler {
     }
 
 }
-

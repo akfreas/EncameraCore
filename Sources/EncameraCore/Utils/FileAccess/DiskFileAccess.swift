@@ -40,7 +40,7 @@ public actor DiskFileAccess: FileEnumerator {
     }
 
 
-    public func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
+    public func enumerateMedia<T : MediaDescribing>() async -> [T] {
         guard let directoryModel = directoryModel else {
             return []
         }
@@ -63,7 +63,7 @@ public actor DiskFileAccess: FileEnumerator {
                 }
                 return creationDate1.compare(creationDate2) == .orderedDescending
             }.compactMap { (itemUrl: URL) in
-                return T(source: itemUrl)
+                return T(source: .url(itemUrl))
             }
         return imageItems
     }
@@ -79,12 +79,12 @@ extension DiskFileAccess: FileReader {
 
 
 
-    public func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL {
+    public func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel  {
         guard let thumbnailPath = directoryModel?.previewURLForMedia(media) else {
             debugPrint("loadMediaPreview: No thumbnail path found")
             throw FileAccessError.missingDirectoryModel
         }
-        let preview = T(source: thumbnailPath, mediaType: .preview, id: media.id)
+        let preview = T(source: .url(thumbnailPath), mediaType: .preview, id: media.id)
 
         do {
             debugPrint("loadMediaPreview: Trying to load thumbnail", media.id)
@@ -113,13 +113,13 @@ extension DiskFileAccess: FileReader {
 
     public func loadLeadingThumbnail() async throws -> UIImage? {
         let media: [EncryptedMedia] = await enumerateMedia()
-        guard let firstMedia = media.first else {
+        guard let firstMedia = media.first, case .data(let data) = firstMedia.source else {
             return nil
         }
 
         do {
             let cleartextPreview = try await loadMediaPreview(for: firstMedia)
-            guard let thumbnail = UIImage(data: cleartextPreview.thumbnailMedia.source) else {
+            guard let previewData = cleartextPreview.thumbnailMedia.data, let thumbnail = UIImage(data: previewData) else {
                 return nil
             }
             return thumbnail
@@ -129,7 +129,7 @@ extension DiskFileAccess: FileReader {
         }
     }
 
-    public func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<Data> {
+    public func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
 
         if var encrypted = media as? EncryptedMedia {
             if encrypted.needsDownload, 
@@ -140,13 +140,13 @@ extension DiskFileAccess: FileReader {
                     progress(.downloading(progress: prog))
                 }
             }
-            return try await decryptMedia(encrypted: encrypted, progress: progress)
+            return try await decryptMediaToData(encrypted: encrypted, progress: progress)
         } else {
             fatalError()
         }
     }
 
-    public func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<URL> {
+    public func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
         if var encrypted = media as? EncryptedMedia {
             if encrypted.needsDownload, 
                 let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
@@ -155,33 +155,39 @@ extension DiskFileAccess: FileReader {
                 }
 
             }
-            return try await decryptMedia(encrypted: encrypted, progress: progress)
-        } else if let cleartext = media as? CleartextMedia<URL> {
+            return try await decryptMediaToURL(encrypted: encrypted, progress: progress)
+        } else if let cleartext = media as? CleartextMedia {
             return cleartext
         }
 
         fatalError()
     }
-    private func decryptMedia(encrypted: EncryptedMedia, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia<Data> {
+    private func decryptMediaToData(encrypted: EncryptedMedia, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
         }
-        let sourceURL = encrypted.source
+        guard case .url(let sourceURL) = encrypted.source else {
+            throw FileAccessError.couldNotLoadMedia
+        }
 
         _ = sourceURL.startAccessingSecurityScopedResource()
 
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted)
 
-        let decrypted: CleartextMedia<Data> = try await fileHandler.decrypt()
+        let decrypted: CleartextMedia = try await fileHandler.decryptInMemory()
         sourceURL.stopAccessingSecurityScopedResource()
         return decrypted
     }
 
-    private func decryptMedia(encrypted: EncryptedMedia, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<URL> {
+    private func decryptMediaToURL(encrypted: EncryptedMedia, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
         }
-        let sourceURL = encrypted.source
+
+        guard case .url(let sourceURL) = encrypted.source else {
+            debugPrint("decryptMediaToURL: Could not load media")
+            throw FileAccessError.couldNotLoadMedia
+        }
 
         _ = sourceURL.startAccessingSecurityScopedResource()
         let targetURL = URL.tempMediaDirectory
@@ -197,7 +203,7 @@ extension DiskFileAccess: FileReader {
             .sink { percent in
                 progress(.decrypting(progress: percent))
             }.store(in: &cancellables)
-        let decrypted: CleartextMedia<URL> = try await fileHandler.decrypt()
+        let decrypted: CleartextMedia = try await fileHandler.decryptToURL()
         sourceURL.stopAccessingSecurityScopedResource()
         return decrypted
     }
@@ -212,14 +218,17 @@ extension DiskFileAccess: FileReader {
             case .photo:
                 break
             case .video:
-                let video: CleartextMedia<URL> = try await decryptMedia(encrypted: encrypted, progress: {_ in })
-                let asset = AVURLAsset(url: video.source, options: nil)
+                let video: CleartextMedia = try await decryptMediaToURL(encrypted: encrypted, progress: {_ in })
+                guard let url = video.url else {
+                    throw SecretFilesError.createPreviewError
+                }
+                let asset = AVURLAsset(url: url, options: nil)
                 preview.videoDuration = asset.duration.durationText
             default:
                 throw SecretFilesError.createPreviewError
             }
-        } else if let decrypted = media as? CleartextMedia<URL>, decrypted.mediaType == .video {
-            let asset = AVURLAsset(url: decrypted.source, options: nil)
+        } else if let decrypted = media as? CleartextMedia, decrypted.mediaType == .video, case .url(let source) = decrypted.source {
+            let asset = AVURLAsset(url: source, options: nil)
             preview.videoDuration = asset.duration.durationText
         }
         try await savePreview(preview: preview, sourceMedia: media)
@@ -227,27 +236,27 @@ extension DiskFileAccess: FileReader {
         return preview
     }
 
-    @discardableResult private func createThumbnail<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> {
+    @discardableResult private func createThumbnail<T: MediaDescribing>(for media: T) async throws -> CleartextMedia {
 
 
-        var thumb: CleartextMedia<Data>
+        var thumb: CleartextMedia
         if let encrypted = media as? EncryptedMedia {
 
             switch encrypted.mediaType {
 
             case .photo:
-                let decrypted: CleartextMedia<Data> = try await self.decryptMedia(encrypted: encrypted) { _ in }
+                let decrypted: CleartextMedia = try await decryptMediaToData(encrypted: encrypted) { _ in }
                 thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: decrypted)
 
             case .video:
-                let decrypted: CleartextMedia<URL> = try await self.decryptMedia(encrypted: encrypted) { _ in }
+                let decrypted: CleartextMedia = try await self.decryptMediaToURL(encrypted: encrypted) { _ in }
                 thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: decrypted)
             default:
                 throw SecretFilesError.fileTypeError
             }
-        } else if let cleartext = media as? CleartextMedia<URL> {
+        } else if let cleartext = media as? CleartextMedia {
             thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: cleartext)
-        } else if let cleartext = media as? CleartextMedia<Data> {
+        } else if let cleartext = media as? CleartextMedia {
             thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: cleartext)
         } else {
             fatalError()
@@ -260,7 +269,7 @@ extension DiskFileAccess: FileReader {
 
 extension DiskFileAccess: FileWriter {
 
-    @discardableResult public func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> {
+    @discardableResult public func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
         }
@@ -274,7 +283,7 @@ extension DiskFileAccess: FileWriter {
         return cleartextPreview
     }
 
-    @discardableResult public func save<T: MediaSourcing>(media: CleartextMedia<T>, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
+    @discardableResult public func save(media: CleartextMedia, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
         }
@@ -293,28 +302,32 @@ extension DiskFileAccess: FileWriter {
     }
 
     public func copy(media: EncryptedMedia) async throws {
-        guard let destinationURL = directoryModel?.driveURLForNewMedia(media) else {
+        guard let destinationURL = directoryModel?.driveURLForNewMedia(media), case .url(let source) = media.source else {
             throw FileAccessError.missingDirectoryModel
         }
-        try FileManager.default.copyItem(at: media.source, to: destinationURL)
+        try FileManager.default.copyItem(at: source, to: destinationURL)
         if let newMedia = EncryptedMedia(source: destinationURL) {
             operationBus.didCreate(newMedia)
         }
     }
 
     public func move(media: EncryptedMedia) async throws {
-        guard let destinationURL = directoryModel?.driveURLForNewMedia(media) else {
+        guard let destinationURL = directoryModel?.driveURLForNewMedia(media), case .url(let source) = media.source else {
             throw FileAccessError.missingDirectoryModel
         }
-        try FileManager.default.moveItem(at: media.source, to: destinationURL)
+
+        try FileManager.default.moveItem(at: source, to: destinationURL)
         if let newMedia = EncryptedMedia(source: destinationURL) {
             operationBus.didCreate(newMedia)
         }
     }
 
     public func delete(media: EncryptedMedia) async throws {
+        guard case .url(let source) = media.source else {
+            throw FileAccessError.missingDirectoryModel
+        }
 
-        try FileManager.default.removeItem(at: media.source)
+        try FileManager.default.removeItem(at: source)
         if let previewURL = directoryModel?.previewURLForMedia(media) {
             try FileManager.default.removeItem(at: previewURL)
         }

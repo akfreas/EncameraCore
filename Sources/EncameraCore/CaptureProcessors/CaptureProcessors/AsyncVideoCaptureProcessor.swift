@@ -11,8 +11,8 @@ import Combine
 
 public class AsyncVideoCaptureProcessor: NSObject {
     
-    private typealias VideoCaptureProcessorContinuation = CheckedContinuation<CleartextMedia<URL>, Error>
-    
+    private typealias VideoCaptureProcessorContinuation = CheckedContinuation<CleartextMedia, Error>
+
     private var continuation: VideoCaptureProcessorContinuation?
     private let captureOutput: AVCaptureMovieFileOutput
     private let durationSubject: PassthroughSubject<CMTime, Never> = .init()
@@ -33,7 +33,7 @@ public class AsyncVideoCaptureProcessor: NSObject {
         self.captureOutput = videoCaptureOutput
     }
     
-    public func takeVideo() async throws -> CleartextMedia<URL> {
+    public func takeVideo() async throws -> CleartextMedia {
         return try await withCheckedThrowingContinuation({ (continuation: VideoCaptureProcessorContinuation) in
             Task { @MainActor in
                 self.durationSubject.send(self.captureOutput.recordedDuration)
@@ -60,7 +60,7 @@ extension AsyncVideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
     public func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         debugPrint(outputFileURL)
         
-        let cleartextVideo = CleartextMedia(source: outputFileURL, mediaType: .video, id: videoId)
+        let cleartextVideo = CleartextMedia(source: .url(outputFileURL), mediaType: .video, id: videoId)
         continuation?.resume(returning: cleartextVideo)
     }
     

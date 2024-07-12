@@ -62,11 +62,11 @@ public enum MediaType: Int, CaseIterable, Codable {
     }
     
     public static func typeFromMedia<T: MediaDescribing>(source: T) -> MediaType {
-        
+
+
+
         switch source {
-        case let media as CleartextMedia<Data>:
-            return typeFrom(media: media)
-        case let media as CleartextMedia<URL>:
+        case let media as CleartextMedia:
             return typeFrom(media: media)
         case let media as EncryptedMedia:
             return typeFrom(media: media)
@@ -78,21 +78,10 @@ public enum MediaType: Int, CaseIterable, Codable {
     }
     
     private static func typeFrom(media: EncryptedMedia) -> MediaType {
-        return typeFromURL(media.source)
-    }
-    
-    private static func typeFrom(media: CleartextMedia<URL>) -> MediaType {
-        // We only support one type of media that we decrypt
-        // to a URL, and that is video
-        
-        
-        let pathExtension = media.source.pathExtension.lowercased()
-        
-        guard let mapped = MediaType.mediaTypeMappings[pathExtension] else {
+        guard case .url(let url) = media.source else {
             return .unknown
         }
-        
-        return mapped
+        return typeFromURL(url)
     }
     
     private static func typeFromURL(_ url: URL) -> MediaType {
@@ -105,7 +94,16 @@ public enum MediaType: Int, CaseIterable, Codable {
         return type
     }
     
-    private static func typeFrom(media: CleartextMedia<Data>) -> MediaType {
+    private static func typeFrom(media: CleartextMedia) -> MediaType {
+        if case .url(let url) = media.source {
+            let pathExtension = url.pathExtension.lowercased()
+
+            guard let mapped = MediaType.mediaTypeMappings[pathExtension] else {
+                return .unknown
+            }
+
+            return mapped
+        }
         return .photo
     }
     

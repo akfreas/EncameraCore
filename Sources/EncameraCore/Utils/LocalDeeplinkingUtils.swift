@@ -10,8 +10,9 @@ import UIKit
 
 public class LocalDeeplinkingUtils {
     
-    public static func openInFiles<T: MediaDescribing>(media: T) where T.MediaSource == URL {
-        guard let url = media.source.driveDeeplink() else {
+    public static func openInFiles<T: MediaDescribing>(media: T)  {
+        guard case .url(let url) = media.source,
+            let url = url.driveDeeplink() else {
             debugPrint("Could not create deeplink")
             return
         }

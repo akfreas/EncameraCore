@@ -26,22 +26,22 @@ public enum FileLoadingStatus {
 public protocol FileEnumerator {
 
     func configure(for album: Album, albumManager: AlbumManaging) async
-    func enumerateMedia<T: MediaDescribing>() async -> [T] where T.MediaSource == URL
+    func enumerateMedia<T: MediaDescribing>() async -> [T]
 }
 
 public protocol FileReader: FileEnumerator {
     
     func configure(for album: Album, albumManager: AlbumManaging) async
     func loadLeadingThumbnail() async throws -> UIImage?
-    func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL
-    func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<URL>
-    func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia<Data>
+    func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel
+    func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia
+    func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia
 }
 
 public protocol FileWriter: FileEnumerator {
         
-    @discardableResult func save<T: MediaSourcing>(media: CleartextMedia<T>, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia?
-    @discardableResult func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel
+    @discardableResult func save(media: CleartextMedia, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia?
+    @discardableResult func createPreview(for media: CleartextMedia) async throws -> PreviewModel
     func copy(media: EncryptedMedia) async throws
     func move(media: EncryptedMedia) async throws
     func delete(media: EncryptedMedia) async throws

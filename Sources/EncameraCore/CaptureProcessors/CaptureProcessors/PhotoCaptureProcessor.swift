@@ -2,7 +2,6 @@ import Foundation
 import AVFoundation
 import CoreImage
 import Combine
-import EncameraCore
 
 class PhotoCaptureProcessor: NSObject, CaptureProcessor {
     

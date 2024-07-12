@@ -48,9 +48,9 @@ public class DemoFileEnumerator: FileAccess {
     
     public func createPreview<T>(for media: T) async throws -> PreviewModel where T : MediaDescribing {
 
-        return PreviewModel(thumbnailMedia: CleartextMedia(source: Data(), mediaType: .preview, id: "sdf"))
+        return PreviewModel(thumbnailMedia: CleartextMedia(source: .data(Data()), mediaType: .preview, id: "sdf"))
     }
-    func loadThumbnails<T>(for: DataStorageModel) async -> [T] where T : MediaDescribing, T.MediaSource == Data {
+    func loadThumbnails<T>(for: DataStorageModel) async -> [T] where T : MediaDescribing {
         []
     }
     
@@ -62,12 +62,12 @@ public class DemoFileEnumerator: FileAccess {
         
     }
     
-    public func loadMediaToURL<T>(media: T, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia<URL> where T : MediaDescribing {
+    public func loadMediaToURL<T>(media: T, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia where T : MediaDescribing {
 
-        CleartextMedia(source: URL(fileURLWithPath: ""))
+        CleartextMedia(source: .url(URL(fileURLWithPath: "")))
     }
     
-    public static func withUrl() -> CleartextMedia<URL> {
+    public static func withUrl() -> CleartextMedia {
         guard let url = Bundle.main
             .url(forResource: "3", withExtension: "JPG") else {
             fatalError()
@@ -75,7 +75,7 @@ public class DemoFileEnumerator: FileAccess {
         return CleartextMedia(source: url)
     }
     
-    public static var media: [CleartextMedia<URL>] {
+    public static var media: [CleartextMedia] {
         (1..<6).map { i in
             guard let url = Bundle.main
                 .url(forResource: "\(i)", withExtension: "JPG") else {
@@ -86,7 +86,7 @@ public class DemoFileEnumerator: FileAccess {
         }
     }
     
-    public func withUrl() -> CleartextMedia<URL> {
+    public func withUrl() -> CleartextMedia {
         guard let url = Bundle(for: type(of: self))
             .url(forResource: "dog", withExtension: "jpg") else {
             fatalError()
@@ -94,7 +94,7 @@ public class DemoFileEnumerator: FileAccess {
         return CleartextMedia(source: url)
     }
     
-    public func data() -> CleartextMedia<Data> {
+    public func data() -> CleartextMedia {
         guard let url = Bundle(for: type(of: self))
             .url(forResource: "dog", withExtension: "jpg"), let data = try? Data(contentsOf: url) else {
             return CleartextMedia(source: Data())
@@ -103,21 +103,21 @@ public class DemoFileEnumerator: FileAccess {
 
     }
     
-    public func loadMediaInMemory<T>(media: T, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+    public func loadMediaInMemory<T>(media: T, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia where T : MediaDescribing {
         return data()
 
     }
     
-    public func save<T>(media: CleartextMedia<T>, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? where T : MediaSourcing {
+    public func save(media: CleartextMedia, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
         EncryptedMedia(source: URL(fileURLWithPath: ""), mediaType: .photo, id: "1234")
     }
     
     public func loadMediaPreview<T: MediaDescribing>(for media: T) async -> PreviewModel {
-        guard let source = media.source as? URL,
+        guard let source = media.url,
               let data = try? Data(contentsOf: source) else {
             return try! PreviewModel(source: CleartextMedia(source: Data()))
         }
-        let cleartext = CleartextMedia<Data>(source: data)
+        let cleartext = CleartextMedia(source: data)
         let preview = PreviewModel(thumbnailMedia: cleartext)
         return preview
     }
@@ -128,12 +128,12 @@ public class DemoFileEnumerator: FileAccess {
 
     typealias MediaTypeHandling = Data
 
-    public func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
+    public func enumerateMedia<T>() async -> [T] where T : MediaDescribing {
         return []
         let retVal: [T] = (7...11).map { val in
             let url = Bundle(for: type(of: self)).url(forResource: "\(val)", withExtension: "jpg")!
             debugPrint("URL: \(url)")
-            return T(source: url, mediaType: .photo, id: "\(val)")
+            return T(source: .url(url), mediaType: .photo, id: "\(val)")
 //            if let url = Bundle(for: type(of: self)).url(forResource: "\(val)", withExtension: "JPG")! {
 //                return T(source: url, mediaType: .photo, id: "\(val)")
 //            }
@@ -155,10 +155,10 @@ public class DemoFileEnumerator: FileAccess {
 
     public func loadLeadingThumbnail() async throws -> UIImage? {
 
-        guard let last = mediaList.popLast() else {
+        guard let last = mediaList.popLast(), case .url(let source) = last.source else {
             return nil
         }
-        return UIImage(data: try Data(contentsOf: last.source))
+        return UIImage(data: try Data(contentsOf: source))
     }
 }
 

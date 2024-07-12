@@ -49,12 +49,18 @@ public class iCloudStorageModel: DataStorageModel {
     }
 
     public func triggerDownload(ofFile file: EncryptedMedia) {
-        try? FileManager.default.startDownloadingUbiquitousItem(at: file.source)
+        guard case .url(let source) = file.source else {
+            return
+        }
+        try? FileManager.default.startDownloadingUbiquitousItem(at: source)
     }
 
-    public func resolveDownloadedMedia<T: MediaDescribing>(media: T) throws -> T? where T.MediaSource == URL {
-        if FileManager.default.fileExists(atPath: media.downloadedSource.path) {
-            if let downloaded = T(source: media.downloadedSource) {
+    public func resolveDownloadedMedia<T: MediaDescribing>(media: T) throws -> T?  {
+        guard let source = media.downloadedSource else {
+            return nil
+        }
+        if FileManager.default.fileExists(atPath: source.path) {
+            if let downloaded = T(source: .url(source)) {
                 return downloaded
             } else {
                 throw DataStorageModelError.couldNotCreateMedia
@@ -65,11 +71,11 @@ public class iCloudStorageModel: DataStorageModel {
     }
     
     
-    func downloadFileFromiCloud<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> T where T.MediaSource == URL {
-        guard media.needsDownload == true else {
+    func downloadFileFromiCloud<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> T  {
+        guard media.needsDownload == true, case .url(let source) = media.source else {
             return media
         }
-        try FileManager.default.startDownloadingUbiquitousItem(at: media.source)
+        try FileManager.default.startDownloadingUbiquitousItem(at: source)
         return try await withCheckedThrowingContinuation { [weak self] continuation in
 
             guard let self else {
@@ -105,17 +111,20 @@ public class iCloudStorageModel: DataStorageModel {
     private var query = NSMetadataQuery()
 
 
-    public func checkDownloadStatus<T: MediaDescribing>(ofFile file: T) -> AnyPublisher<iCloudDownloadStatus, Never> where T.MediaSource == URL {
-        if let subject = downloadStatusSubjects[file.source] {
+    public func checkDownloadStatus<T: MediaDescribing>(ofFile file: T) -> AnyPublisher<iCloudDownloadStatus, Never>  {
+        guard case .url(let source) = file.source else {
+            return Empty().eraseToAnyPublisher()
+        }
+        if let subject = downloadStatusSubjects[source] {
             // If a subject already exists for this file, return it.
             return subject.eraseToAnyPublisher()
         } else {
             // Create a new subject for this file.
             let subject = PassthroughSubject<iCloudDownloadStatus, Never>()
-              downloadStatusSubjects[file.source] = subject
+              downloadStatusSubjects[source] = subject
 
               // Set up and start the query
-              setupMetadataQuery(forFile: file.source)
+              setupMetadataQuery(forFile: source)
 
               return subject.eraseToAnyPublisher()
           }

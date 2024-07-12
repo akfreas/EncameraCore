@@ -34,7 +34,10 @@ public enum URLType: Equatable {
     public var url: URL? {
         switch self {
         case .media(let encryptedMedia):
-            return encryptedMedia.source
+            guard case .url(let source) = encryptedMedia.source else {
+                return nil
+            }
+            return source
         case .key(let key):
             return keyURL(key: key)
         case .featureToggle(feature: let feature):

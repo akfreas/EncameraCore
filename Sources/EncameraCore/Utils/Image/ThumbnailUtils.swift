@@ -11,26 +11,26 @@ import UIKit
 
 public struct ThumbnailUtils {
     
-    static func createThumbnailMediaFrom<T: MediaSourcing>(cleartext media: CleartextMedia<T>) async throws -> CleartextMedia<Data> {
+    static func createThumbnailMediaFrom(cleartext media: CleartextMedia) async throws -> CleartextMedia {
         let thumbnailData = try await createThumbnailDataFrom(cleartext: media)
         let cleartextThumb = CleartextMedia(source: thumbnailData, mediaType: .photo, id: media.id)
         return cleartextThumb
     }
     
-    public static func createThumbnailImageFrom<T: MediaSourcing>(cleartext media: CleartextMedia<T>) async throws -> UIImage? {
+    public static func createThumbnailImageFrom(cleartext media: CleartextMedia) async throws -> UIImage? {
         let thumbnailData = try await createThumbnailDataFrom(cleartext: media)
         return UIImage(data: thumbnailData)
     }
 
-    public static func createThumbnailDataFrom<T: MediaSourcing>(cleartext media: CleartextMedia<T>) async throws -> Data {
+    public static func createThumbnailDataFrom(cleartext media: CleartextMedia) async throws -> Data {
         
         var thumbnailSourceData: Data
-        if let cleartext = media as? CleartextMedia<URL> {
-            switch cleartext.mediaType {
+        if let url = media.url {
+            switch media.mediaType {
             case .photo:
-                thumbnailSourceData = try Data(contentsOf: cleartext.source)
+                thumbnailSourceData = try Data(contentsOf: url)
             case .video:
-                guard let thumb = generateThumbnailFromVideo(at: cleartext.source),
+                guard let thumb = generateThumbnailFromVideo(at: url),
                       let data = thumb.pngData() else {
                     throw SecretFilesError.createVideoThumbnailError
                 }
@@ -38,10 +38,10 @@ public struct ThumbnailUtils {
             default:
                 throw SecretFilesError.fileTypeError
             }
-        } else if let cleartext = media as? CleartextMedia<Data> {
-            switch cleartext.mediaType {
+        } else if let data = media.data {
+            switch media.mediaType {
             case .photo:
-                thumbnailSourceData = cleartext.source
+                thumbnailSourceData = data
             default:
                 throw SecretFilesError.fileTypeError
             }

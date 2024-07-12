@@ -53,8 +53,11 @@ public enum AuthenticationMethod: Codable {
             return .touchID
         case .faceID:
             return .faceID
+        case .opticID:
+            return nil
         @unknown default:
             return nil
+
         }
     }
 }

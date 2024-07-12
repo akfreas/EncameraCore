@@ -8,36 +8,53 @@
 import Foundation
 
 public class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identifiable {
-    public typealias MediaSource = URL
-    
+
     public var needsDownload: Bool {
+        guard case .url(let source) = source else {
+            return false
+        }
         return source != downloadedSource
     }
     
     public var mediaType: MediaType = .unknown
     public var id: String
-    public var source: URL
+    public var source: MediaSource
     public lazy var timestamp: Date? = {
+        guard case .url(let source) = source else {
+            return nil
+        }
         _ = source.startAccessingSecurityScopedResource()
         let date = try? FileManager.default.attributesOfItem(atPath: source.path)[FileAttributeKey.creationDate] as? Date
         source.stopAccessingSecurityScopedResource()
         return date
     }()
     
-    public required init(source: URL, mediaType: MediaType, id: String) {
+    public required init(source: MediaSource, mediaType: MediaType, id: String) {
         self.source = source
         self.mediaType = mediaType
         self.id = id
     }
     
     convenience init?(source: URL, type: MediaType) {
-        self.init(source: source)
+        self.init(source: .url(source))
         self.mediaType = type
     }
-    
-    public required init?(source: URL) {
+
+    convenience init?(source: URL) {
+        self.init(source: .url(source))
+    }
+
+    public convenience init(source: URL, mediaType: MediaType, id: String) {
+        self.init(source: .url(source), mediaType: mediaType, id: id)
+    }
+
+    public convenience init(source: Data, mediaType: MediaType, id: String) {
+        self.init(source: .data(source), mediaType: mediaType, id: id)
+    }
+
+    public required init?(source: MediaSource) {
         self.source = source
-        guard let id = source.deletingPathExtension().lastPathComponent.split(separator: ".").first else {
+        guard case .url(let source) = source, let id = source.deletingPathExtension().lastPathComponent.split(separator: ".").first else {
             return nil
         }
         self.id = String(id)
