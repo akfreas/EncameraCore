@@ -113,7 +113,7 @@ extension DiskFileAccess: FileReader {
 
     public func loadLeadingThumbnail() async throws -> UIImage? {
         let media: [EncryptedMedia] = await enumerateMedia()
-        guard let firstMedia = media.first, case .data(let data) = firstMedia.source else {
+        guard let firstMedia = media.first else {
             return nil
         }
 
