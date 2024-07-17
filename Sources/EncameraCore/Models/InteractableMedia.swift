@@ -127,6 +127,9 @@ public class InteractableMedia<T: MediaDescribing>: Hashable, Identifiable, Equa
 
     public func appendToUnderlyingMedia(media: T) {
         underlyingMedia.append(media)
+        if underlyingMedia.contains(where: {$0.mediaType == .video || $0.mediaType == .video}) {
+            mediaType = .livePhoto
+        }
     }
 }
 

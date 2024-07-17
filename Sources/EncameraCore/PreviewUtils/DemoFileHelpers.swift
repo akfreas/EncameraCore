@@ -61,7 +61,7 @@ public class DemoFileEnumerator: FileAccess {
         // Implementation here
     }
 
-    public func loadMediaToURL<T>(media: InteractableMedia<T>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> InteractableMedia<CleartextMedia> where T : MediaDescribing {
+    public func loadMedia<T>(media: InteractableMedia<T>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> InteractableMedia<CleartextMedia> where T : MediaDescribing {
         return try! InteractableMedia(underlyingMedia: [CleartextMedia(source: .url(URL(fileURLWithPath: "")))])
     }
 

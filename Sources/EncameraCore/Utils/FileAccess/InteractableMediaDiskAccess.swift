@@ -32,8 +32,8 @@ public actor InteractableMediaDiskAccess: FileAccess {
 
         for mediaItem in media {
             do {
-                if var interactableMedia = mediaMap[mediaItem.id] {
-                    interactableMedia.underlyingMedia.append(mediaItem)
+                if let interactableMedia = mediaMap[mediaItem.id] {
+                    interactableMedia.appendToUnderlyingMedia(media: mediaItem)
                     continue
                 } else {
                     let interactableMedia = try InteractableMedia(underlyingMedia: [mediaItem])
@@ -57,25 +57,21 @@ public actor InteractableMediaDiskAccess: FileAccess {
     public func loadMediaPreview<T>(for media: InteractableMedia<T>) async throws -> PreviewModel where T : MediaDescribing {
         return try await fileAccess.loadMediaPreview(for: media.thumbnailSource)
     }
-    
-    public func loadMediaToURL<T>(media: InteractableMedia<T>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> InteractableMedia<CleartextMedia> where T : MediaDescribing {
+
+    public func loadMedia<T>(media: InteractableMedia<T>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> InteractableMedia<CleartextMedia> where T : MediaDescribing {
         var decrypted: [CleartextMedia] = []
         for mediaItem in media.underlyingMedia {
-            let cleartextMedia = try await fileAccess.loadMediaToURL(media: mediaItem, progress: progress)
-            decrypted.append(cleartextMedia)
+            if mediaItem.mediaType == .photo {
+                let cleartextMedia = try await fileAccess.loadMediaInMemory(media: mediaItem, progress: progress)
+                decrypted.append(cleartextMedia)
+            } else if mediaItem.mediaType == .video {
+                let cleartextMedia = try await fileAccess.loadMediaToURL(media: mediaItem, progress: progress)
+                decrypted.append(cleartextMedia)
+            }
         }
 
         return try InteractableMedia(underlyingMedia: decrypted)
-    }
-    
-    public func loadMediaInMemory(media: InteractableMedia<EncryptedMedia>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> InteractableMedia<CleartextMedia> {
-        var decrypted: [CleartextMedia] = []
-        for mediaItem in media.underlyingMedia {
-            let cleartextMedia = try await fileAccess.loadMediaInMemory(media: mediaItem, progress: progress)
-            decrypted.append(cleartextMedia)
-        }
 
-        return try InteractableMedia(underlyingMedia: decrypted)
     }
     
 
