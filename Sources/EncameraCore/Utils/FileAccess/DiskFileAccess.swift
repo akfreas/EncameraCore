@@ -12,7 +12,7 @@ import AVFoundation
 
 
 
-public actor DiskFileAccess: FileEnumerator {
+public actor DiskFileAccess {
 
     enum iCloudError: Error {
         case invalidURL
@@ -25,7 +25,7 @@ public actor DiskFileAccess: FileEnumerator {
     public var directoryModel: DataStorageModel?
 
     public init() {
-        
+
     }
 
     public init(for album: Album, albumManager: AlbumManaging) async {
@@ -75,7 +75,7 @@ extension FileReader {
 }
 
 
-extension DiskFileAccess: FileReader {
+extension DiskFileAccess {
 
 
 
@@ -132,7 +132,7 @@ extension DiskFileAccess: FileReader {
     public func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
 
         if var encrypted = media as? EncryptedMedia {
-            if encrypted.needsDownload, 
+            if encrypted.needsDownload,
                 let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
                 debugPrint("Downloading file from iCloud", encrypted.id)
                 encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { prog in
@@ -148,7 +148,7 @@ extension DiskFileAccess: FileReader {
 
     public func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
         if var encrypted = media as? EncryptedMedia {
-            if encrypted.needsDownload, 
+            if encrypted.needsDownload,
                 let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
                 encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { prog in
                     progress(.downloading(progress: prog))
@@ -267,7 +267,7 @@ extension DiskFileAccess: FileReader {
 
 
 
-extension DiskFileAccess: FileWriter {
+extension DiskFileAccess {
 
     @discardableResult public func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia {
         guard let key = key else {
@@ -360,13 +360,10 @@ extension DiskFileAccess: FileWriter {
         try iCloudStorageModel.deletePreviewDirectory()
     }
 
-    public func moveAllMedia(for keyName: KeyName, toRenamedKey newKeyName: KeyName) async throws {
-
+    var operationBus: FileOperationBus {
+        FileOperationBus.shared
     }
 
-}
-
-extension DiskFileAccess: FileAccess {
 
 }
 

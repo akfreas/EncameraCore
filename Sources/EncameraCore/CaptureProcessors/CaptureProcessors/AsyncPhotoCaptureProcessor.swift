@@ -12,22 +12,21 @@ import AVFoundation
 import CoreImage
 import Combine
 
-public struct PhotoCaptureProcessorOutput {
-    public var photo: CleartextMedia?
-    public var livePhoto: CleartextMedia?
+public enum PhotoCaptureError: Error {
+    case noConnections
 }
 
 public class AsyncPhotoCaptureProcessor: NSObject {
     
-    private typealias PhotoCaptureProcessorContinuation = CheckedContinuation<PhotoCaptureProcessorOutput, Error>
-    
+    private typealias PhotoCaptureProcessorContinuation = CheckedContinuation<InteractableMedia<CleartextMedia>, Error>
+
     private(set) var requestedPhotoSettings: AVCapturePhotoSettings
     private weak var photoOutput: AVCapturePhotoOutput?
 
     private var photoId: String = NSUUID().uuidString
     private var maxPhotoProcessingTime: CMTime?
     private var continuation: PhotoCaptureProcessorContinuation?
-    private var currentOutput = PhotoCaptureProcessorOutput()
+    private var currentOutput = try! InteractableMedia<CleartextMedia>(underlyingMedia: [])
     private var tempFileUrl: URL {
         URL.tempMediaDirectory
             .appendingPathComponent(photoId)
@@ -51,10 +50,10 @@ public class AsyncPhotoCaptureProcessor: NSObject {
         }
     }
     
-    public func takePhoto() async throws -> PhotoCaptureProcessorOutput {
+    public func takePhoto() async throws -> InteractableMedia<CleartextMedia> {
         return try await withCheckedThrowingContinuation({ (continuation: PhotoCaptureProcessorContinuation) in
             guard let photoOutput, photoOutput.connections.count > 0 else {
-                continuation.resume(returning: PhotoCaptureProcessorOutput())
+                continuation.resume(throwing: PhotoCaptureError.noConnections)
                 return
             }
             self.continuation = continuation
@@ -83,14 +82,14 @@ extension AsyncPhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
         if let error = error {
             debugPrint("Error capturing photo: \(error)")
         } else if let photoData = photo.fileDataRepresentation() {
-            currentOutput.photo = CleartextMedia(source: .data(photoData), mediaType: .photo, id: photoId)
+            currentOutput.appendToUnderlyingMedia(media: CleartextMedia(source: .data(photoData), mediaType: .photo, id: photoId))
         }
     }
     
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingLivePhotoToMovieFileAt outputFileURL: URL, duration: CMTime, photoDisplayTime: CMTime, resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
         
         let media = CleartextMedia(source: .url(outputFileURL), mediaType: .video, id: photoId)
-        currentOutput.livePhoto = media
+        currentOutput.appendToUnderlyingMedia(media: media)
     }
     
     

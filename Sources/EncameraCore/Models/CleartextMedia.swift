@@ -19,7 +19,7 @@ public struct CleartextMedia: MediaDescribing, Codable {
         false
     }
 
-   
+    public var timestamp: Date?
 
     public init(source: MediaSource, mediaType: MediaType, id: String) {
         self.init(source: source)
@@ -47,11 +47,11 @@ public struct CleartextMedia: MediaDescribing, Codable {
     public init(source: MediaSource) {
         self.source = source
         switch source {
-        case .data(let data):
+        case .data:
             self.id = NSUUID().uuidString
+            self.timestamp = Date()
         case .url(let url):
             self.id = url.deletingPathExtension().lastPathComponent
-
         }
         mediaType = MediaType.typeFromMedia(source: self)
     }

@@ -94,7 +94,7 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
         
         let media = CleartextMedia(source: outputFileURL, mediaType: .video, id: photoId)
         Task {
-            _ = try await fileWriter.save(media: media) { _ in }
+//            _ = try await fileWriter.save(media: media) { _ in }
             self.completionHandler(self)
         }
 
@@ -119,9 +119,9 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
             }
             let media = CleartextMedia(source: data, mediaType: .photo, id: photoId)
             Task {
-                try await fileWriter.save(media: media) { _ in
-                    
-                }
+//                try await fileWriter.save(media: media) { _ in
+//                    
+//                }
                 self.completionHandler(self)
             }
         }

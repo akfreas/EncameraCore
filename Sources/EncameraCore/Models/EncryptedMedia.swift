@@ -19,15 +19,7 @@ public class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identif
     public var mediaType: MediaType = .unknown
     public var id: String
     public var source: MediaSource
-    public lazy var timestamp: Date? = {
-        guard case .url(let source) = source else {
-            return nil
-        }
-        _ = source.startAccessingSecurityScopedResource()
-        let date = try? FileManager.default.attributesOfItem(atPath: source.path)[FileAttributeKey.creationDate] as? Date
-        source.stopAccessingSecurityScopedResource()
-        return date
-    }()
+    
     
     public required init(source: MediaSource, mediaType: MediaType, id: String) {
         self.source = source

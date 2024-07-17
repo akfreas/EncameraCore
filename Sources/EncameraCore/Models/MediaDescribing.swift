@@ -8,19 +8,19 @@
 import Foundation
 
 public protocol MediaReference {
-    
+
 }
 
 public protocol MediaSourcing: Hashable, Codable {
-    
+
 }
 
 extension Data: MediaSourcing {
-    
+
 }
 
 extension URL: MediaSourcing {
-    
+
 }
 
 public enum MediaSource {
@@ -67,7 +67,7 @@ extension MediaSource: Equatable {
 }
 
 extension MediaSource: Hashable {
-    
+
     public func hash(into hasher: inout Hasher) {
         switch self {
         case .data(let data):
@@ -81,13 +81,14 @@ extension MediaSource: Hashable {
 
 
 public protocol MediaDescribing: Hashable, Identifiable {
-    
+
 
     var source: MediaSource { get }
     var mediaType: MediaType { get }
     var needsDownload: Bool { get }
     var id: String { get }
-    
+    var timestamp: Date? { get }
+
     init?(source: MediaSource)
     init(source: MediaSource, mediaType: MediaType, id: String)
 }
@@ -118,16 +119,24 @@ public extension MediaDescribing {
         }
         var lastComponent = source
             .lastPathComponent
-        
+
         if lastComponent.first == "." {
             lastComponent.removeFirst()
         }
-        
+
         lastComponent = lastComponent.replacingOccurrences(of: ".icloud", with: "")
         return source.deletingLastPathComponent().appendingPathComponent(lastComponent)
     }
-    
-    var gridID: String {
-        "\(mediaType.fileExtension)_\(id)"
+
+
+     var timestamp: Date? {
+         guard case .url(let source) = source else {
+            return nil
+        }
+         #warning("Potentially slow, improve this")
+        _ = source.startAccessingSecurityScopedResource()
+        let date = try? FileManager.default.attributesOfItem(atPath: source.path)[FileAttributeKey.creationDate] as? Date
+        source.stopAccessingSecurityScopedResource()
+        return date
     }
 }

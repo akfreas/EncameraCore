@@ -11,7 +11,7 @@ import Combine
 
 public class AsyncVideoCaptureProcessor: NSObject {
     
-    private typealias VideoCaptureProcessorContinuation = CheckedContinuation<CleartextMedia, Error>
+    private typealias VideoCaptureProcessorContinuation = CheckedContinuation<InteractableMedia<CleartextMedia>, Error>
 
     private var continuation: VideoCaptureProcessorContinuation?
     private let captureOutput: AVCaptureMovieFileOutput
@@ -33,7 +33,7 @@ public class AsyncVideoCaptureProcessor: NSObject {
         self.captureOutput = videoCaptureOutput
     }
     
-    public func takeVideo() async throws -> CleartextMedia {
+    public func takeVideo() async throws -> InteractableMedia<CleartextMedia> {
         return try await withCheckedThrowingContinuation({ (continuation: VideoCaptureProcessorContinuation) in
             Task { @MainActor in
                 self.durationSubject.send(self.captureOutput.recordedDuration)
@@ -50,8 +50,6 @@ public class AsyncVideoCaptureProcessor: NSObject {
         cancellables.forEach({$0.cancel()})
         captureOutput.stopRecording()
     }
-    
-    
 }
 
 extension AsyncVideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
@@ -60,7 +58,7 @@ extension AsyncVideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
     public func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         debugPrint(outputFileURL)
         
-        let cleartextVideo = CleartextMedia(source: .url(outputFileURL), mediaType: .video, id: videoId)
+        let cleartextVideo = try! InteractableMedia(underlyingMedia: [CleartextMedia(source: .url(outputFileURL), mediaType: .video, id: videoId)])
         continuation?.resume(returning: cleartextVideo)
     }
     
