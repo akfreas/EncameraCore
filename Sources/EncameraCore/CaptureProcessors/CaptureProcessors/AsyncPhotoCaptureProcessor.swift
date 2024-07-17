@@ -22,26 +22,43 @@ public class AsyncPhotoCaptureProcessor: NSObject {
     private typealias PhotoCaptureProcessorContinuation = CheckedContinuation<PhotoCaptureProcessorOutput, Error>
     
     private(set) var requestedPhotoSettings: AVCapturePhotoSettings
-    private let photoOutput: AVCapturePhotoOutput
-    
+    private weak var photoOutput: AVCapturePhotoOutput?
+
     private var photoId: String = NSUUID().uuidString
     private var maxPhotoProcessingTime: CMTime?
     private var continuation: PhotoCaptureProcessorContinuation?
     private var currentOutput = PhotoCaptureProcessorOutput()
-    
-    init(output: AVCapturePhotoOutput, requestedPhotoSettings: AVCapturePhotoSettings) {
-        self.requestedPhotoSettings = requestedPhotoSettings
-        self.photoOutput = output
+    private var tempFileUrl: URL {
+        URL.tempMediaDirectory
+            .appendingPathComponent(photoId)
+            .appendingPathExtension("mov")
+    }
+
+    init(output photoOutput: AVCapturePhotoOutput, livePhotoEnabled: Bool, flashMode: AVCaptureDevice.FlashMode) {
+        self.photoOutput = photoOutput
+
+        var photoSettings = AVCapturePhotoSettings()
+        
+
+        photoSettings.flashMode = flashMode
+        photoSettings.isHighResolutionPhotoEnabled = true
+
+        self.requestedPhotoSettings = photoSettings
+        super.init()
+
+        if livePhotoEnabled {
+            photoSettings.livePhotoMovieFileURL = tempFileUrl
+        }
     }
     
     public func takePhoto() async throws -> PhotoCaptureProcessorOutput {
         return try await withCheckedThrowingContinuation({ (continuation: PhotoCaptureProcessorContinuation) in
-            guard self.photoOutput.connections.count > 0 else {
+            guard let photoOutput, photoOutput.connections.count > 0 else {
                 continuation.resume(returning: PhotoCaptureProcessorOutput())
                 return
             }
             self.continuation = continuation
-            self.photoOutput.capturePhoto(with: self.requestedPhotoSettings, delegate: self)
+            photoOutput.capturePhoto(with: self.requestedPhotoSettings, delegate: self)
             
         })
     }

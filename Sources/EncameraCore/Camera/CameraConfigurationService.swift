@@ -127,7 +127,11 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     private var movieOutput: AVCaptureMovieFileOutput?
     private let photoOutput = AVCapturePhotoOutput()
     private var videoDeviceInput: AVCaptureDeviceInput?
-    private let videoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera, .builtInTrueDepthCamera], mediaType: .video, position: .unspecified)
+    private let videoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [
+        .builtInWideAngleCamera,
+        .builtInDualCamera,
+        .builtInTrueDepthCamera
+    ], mediaType: .video, position: .unspecified)
     private var cancellables = Set<AnyCancellable>()
 
     public init(model: CameraConfigurationServiceModel) {
@@ -448,7 +452,7 @@ extension CameraConfigurationService {
     }
 
 
-    public func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode) async throws -> AsyncPhotoCaptureProcessor {
+    public func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode, livePhotoEnabled: Bool) async throws -> AsyncPhotoCaptureProcessor {
         guard self.model.setupResult != .configurationFailed else {
             printDebug("Could not capture photo")
             throw MediaProcessorError.setupIncomplete
@@ -457,21 +461,8 @@ extension CameraConfigurationService {
         if let photoOutputConnection = self.photoOutput.connection(with: .video) {
             photoOutputConnection.videoOrientation = model.orientation
         }
-        var photoSettings = AVCapturePhotoSettings()
-        // Capture HEIF photos when supported. Enable according to user settings and high-resolution photos.
-        if photoOutput.availablePhotoCodecTypes.contains(.hevc) {
-            photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
-        }
 
-        // Sets the flash option for this capture.
-        if let videoDeviceInput = self.videoDeviceInput,
-           videoDeviceInput.device.isFlashAvailable {
-            photoSettings.flashMode = flashMode
-        }
-
-        photoSettings.isHighResolutionPhotoEnabled = true
-
-        return AsyncPhotoCaptureProcessor(output: photoOutput, requestedPhotoSettings: photoSettings)
+        return AsyncPhotoCaptureProcessor(output: photoOutput, livePhotoEnabled: livePhotoEnabled, flashMode: flashMode)
     }
 
     public nonisolated func toggleTorch(on: Bool) {
@@ -516,6 +507,7 @@ private extension CameraConfigurationService {
         photoOutput.maxPhotoQualityPrioritization = .quality
         photoOutput.isHighResolutionCaptureEnabled = true
 
+        photoOutput.isLivePhotoCaptureEnabled = photoOutput.isLivePhotoCaptureSupported
         guard session.canAddOutput(photoOutput) else {
             printDebug("Could not add photooutput to session")
             return
@@ -523,6 +515,7 @@ private extension CameraConfigurationService {
         printDebug("Calling addPhotoOutputToSession")
 
         session.addOutput(photoOutput)
+
     }
 
     private func addVideoOutputToSession() throws {
