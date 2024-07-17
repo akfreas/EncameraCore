@@ -36,7 +36,11 @@ public class InteractableMedia<T: MediaDescribing>: Hashable, Identifiable, Equa
     public var id: String
 
 
-
+    public init(emptyWithType type: InteractableMediaType, id: String) {
+        self.mediaType = type
+        self.id = id
+        self.underlyingMedia = []
+    }
 
     public init(underlyingMedia: [T]) throws {
         let underlyingMediaTypes = Set(underlyingMedia.map { $0.mediaType }.filter({$0 != .unknown && $0 != .preview}))

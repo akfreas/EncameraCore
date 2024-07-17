@@ -10,7 +10,7 @@ import UIKit
 
 public actor InteractableMediaDiskAccess: FileAccess {
     public init() {
-        fatalError()
+        fileAccess = DiskFileAccess()
     }
 
 
