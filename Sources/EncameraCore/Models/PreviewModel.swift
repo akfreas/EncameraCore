@@ -15,7 +15,8 @@ public struct PreviewModel: Codable {
         "\(thumbnailMedia.mediaType.fileExtension)_\(thumbnailMedia.id)"
     }
     public var videoDuration: String?
-    
+    public var isLivePhoto: Bool = false
+
     init(source: CleartextMedia) throws {
         guard case .data(let data) = source.source else {
             throw FileAccessError.couldNotLoadMedia
@@ -23,6 +24,7 @@ public struct PreviewModel: Codable {
         let decoded = try JSONDecoder().decode(PreviewModel.self, from: data)
         self.id = decoded.id
         self.thumbnailMedia = decoded.thumbnailMedia
+        self.isLivePhoto = decoded.isLivePhoto
         self.videoDuration = decoded.videoDuration
     }
     

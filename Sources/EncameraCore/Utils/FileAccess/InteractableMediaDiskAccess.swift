@@ -61,7 +61,9 @@ public actor InteractableMediaDiskAccess: FileAccess {
     }
     
     public func loadMediaPreview<T>(for media: InteractableMedia<T>) async throws -> PreviewModel where T : MediaDescribing {
-        return try await fileAccess.loadMediaPreview(for: media.thumbnailSource)
+        var preview = try await fileAccess.loadMediaPreview(for: media.thumbnailSource)
+        preview.isLivePhoto = media.mediaType == .livePhoto
+        return preview
     }
 
     public func loadMedia<T>(media: InteractableMedia<T>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> InteractableMedia<CleartextMedia> where T : MediaDescribing {
@@ -93,7 +95,9 @@ public actor InteractableMediaDiskAccess: FileAccess {
     }
     
     public func createPreview(for media: InteractableMedia<CleartextMedia>) async throws -> PreviewModel {
-        return try await fileAccess.createPreview(for: media.thumbnailSource)
+        var preview = try await fileAccess.createPreview(for: media.thumbnailSource)
+        preview.isLivePhoto = media.mediaType == .livePhoto
+        return preview
     }
     
     public func copy(media: InteractableMedia<EncryptedMedia>) async throws {
