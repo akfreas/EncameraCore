@@ -43,7 +43,13 @@ public actor InteractableMediaDiskAccess: FileAccess {
                 debugPrint("Could not create interactable media: \(error)")
             }
         }
-        return Array(mediaMap.values)
+        let sortedByDateDesc = Array(mediaMap.values).sorted { media1, media2 in
+            guard let timestamp1 = media1.timestamp, let timestamp2 = media2.timestamp else {
+                return false
+            }
+            return timestamp1.compare(timestamp2) == .orderedDescending
+        }
+        return sortedByDateDesc
     }
     
 
