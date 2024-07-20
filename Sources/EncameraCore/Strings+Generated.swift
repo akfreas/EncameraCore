@@ -387,7 +387,7 @@ public enum L10n {
   /// Make sure you remember your pin code!
   public static let makeSureYouRememberYourPin = L10n.tr("Localizable", "MakeSureYouRememberYourPin", fallback: "Make sure you remember your pin code!")
   /// ./Encamera/CameraView/CameraView.swift
-  public static let missingCameraAccess = L10n.tr("Localizable", "Missing camera access.", fallback: "Missing camera access.")
+  public static let missingCameraAccess = L10n.tr("Localizable", "Missing camera access", fallback: "Missing camera access")
   /// ./Encamera/AuthenticationView/AuthenticationView.swift
   public static let missingPassword = L10n.tr("Localizable", "Missing password", fallback: "Missing password")
   /// Upgrade to premium to unlock unlimited photos
@@ -456,14 +456,14 @@ public enum L10n {
   public static let onboardingPermissionsTitle = L10n.tr("Localizable", "OnboardingPermissionsTitle", fallback: "Permissions")
   /// One-Time Purchase
   public static let oneTimePurchase = L10n.tr("Localizable", "One-Time Purchase", fallback: "One-Time Purchase")
-  /// Open settings to allow camera access permission
-  public static let openSettingsToAllowCameraAccessPermission = L10n.tr("Localizable", "Open settings to allow camera access permission", fallback: "Open settings to allow camera access permission")
   /// Open Source
   public static let openSource = L10n.tr("Localizable", "Open Source", fallback: "Open Source")
   /// Open Settings
   public static let openSettings = L10n.tr("Localizable", "OpenSettings", fallback: "Open Settings")
   /// Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.
   public static let openSourceExplanation = L10n.tr("Localizable", "OpenSourceExplanation", fallback: "Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.")
+  /// Go to Settings
+  public static let openSystemSettings = L10n.tr("Localizable", "OpenSystemSettings", fallback: "Go to Settings")
   /// Or
   public static let or = L10n.tr("Localizable", "Or", fallback: "Or")
   /// Are you sure you want to overwrite your current key phrase? You will not be able to access any media encrypted with the current key phrase.

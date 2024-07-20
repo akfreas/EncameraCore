@@ -36,8 +36,7 @@
 "SaveLocally" = "Auf diesem Gerät speichern"; 
 
 /* ./Encamera/CameraView/CameraView.swift */
-"Missing camera access." = "Kamerazugriff fehlt.";
-"Open settings to allow camera access permission" = "Öffnen Sie die Einstellungen, um die Kamerazugriffsberechtigung zu erteilen";
+"Missing camera access" = "Kamerazugriff fehlt";
 "OpenSettings" = "Einstellungen öffnen";
 "FinishImportingMedia" = "Medienimport abschließen";
 "TakeYourFirstPicture" = "NEHMEN SIE IHR ERSTES FOTO";

@@ -36,8 +36,8 @@ public class AsyncPhotoCaptureProcessor: NSObject {
     init(output photoOutput: AVCapturePhotoOutput, livePhotoEnabled: Bool, flashMode: AVCaptureDevice.FlashMode) {
         self.photoOutput = photoOutput
         self.currentOutput = InteractableMedia<CleartextMedia>(emptyWithType: livePhotoEnabled ? .livePhoto : .stillPhoto, id: photoId)
-        var photoSettings = AVCapturePhotoSettings()
-        
+        let photoSettings = AVCapturePhotoSettings()
+
 
         photoSettings.flashMode = flashMode
         photoSettings.isHighResolutionPhotoEnabled = true

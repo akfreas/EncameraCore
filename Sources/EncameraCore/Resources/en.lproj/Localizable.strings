@@ -41,14 +41,14 @@
 
 /* Encamera App */
 /* ./Encamera/CameraView/CameraView.swift */
-"Missing camera access." = "Missing camera access.";
-"Open settings to allow camera access permission" = "Open settings to allow camera access permission";
+"Missing camera access" = "Missing camera access";
 "OpenSettings" = "Open Settings";
 "FinishImportingMedia" = "Finish Importing Media";
 "TakeYourFirstPicture" = "TAKE YOUR FIRST PICTURE";
 "ImageSavedToAlbum" = "IMAGE SAVED TO ALBUM";
 "NoAlbum" = "No Album";
 "NoAlbumSelected" = "No Album Selected. You must select an album to save photos to.";
+"OpenSystemSettings" = "Go to Settings";
 /* ./Encamera/CameraView/CameraModePicker.swift */
 "PHOTO" = "PHOTO";
 "VIDEO" = "VIDEO";

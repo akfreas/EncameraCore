@@ -11,7 +11,6 @@ import EncameraCore
 
 protocol CaptureProcessor {
     init(
-        willCapturePhotoAnimation: @escaping () -> Void,
         completionHandler: @escaping (CaptureProcessor) -> Void,
         photoProcessingHandler: @escaping (Bool) -> Void,
         fileWriter: FileWriter)
