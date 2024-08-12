@@ -17,7 +17,7 @@ public struct PreviewModel: Codable {
     public var videoDuration: String?
     public var isLivePhoto: Bool = false
 
-    init(source: CleartextMedia) throws {
+    public init(source: CleartextMedia) throws {
         guard case .data(let data) = source.source else {
             throw FileAccessError.couldNotLoadMedia
         }
@@ -28,7 +28,7 @@ public struct PreviewModel: Codable {
         self.videoDuration = decoded.videoDuration
     }
     
-    init(thumbnailMedia: CleartextMedia) {
+    public init(thumbnailMedia: CleartextMedia) {
         self.thumbnailMedia = thumbnailMedia
         self.id = thumbnailMedia.id
     }

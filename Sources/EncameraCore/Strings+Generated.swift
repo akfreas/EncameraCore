@@ -750,6 +750,10 @@ public enum L10n {
     /// Error deleting key and associated files. Please try again or try to delete files manually via the Files app.
     public static let pleaseTryAgainOrTryToDeleteFilesManuallyViaTheFilesApp = L10n.tr("Localizable", "Error deleting key and associated files. Please try again or try to delete files manually via the Files app.", fallback: "Error deleting key and associated files. Please try again or try to delete files manually via the Files app.")
   }
+  public enum GalleryView {
+    /// Live Photo - Hold to View
+    public static let playLivePhoto = L10n.tr("Localizable", "GalleryView.PlayLivePhoto", fallback: "Live Photo - Hold to View")
+  }
   public enum KeyCopiedToClipboard {
     /// Key copied to clipboard. Store this in a password manager or other secure place.
     public static let storeThisInAPasswordManagerOrOtherSecurePlace = L10n.tr("Localizable", "Key copied to clipboard. Store this in a password manager or other secure place.", fallback: "Key copied to clipboard. Store this in a password manager or other secure place.")

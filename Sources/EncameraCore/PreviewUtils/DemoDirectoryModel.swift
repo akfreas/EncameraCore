@@ -18,7 +18,7 @@ public class DemoDirectoryModel: DataStorageModel {
                                       isDirectory: true).appendingPathComponent("thumbs")
     }
 
-    convenience init() {
+    public convenience init() {
         self.init(album: Album(name: "", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()))
     }
 

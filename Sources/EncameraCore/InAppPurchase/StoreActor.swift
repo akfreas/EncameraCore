@@ -166,7 +166,6 @@ import StoreKit
         guard currentSubscription.subscription?.subscriptionPeriod.unit == .year else {
             return nil
         }
-        print("Subscription: \(currentSubscription.id)", "Subscriptions: \(subscriptions)")
         guard let yearlySubscription = subscriptions.first(where: { $0.id == StoreActor.unlimitedYearlyID }) else {
             return nil
         }

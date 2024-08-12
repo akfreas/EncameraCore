@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by Alexander Freas on 17.03.24.
-//
-
 import Foundation
 import StoreKit
 

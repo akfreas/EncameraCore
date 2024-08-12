@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by Alexander Freas on 01.07.24.
-//
-
 import Foundation
 
 public enum InteractableMediaType: Hashable {
@@ -41,7 +34,7 @@ public class InteractableMedia<T: MediaDescribing>: Hashable, Identifiable, Equa
         self.id = id
         self.underlyingMedia = []
     }
-
+    
     public init(underlyingMedia: [T]) throws {
         let underlyingMediaTypes = Set(underlyingMedia.map { $0.mediaType }.filter({$0 != .unknown && $0 != .preview}))
         guard !underlyingMediaTypes.isEmpty else {

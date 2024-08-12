@@ -231,6 +231,7 @@
 "Share Encrypted" = "Share Encrypted";
 "Share Decrypted" = "Share Decrypted";
 "Downloading from iCloud" = "Downloading from iCloud";
+"GalleryView.PlayLivePhoto" = "Live Photo - Hold to View";
 /* ./Encamera/ImageViewing/DecryptErrorExplanation.swift */
 "The media you tried to open could not be decrypted." = "The media you tried to open could not be decrypted.";
 "Check that the same key that was used to encrypt this media is set as the active key." = "Check that the same key that was used to encrypt this media is set as the active key.";
@@ -468,3 +469,4 @@
 "Notification.Scheduling.Error" = "Error scheduling notification: %@";
 "Settings.Version" = "Version";
 "Settings.Contact" = "Contact Support";
+

@@ -36,7 +36,7 @@ public struct CleartextMedia: MediaDescribing, Codable {
     }
 
 
-    init(source: Data) {
+    public init(source: Data) {
         self.init(source: .data(source))
     }
 

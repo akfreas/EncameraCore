@@ -1,7 +1,3 @@
-//
-//  File.swift
-//
-//
 //  Created by Alexander Freas on 12.11.23.
 //
 
