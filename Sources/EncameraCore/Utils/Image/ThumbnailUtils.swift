@@ -46,7 +46,7 @@ public struct ThumbnailUtils {
         }
         let resizer = ImageResizer(targetWidth: AppConstants.thumbnailWidth)
         guard let thumbnailData = resizer.resize(data: thumbnailSourceData, quality: 1.0)?.pngData() else {
-            fatalError()
+            throw SecretFilesError.createThumbnailError
         }
 
         debugPrint("Thumbnail size: \(MemorySizer.size(of: thumbnailData)) original size: \(MemorySizer.size(of: thumbnailSourceData))")
