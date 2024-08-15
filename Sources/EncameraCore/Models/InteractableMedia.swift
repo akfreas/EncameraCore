@@ -1,4 +1,6 @@
 import Foundation
+import PhotosUI
+import Photos
 
 public enum InteractableMediaType: Hashable {
     case stillPhoto
