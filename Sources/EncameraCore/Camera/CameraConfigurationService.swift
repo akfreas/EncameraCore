@@ -73,6 +73,7 @@ protocol CameraConfigurationServicable {
 public class CameraConfigurationServiceModel {
     @Published public var orientation: AVCaptureVideoOrientation = .portrait
     @Published public var cameraMode: CameraMode = .photo
+    @Published public var canCaptureLivePhoto: Bool = true
 
     public var alertError: AlertError = AlertError()
     public var setupResult: SessionSetupResult = .notDetermined
@@ -110,7 +111,9 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             }
         }
     }
-
+    nonisolated public var canCaptureLivePhoto: Published<Bool>.Publisher {
+        model.$canCaptureLivePhoto
+    }
     nonisolated public let session = AVCaptureSession()
     public let model: CameraConfigurationServiceModel
     var delegate: CameraConfigurationServicableDelegate?
@@ -124,6 +127,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             }
         }
     }
+
     private lazy var metadataProcessor = QRCodeCaptureProcessor()
     private var movieOutput: AVCaptureMovieFileOutput?
     private let photoOutput = AVCapturePhotoOutput()
@@ -273,19 +277,23 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     func loadAvailableZoomFactors() async {
         let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera, .builtInTelephotoCamera, .builtInUltraWideCamera], mediaType: .video, position: .back)
 
+        var zoomLevelsDict: [ZoomLevel: ZoomControlModel] = [:]
+
         for camera in discoverySession.devices {
             switch camera.deviceType {
             case .builtInUltraWideCamera:
-                zoomLevels[.x05] = ZoomControlModel(zoomLevel: .x05, captureDevice: camera, useDigitalZoom: false)
+                zoomLevelsDict[.x05] = ZoomControlModel(zoomLevel: .x05, captureDevice: camera, useDigitalZoom: false)
             case .builtInWideAngleCamera:
-                zoomLevels[.x1] = ZoomControlModel(zoomLevel: .x1, captureDevice: camera, useDigitalZoom: false)
-                zoomLevels[.x2] = ZoomControlModel(zoomLevel: .x2, captureDevice: camera, useDigitalZoom: true)
+                zoomLevelsDict[.x1] = ZoomControlModel(zoomLevel: .x1, captureDevice: camera, useDigitalZoom: false)
+                zoomLevelsDict[.x2] = ZoomControlModel(zoomLevel: .x2, captureDevice: camera, useDigitalZoom: true)
             case .builtInTelephotoCamera:
-                zoomLevels[.x3] = ZoomControlModel(zoomLevel: .x3, captureDevice: camera, useDigitalZoom: false)
+                zoomLevelsDict[.x3] = ZoomControlModel(zoomLevel: .x3, captureDevice: camera, useDigitalZoom: false)
             default:
                 break
             }
         }
+
+        self.zoomLevels = zoomLevelsDict
     }
 
     public func set(rotation: AVCaptureVideoOrientation) async {
@@ -416,6 +424,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
                     connection.preferredVideoStabilizationMode = .auto
                 }
             }
+            try addPhotoOutputToSession()
         } catch {
             printDebug("Error occurred while creating video device input: \(error)")
         }
@@ -511,8 +520,9 @@ private extension CameraConfigurationService {
         session.sessionPreset = .photo
         photoOutput.maxPhotoQualityPrioritization = .quality
         photoOutput.isHighResolutionCaptureEnabled = true
-
-        photoOutput.isLivePhotoCaptureEnabled = photoOutput.isLivePhotoCaptureSupported
+        let canCaptureLivePhoto = photoOutput.isLivePhotoCaptureSupported
+        model.canCaptureLivePhoto = canCaptureLivePhoto
+        photoOutput.isLivePhotoCaptureEnabled = canCaptureLivePhoto
         guard session.canAddOutput(photoOutput) else {
             printDebug("Could not add photooutput to session")
             return

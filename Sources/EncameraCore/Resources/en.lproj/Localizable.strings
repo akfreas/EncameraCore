@@ -230,8 +230,8 @@
 "Share this image?" = "Share this image?";
 "Share Encrypted" = "Share Encrypted";
 "Share Decrypted" = "Share Decrypted";
-"Downloading from iCloud" = "Downloading from iCloud";
 "GalleryView.PlayLivePhoto" = "Live Photo - Hold to View";
+"ImportingPleaseWait" = "Importing... Please wait";
 /* ./Encamera/ImageViewing/DecryptErrorExplanation.swift */
 "The media you tried to open could not be decrypted." = "The media you tried to open could not be decrypted.";
 "Check that the same key that was used to encrypt this media is set as the active key." = "Check that the same key that was used to encrypt this media is set as the active key.";

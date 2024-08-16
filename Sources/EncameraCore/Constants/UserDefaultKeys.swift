@@ -31,6 +31,7 @@ public enum UserDefaultKey {
     case videoAddedCount
     case widgetOpenCount
     case notificationScheduledCount(identifier: NotificationIdentifier)
+    case livePhotosActivated
 
 
     var rawValue: String {

@@ -193,8 +193,6 @@ public enum L10n {
   public static let done = L10n.tr("Localizable", "Done", fallback: "Done")
   /// Done!
   public static let doneOnboarding = L10n.tr("Localizable", "DoneOnboarding", fallback: "Done!")
-  /// Downloading from iCloud
-  public static let downloadingFromICloud = L10n.tr("Localizable", "Downloading from iCloud", fallback: "Downloading from iCloud")
   /// Do you remember your pin?
   public static let doYouRememberYourPin = L10n.tr("Localizable", "DoYouRememberYourPin", fallback: "Do you remember your pin?")
   /// If you don't, you can set a new one by going to 'Change Pin'
@@ -323,6 +321,8 @@ public enum L10n {
   public static let `import` = L10n.tr("Localizable", "Import", fallback: "Import")
   /// Add Pictures and Video
   public static let importMedia = L10n.tr("Localizable", "Import media", fallback: "Add Pictures and Video")
+  /// Importing... Please wait
+  public static let importingPleaseWait = L10n.tr("Localizable", "ImportingPleaseWait", fallback: "Importing... Please wait")
   /// Import Key Phrase
   public static let importKeyPhrase = L10n.tr("Localizable", "ImportKeyPhrase", fallback: "Import Key Phrase")
   /// Import the selected images to your currently active key album

@@ -244,8 +244,7 @@
 "Share this image?" = "¿Compartir esta imagen?";
 "Share Encrypted" = "Compartir cifrada";
 "Share Decrypted" = "Compartir descifrada";
-"Downloading from iCloud" = "Descargando de iCloud"; 
-
+"ImportingPleaseWait" = "Importando, por favor espera...";
 /* ./Encamera/ImageViewing/DecryptErrorExplanation.swift */
 "The media you tried to open could not be decrypted." = "El medio que intentaste abrir no se pudo desencriptar.";
 "Check that the same key that was used to encrypt this media is set as the active key." = "Verifica que la misma clave que se utilizó para encriptar este medio esté establecida como la clave activa.";
