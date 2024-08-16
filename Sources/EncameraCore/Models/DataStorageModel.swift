@@ -131,7 +131,16 @@ extension DataStorageModel {
     }
 
     public func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.fileExtension]) -> Int {
-        return enumeratorForStorageDirectory(resourceKeys: Set(), fileExtensionFilter: matchingFileExtension).count
+        let files = enumeratorForStorageDirectory(resourceKeys: Set(), fileExtensionFilter: matchingFileExtension)
+
+        var uniqueFileNames = Set<String>()
+
+        for file in files {
+            let fileNameWithoutExtension = file.deletingPathExtension().lastPathComponent
+            uniqueFileNames.insert(fileNameWithoutExtension)
+        }
+
+        return uniqueFileNames.count
     }
 
     public static func deletePreviewDirectory() throws {
