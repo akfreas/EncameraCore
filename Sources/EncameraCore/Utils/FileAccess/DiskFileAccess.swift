@@ -39,7 +39,6 @@ public actor DiskFileAccess {
         try? self.directoryModel?.initializeDirectories()
     }
 
-
     public func enumerateMedia<T : MediaDescribing>() async -> [T] {
         guard let directoryModel = directoryModel else {
             return []
@@ -61,7 +60,18 @@ public actor DiskFileAccess {
                       let creationDate2 = resourceValues2.creationDate else {
                     return false
                 }
-                return creationDate1.compare(creationDate2) == .orderedDescending
+
+                // First, sort by creation date
+                let dateComparison = creationDate1.compare(creationDate2)
+                if dateComparison != .orderedSame {
+                    return dateComparison == .orderedDescending
+                }
+
+                // If dates are the same, prioritize photos over videos
+                let isPhoto1 = url1.pathExtension == MediaType.photo.fileExtension
+                let isPhoto2 = url2.pathExtension == MediaType.photo.fileExtension
+
+                return isPhoto1 && !isPhoto2
             }.compactMap { (itemUrl: URL) in
                 return T(source: .url(itemUrl))
             }
@@ -94,7 +104,7 @@ extension DiskFileAccess {
         } catch {
             switch media.mediaType {
             case .photo:
-                debugPrint("loadMediaPreview: No thumbnail found for photo")
+                debugPrint("loadMediaPreview: No thumbnail found for photo with id: \(media.id)")
                 return try await createPreview(for: media)
             case .video:
                 // We are signaling here that there is no thumbnail for the
@@ -102,7 +112,7 @@ extension DiskFileAccess {
                 // so that an encrypted preview is stored in a certain region
                 // of the file, so we can load the preview without decrypting
                 // the entire file
-                debugPrint("loadMediaPreview: No thumbnail found for video")
+                debugPrint("loadMediaPreview: No thumbnail found for video with id: \(media.id)")
                 throw SecretFilesError.createVideoThumbnailError
             default:
                 debugPrint("loadMediaPreview: No thumbnail found for unknown media type")
@@ -209,31 +219,36 @@ extension DiskFileAccess {
     }
 
     @discardableResult public func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
-
-        let thumbnail = try await createThumbnail(for: media)
-        debugPrint("createPreview: Created thumbnail")
-        var preview = PreviewModel(thumbnailMedia: thumbnail)
-        if let encrypted = media as? EncryptedMedia {
-            switch encrypted.mediaType {
-            case .photo:
-                break
-            case .video:
-                let video: CleartextMedia = try await decryptMediaToURL(encrypted: encrypted, progress: {_ in })
-                guard let url = video.url else {
+        do {
+            let thumbnail = try await createThumbnail(for: media)
+            debugPrint("createPreview: Created thumbnail for \(media.id)")
+            var preview = PreviewModel(thumbnailMedia: thumbnail)
+            if let encrypted = media as? EncryptedMedia {
+                switch encrypted.mediaType {
+                case .photo:
+                    break
+                case .video:
+                    let video: CleartextMedia = try await decryptMediaToURL(encrypted: encrypted, progress: {_ in })
+                    guard let url = video.url else {
+                        throw SecretFilesError.createPreviewError
+                    }
+                    let asset = AVURLAsset(url: url, options: nil)
+                    preview.videoDuration = asset.duration.durationText
+                default:
                     throw SecretFilesError.createPreviewError
                 }
-                let asset = AVURLAsset(url: url, options: nil)
+            } else if let decrypted = media as? CleartextMedia, decrypted.mediaType == .video, case .url(let source) = decrypted.source {
+                let asset = AVURLAsset(url: source, options: nil)
                 preview.videoDuration = asset.duration.durationText
-            default:
-                throw SecretFilesError.createPreviewError
             }
-        } else if let decrypted = media as? CleartextMedia, decrypted.mediaType == .video, case .url(let source) = decrypted.source {
-            let asset = AVURLAsset(url: source, options: nil)
-            preview.videoDuration = asset.duration.durationText
-        }
-        try await savePreview(preview: preview, sourceMedia: media)
+            try await savePreview(preview: preview, sourceMedia: media)
+            return preview
 
-        return preview
+        } catch {
+            debugPrint("createPreview: Error creating preview for \(media.id)")
+            throw error
+        }
+
     }
 
     @discardableResult private func createThumbnail<T: MediaDescribing>(for media: T) async throws -> CleartextMedia {
@@ -280,6 +295,7 @@ extension DiskFileAccess {
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, targetURL: destinationURL)
 
         try await fileHandler.encrypt()
+        debugPrint("Saved preview for \(sourceMedia.id)")
         return cleartextPreview
     }
 
@@ -324,12 +340,13 @@ extension DiskFileAccess {
 
     public func delete(media: EncryptedMedia) async throws {
         guard case .url(let source) = media.source else {
+            debugPrint("Error deleting media: \(media)")
             throw FileAccessError.missingDirectoryModel
         }
-
+        
         try FileManager.default.removeItem(at: source)
         if let previewURL = directoryModel?.previewURLForMedia(media) {
-            try FileManager.default.removeItem(at: previewURL)
+            try? FileManager.default.removeItem(at: previewURL)
         }
         operationBus.didDelete(media)
 

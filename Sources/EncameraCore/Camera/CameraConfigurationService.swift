@@ -63,6 +63,7 @@ protocol CameraConfigurationServicable {
     func start() async
     func focus(at focusPoint: CGPoint) async
     func set(zoom: ZoomLevel) async
+    func set(rotation: AVCaptureVideoOrientation) async
     func flipCameraDevice() async
     func configureForMode(targetMode: CameraMode) async
     func setDelegate(_ delegate: CameraConfigurationServicableDelegate) async
@@ -285,6 +286,10 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
                 break
             }
         }
+    }
+
+    public func set(rotation: AVCaptureVideoOrientation) async {
+        model.orientation = rotation
     }
 
     public func set(zoom: ZoomLevel) async {

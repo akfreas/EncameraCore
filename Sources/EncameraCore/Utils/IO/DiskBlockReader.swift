@@ -59,7 +59,12 @@ class DiskBlockReader: FileLikeBlockReader {
     }
     
     func write(contentsOf data: Data) throws {
-        try fileHandle?.write(contentsOf: data)
+        do {
+            try fileHandle?.write(contentsOf: data)
+        } catch {
+            debugPrint("Error writing to file: \(error)")
+            throw error
+        }
     }
 }
 

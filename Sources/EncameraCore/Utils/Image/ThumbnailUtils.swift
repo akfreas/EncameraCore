@@ -28,6 +28,7 @@ public struct ThumbnailUtils {
             case .video:
                 guard let thumb = generateThumbnailFromVideo(at: url),
                       let data = thumb.pngData() else {
+                    debugPrint("createVideoThumbnailError: Error creating thumbnail for \(media.id)")
                     throw SecretFilesError.createVideoThumbnailError
                 }
                 thumbnailSourceData = data
@@ -39,6 +40,7 @@ public struct ThumbnailUtils {
             case .photo:
                 thumbnailSourceData = data
             default:
+                debugPrint("fileTypeError: Error creating thumbnail for \(media.id)")
                 throw SecretFilesError.fileTypeError
             }
         } else {
@@ -46,6 +48,7 @@ public struct ThumbnailUtils {
         }
         let resizer = ImageResizer(targetWidth: AppConstants.thumbnailWidth)
         guard let thumbnailData = resizer.resize(data: thumbnailSourceData, quality: 1.0)?.pngData() else {
+            debugPrint("createThumbnailError: Error creating thumbnail for \(media.id)")
             throw SecretFilesError.createThumbnailError
         }
 

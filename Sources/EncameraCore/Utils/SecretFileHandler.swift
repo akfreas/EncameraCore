@@ -117,21 +117,21 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
         do {
             let destinationHandler = try FileLikeHandler(media: destinationMedia, mode: .writing)
             let sourceHandler = try FileLikeHandler(media: sourceMedia, mode: .reading)
-            
+
             try destinationHandler.prepareIfDoesNotExist()
             let header = streamEnc.header()
             try destinationHandler.write(contentsOf: Data(header))
             var writeBlockSizeOperation: (([UInt8]) -> Void)?
             writeBlockSizeOperation = { cipherText in
-                
+
                 let cipherTextLength = withUnsafeBytes(of: cipherText.count) {
-                        Array($0)
-                    }
-                    try! destinationHandler.write(contentsOf: Data(cipherTextLength))
-                    writeBlockSizeOperation = nil
+                    Array($0)
+                }
+                try! destinationHandler.write(contentsOf: Data(cipherTextLength))
+                writeBlockSizeOperation = nil
             }
             return try await withCheckedThrowingContinuation { continuation in
-                
+
                 ChunkedFileProcessingPublisher(sourceFileHandle: sourceHandler, blockSize: defaultBlockSize)
                     .map({ (bytes, progress, isFinal)  -> Data in
                         let message = streamEnc.push(message: bytes, tag: isFinal ? .FINAL : .MESSAGE)!
