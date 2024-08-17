@@ -14,7 +14,7 @@ public enum PasswordValidation {
     case invalidTooShort
     case invalidDifferent
     case invalidTooLong
-    
+
     public var validationDescription: String {
         switch self {
         case .notDetermined:
@@ -27,16 +27,16 @@ public enum PasswordValidation {
             return L10n.passwordsDoNotMatch
         case .invalidTooLong:
             return L10n.passwordIsTooLong(PasswordValidation.maxPasswordLength)
-            
+
         }
     }
-    
-    static let minPasswordLength = 4
-    static let maxPasswordLength = 30
+
+    static public let minPasswordLength = 4
+    static public let maxPasswordLength = 6
 }
 
 public struct PasswordValidator {
-    
+
     public init() {}
     public static func validate(password: String) -> PasswordValidation {
         let validationState: PasswordValidation
@@ -51,7 +51,7 @@ public struct PasswordValidator {
         return validationState
 
     }
-    
+
     public static func validatePasswordPair(_ password1: String, password2: String) -> PasswordValidation {
         let validationState: PasswordValidation
         switch (password1, password2) {

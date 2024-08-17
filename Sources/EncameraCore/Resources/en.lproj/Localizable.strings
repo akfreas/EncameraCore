@@ -417,6 +417,9 @@
 "EmptyAlbumImportPhotosSubtitle" = "Import pictures from your camera roll";
 "EmptyAlbumImportPhotosActionTitle" = "Import Pictures";
 "PinSuccessfullyChanged" = "Pin successfully changed";
+"SavePinCode" = "Save PIN Code";
+"UnlockWithPin" = "Unlock";
+"PinTooShort" = "PIN is too short. It must be at least 4 digits.";
 "MakeSureYouRememberYourPin" = "Make sure you remember your pin code!";
 "ErrorSavingPassword" = "Error saving password";
 "DoYouRememberYourPin" = "Do you remember your pin?";

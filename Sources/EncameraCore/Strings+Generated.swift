@@ -508,6 +508,8 @@ public enum L10n {
   public static let pinCodeMismatch = L10n.tr("Localizable", "PinCodeMismatch", fallback: "Pincodes are not the same")
   /// Pin successfully changed
   public static let pinSuccessfullyChanged = L10n.tr("Localizable", "PinSuccessfullyChanged", fallback: "Pin successfully changed")
+  /// PIN is too short. It must be at least 4 digits.
+  public static let pinTooShort = L10n.tr("Localizable", "PinTooShort", fallback: "PIN is too short. It must be at least 4 digits.")
   /// Please select a storage location.
   public static let pleaseSelectAStorageLocation = L10n.tr("Localizable", "Please select a storage location.", fallback: "Please select a storage location.")
   /// Please enter a name for the album
@@ -554,6 +556,8 @@ public enum L10n {
   public static let savedToICloud = L10n.tr("Localizable", "Saved to iCloud", fallback: "Saved to iCloud")
   /// Save to this device
   public static let saveLocally = L10n.tr("Localizable", "SaveLocally", fallback: "Save to this device")
+  /// Save PIN Code
+  public static let savePinCode = L10n.tr("Localizable", "SavePinCode", fallback: "Save PIN Code")
   /// Save to iCloud Drive
   public static let saveToiCloudDrive = L10n.tr("Localizable", "SaveToiCloudDrive", fallback: "Save to iCloud Drive")
   /// Scan with Encamera app
@@ -684,6 +688,8 @@ public enum L10n {
   }
   /// Unlock Unlimited for Free!
   public static let unlockUnlimitedForFree = L10n.tr("Localizable", "UnlockUnlimitedForFree", fallback: "Unlock Unlimited for Free!")
+  /// Unlock
+  public static let unlockWithPin = L10n.tr("Localizable", "UnlockWithPin", fallback: "Unlock")
   /// Upgrade to Premium
   public static let upgradeToPremium = L10n.tr("Localizable", "Upgrade to Premium", fallback: "Upgrade to Premium")
   /// ./Encamera/InAppPurchase/PurchasePhotoSubscriptionOverlay.swift
