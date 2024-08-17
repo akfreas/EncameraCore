@@ -86,6 +86,7 @@ public enum ZoomLevel: CGFloat {
     case x1 = 1.0
     case x2 = 2.0
     case x3 = 3.0
+    case x5 = 5.0
 }
 
 fileprivate struct ZoomControlModel {
@@ -104,10 +105,10 @@ fileprivate struct ZoomControlModel {
 public actor CameraConfigurationService: CameraConfigurationServicable, DebugPrintable {
 
     public var currentCameraDeviceType: AVCaptureDevice.DeviceType?
-    public var currentCameraPosition: AVCaptureDevice.Position? {
+    public var currentCameraPosition: AVCaptureDevice.Position = .back {
         didSet {
             Task { @MainActor in
-                await delegate?.didUpdate(cameraPosition: currentCameraPosition ?? .unspecified)
+                await delegate?.didUpdate(cameraPosition: currentCameraPosition)
             }
         }
     }
@@ -132,11 +133,13 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     private var movieOutput: AVCaptureMovieFileOutput?
     private let photoOutput = AVCapturePhotoOutput()
     private var videoDeviceInput: AVCaptureDeviceInput?
-    private let videoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [
-        .builtInWideAngleCamera,
+    private let deviceTypes: [AVCaptureDevice.DeviceType] = [
         .builtInDualCamera,
-        .builtInTrueDepthCamera
-    ], mediaType: .video, position: .unspecified)
+        .builtInWideAngleCamera,
+        .builtInDualWideCamera,
+        .builtInTelephotoCamera,
+        .builtInUltraWideCamera
+    ]
     private var cancellables = Set<AnyCancellable>()
 
     public init(model: CameraConfigurationServiceModel) {
@@ -227,6 +230,12 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             return
         }
 
+        NotificationUtils.cameraDidStartRunningPublisher.sink { value in
+            Task { @MainActor in
+                await self.loadAvailableZoomFactors()
+            }
+        }.store(in: &cancellables)
+
         switch model.setupResult {
         case .setupComplete:
             session.startRunning()
@@ -275,24 +284,39 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
 
 
     func loadAvailableZoomFactors() async {
-        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera, .builtInTelephotoCamera, .builtInUltraWideCamera], mediaType: .video, position: .back)
 
+        let videoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(
+            deviceTypes:
+                deviceTypes, mediaType: .video, position: currentCameraPosition)
         var zoomLevelsDict: [ZoomLevel: ZoomControlModel] = [:]
 
-        for camera in discoverySession.devices {
+        for camera in videoDeviceDiscoverySession.devices {
+            let maxZoomFactor = camera.maxAvailableVideoZoomFactor
+
             switch camera.deviceType {
             case .builtInUltraWideCamera:
-                zoomLevelsDict[.x05] = ZoomControlModel(zoomLevel: .x05, captureDevice: camera, useDigitalZoom: false)
+                if maxZoomFactor >= ZoomLevel.x05.rawValue {
+                    zoomLevelsDict[.x05] = ZoomControlModel(zoomLevel: .x05, captureDevice: camera, useDigitalZoom: false)
+                }
             case .builtInWideAngleCamera:
-                zoomLevelsDict[.x1] = ZoomControlModel(zoomLevel: .x1, captureDevice: camera, useDigitalZoom: false)
-                zoomLevelsDict[.x2] = ZoomControlModel(zoomLevel: .x2, captureDevice: camera, useDigitalZoom: true)
+                if maxZoomFactor >= ZoomLevel.x1.rawValue {
+                    zoomLevelsDict[.x1] = ZoomControlModel(zoomLevel: .x1, captureDevice: camera, useDigitalZoom: false)
+                }
+                if maxZoomFactor >= ZoomLevel.x2.rawValue {
+                    zoomLevelsDict[.x2] = ZoomControlModel(zoomLevel: .x2, captureDevice: camera, useDigitalZoom: true)
+                }
             case .builtInTelephotoCamera:
-                zoomLevelsDict[.x3] = ZoomControlModel(zoomLevel: .x3, captureDevice: camera, useDigitalZoom: false)
+                if maxZoomFactor >= ZoomLevel.x5.rawValue {
+                    zoomLevelsDict[.x5] = ZoomControlModel(zoomLevel: .x5, captureDevice: camera, useDigitalZoom: false)
+                } else if maxZoomFactor >= ZoomLevel.x3.rawValue {
+                    zoomLevelsDict[.x3] = ZoomControlModel(zoomLevel: .x3, captureDevice: camera, useDigitalZoom: false)
+                }
+
             default:
                 break
             }
         }
-
+        debugPrint("Zoom levels from session: \(zoomLevelsDict)")
         self.zoomLevels = zoomLevelsDict
     }
 
@@ -337,26 +361,31 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
                 return
             }
         }
-        if zoomLevel.useDigitalZoom {
-            // Set the capture device's zoom factor.
-            do {
-                try newCamera.lockForConfiguration()
-                newCamera.videoZoomFactor = CGFloat(zoomLevel.zoomLevel.rawValue)
-                newCamera.unlockForConfiguration()
-            } catch {
-                printDebug("Error occurred while setting video zoom factor: \(error)")
-                return
-            }
-        } else {
-            // Reset the capture device's zoom factor.
-            do {
-                try newCamera.lockForConfiguration()
+
+        do {
+            try newCamera.lockForConfiguration()
+
+            // Set the optical zoom if the zoom level is not digital.
+            if !zoomLevel.useDigitalZoom {
                 newCamera.videoZoomFactor = 1.0
-                newCamera.unlockForConfiguration()
-            } catch {
-                printDebug("Error occurred while setting video zoom factor: \(error)")
-                return
+            } else {
+                // Adjust digital zoom factor, considering the optical zoom factor.
+                let currentZoomFactor = newCamera.videoZoomFactor
+                let targetZoomFactor = CGFloat(zoom.rawValue)
+
+                if targetZoomFactor > currentZoomFactor {
+                    newCamera.videoZoomFactor = targetZoomFactor
+                } else {
+                    // For cases where we switch to a lesser zoom level, reset to 1x first, then apply digital zoom
+                    newCamera.videoZoomFactor = 1.0
+                    newCamera.videoZoomFactor = targetZoomFactor
+                }
             }
+
+            newCamera.unlockForConfiguration()
+        } catch {
+            printDebug("Error occurred while setting video zoom factor: \(error)")
+            return
         }
     }
 
@@ -385,7 +414,10 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             preferredPosition = .back
             preferredDeviceType = .builtInWideAngleCamera
         }
-        let devices = self.videoDeviceDiscoverySession.devices
+        let devices = AVCaptureDevice.DiscoverySession(
+            deviceTypes: deviceTypes,
+            mediaType: .video,
+            position: preferredPosition).devices
         var newVideoDevice: AVCaptureDevice? = nil
 
         // First, seek a device with both the preferred position and device type. Otherwise, seek a device with only the preferred position.
@@ -571,20 +603,13 @@ private extension CameraConfigurationService {
         session.sessionPreset = .photo
 
         var defaultVideoDevice: AVCaptureDevice?
-        let cameraTypes: [AVCaptureDevice.DeviceType] = [
-            .builtInDualCamera,
-            .builtInWideAngleCamera,
-            .builtInDualWideCamera,
-            .builtInTelephotoCamera,
-            .builtInUltraWideCamera
-        ]
+
 
         // Try to find a suitable camera among the types
-        for cameraType in cameraTypes {
-            if let device = AVCaptureDevice.default(cameraType, for: .video, position: .back) {
+        for cameraType in deviceTypes {
+            if let device = AVCaptureDevice.default(cameraType, for: .video, position: currentCameraPosition) {
                 defaultVideoDevice = device
                 currentCameraDeviceType = cameraType
-                currentCameraPosition = .back
                 break
             }
         }
@@ -618,8 +643,6 @@ private extension CameraConfigurationService {
         if session.canAddInput(audioDeviceInput) {
             session.addInput(audioDeviceInput)
         }
-
-
     }
 
     private func initialSessionConfiguration() async {
@@ -645,7 +668,6 @@ private extension CameraConfigurationService {
 
         printDebug("Starting session from initialSessionConfiguration")
         await start()
-        await loadAvailableZoomFactors()
     }
 
 
