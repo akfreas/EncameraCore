@@ -48,39 +48,6 @@ public enum CaptureMode: Int {
     case movie = 1
 }
 
-public protocol CameraConfigurationServicableDelegate {
-    func didUpdate(zoomLevels: [ZoomLevel])
-    func didUpdate(cameraPosition: AVCaptureDevice.Position)
-}
-
-protocol CameraConfigurationServicable {
-    var session: AVCaptureSession { get }
-    var model: CameraConfigurationServiceModel { get }
-    init(model: CameraConfigurationServiceModel)
-    func configure() async
-    func checkForPermissions() async
-    func stop(observeRestart: Bool) async
-    func start() async
-    func focus(at focusPoint: CGPoint) async
-    func set(zoom: ZoomLevel) async
-    func set(rotation: AVCaptureVideoOrientation) async
-    func flipCameraDevice() async
-    func configureForMode(targetMode: CameraMode) async
-    func setDelegate(_ delegate: CameraConfigurationServicableDelegate) async
-}
-
-
-public class CameraConfigurationServiceModel {
-    @Published public var orientation: AVCaptureVideoOrientation = .portrait
-    @Published public var cameraMode: CameraMode = .photo
-    @Published public var canCaptureLivePhoto: Bool = true
-
-    public var alertError: AlertError = AlertError()
-    public var setupResult: SessionSetupResult = .notDetermined
-
-    public init() {
-    }
-}
 public enum ZoomLevel: CGFloat {
     case x05 = 0.5
     case x1 = 1.0
@@ -316,7 +283,6 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
                 break
             }
         }
-        debugPrint("Zoom levels from session: \(zoomLevelsDict)")
         self.zoomLevels = zoomLevelsDict
     }
 
@@ -325,6 +291,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     }
 
     public func set(zoom: ZoomLevel) async {
+
         // Find the camera device for the given zoom level.
         guard let zoomLevel = zoomLevels[zoom], let newCamera = zoomLevel.captureDevice else {
             printDebug("No camera available for the given zoom level: \(zoom)")
@@ -383,7 +350,6 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             }
 
             newCamera.unlockForConfiguration()
-            try addPhotoOutputToSession()
         } catch {
             printDebug("Error occurred while setting video zoom factor: \(error)")
             return
@@ -391,7 +357,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     }
 
     public func flipCameraDevice() async {
-
+        
         guard let currentVideoDevice = self.videoDeviceInput?.device else {
             printDebug("Current video device is nil")
             return
@@ -441,27 +407,27 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
 
 
             if let videoDeviceInput = self.videoDeviceInput {
-                self.session.removeInput(videoDeviceInput)
+                session.removeInput(videoDeviceInput)
             }
 
-            if self.session.canAddInput(newVideoDeviceInput) {
-                self.session.addInput(newVideoDeviceInput)
-                self.videoDeviceInput = newVideoDeviceInput
+            if session.canAddInput(newVideoDeviceInput) {
+                session.addInput(newVideoDeviceInput)
+                videoDeviceInput = newVideoDeviceInput
 
-            } else if let videoDeviceInput = self.videoDeviceInput {
-                self.session.addInput(videoDeviceInput)
+            } else if let videoDeviceInput = videoDeviceInput {
+                session.addInput(videoDeviceInput)
             }
 
-            if let connection = self.photoOutput.connection(with: .video) {
+            if let connection = photoOutput.connection(with: .video) {
                 if connection.isVideoStabilizationSupported {
                     connection.preferredVideoStabilizationMode = .auto
                 }
             }
-            try addPhotoOutputToSession()
         } catch {
             printDebug("Error occurred while creating video device input: \(error)")
         }
         await loadAvailableZoomFactors()
+        await configureForMode(targetMode: model.cameraMode)
     }
 
     public func configureForMode(targetMode: CameraMode) async {
@@ -469,6 +435,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         defer {
             session.commitConfiguration()
         }
+        printDebug("Configuring for mode \(targetMode)")
         do {
             switch targetMode {
             case .photo:
