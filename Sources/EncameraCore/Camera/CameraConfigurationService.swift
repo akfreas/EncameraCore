@@ -383,6 +383,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             }
 
             newCamera.unlockForConfiguration()
+            try addPhotoOutputToSession()
         } catch {
             printDebug("Error occurred while setting video zoom factor: \(error)")
             return

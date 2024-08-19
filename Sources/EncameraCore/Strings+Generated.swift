@@ -508,8 +508,10 @@ public enum L10n {
   public static let pinCodeMismatch = L10n.tr("Localizable", "PinCodeMismatch", fallback: "Pincodes are not the same")
   /// Pin successfully changed
   public static let pinSuccessfullyChanged = L10n.tr("Localizable", "PinSuccessfullyChanged", fallback: "Pin successfully changed")
-  /// PIN is too short. It must be at least 4 digits.
-  public static let pinTooShort = L10n.tr("Localizable", "PinTooShort", fallback: "PIN is too short. It must be at least 4 digits.")
+  /// PIN is too short. It must be at least %@ digits.
+  public static func pinTooShort(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "PinTooShort", String(describing: p1), fallback: "PIN is too short. It must be at least %@ digits.")
+  }
   /// Please select a storage location.
   public static let pleaseSelectAStorageLocation = L10n.tr("Localizable", "Please select a storage location.", fallback: "Please select a storage location.")
   /// Please enter a name for the album
