@@ -267,7 +267,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
                 }
             case .builtInWideAngleCamera:
                 if maxZoomFactor >= ZoomLevel.x1.rawValue {
-                    zoomLevelsDict[.x1] = ZoomControlModel(zoomLevel: .x1, captureDevice: camera, useDigitalZoom: false)
+                    zoomLevelsDict[.x1] = ZoomControlModel(zoomLevel: .x1, captureDevice: camera, useDigitalZoom: true)
                 }
                 if maxZoomFactor >= ZoomLevel.x2.rawValue {
                     zoomLevelsDict[.x2] = ZoomControlModel(zoomLevel: .x2, captureDevice: camera, useDigitalZoom: true)
@@ -291,71 +291,61 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     }
 
     public func set(zoom: ZoomLevel) async {
-
-        // Find the camera device for the given zoom level.
-        guard let zoomLevel = zoomLevels[zoom], let newCamera = zoomLevel.captureDevice else {
-            printDebug("No camera available for the given zoom level: \(zoom)")
+        guard let currentCamera = videoDeviceInput?.device else {
+            printDebug("No current camera device available.")
+            return
+        }
+        printDebug("Setting to zoom level \(zoom)")
+        // Determine the best camera device for the requested zoom level.
+        guard let zoomModel = zoomLevels[zoom], let bestCamera = zoomModel.captureDevice else {
+            printDebug("No suitable camera device found for zoom level: \(zoom)")
             return
         }
 
-        // Check if the selected camera is different from the current one.
-        if newCamera != videoDeviceInput?.device {
-            do {
-                let newVideoDeviceInput = try AVCaptureDeviceInput(device: newCamera)
-
-                // Remove the current video device input from the session.
-                if let videoDeviceInput = videoDeviceInput {
-                    session.removeInput(videoDeviceInput)
-                }
-
-                // Add the new video device input to the session.
-                if session.canAddInput(newVideoDeviceInput) {
-                    self.session.addInput(newVideoDeviceInput)
-                    self.videoDeviceInput = newVideoDeviceInput
-                } else if let videoDeviceInput = self.videoDeviceInput {
-                    // Re-add the old input if the new input can't be added.
-                    self.session.addInput(videoDeviceInput)
-                }
-
-                // Set the video stabilization mode if supported.
-                if let connection = self.photoOutput.connection(with: .video) {
-                    if connection.isVideoStabilizationSupported {
-                        connection.preferredVideoStabilizationMode = .auto
-                    }
-                }
-            } catch {
-                printDebug("Error occurred while switching video device input: \(error)")
-                return
-            }
-        }
-
+        printDebug("Using \(bestCamera.localizedName) for zoom to \(zoom)")
         do {
-            try newCamera.lockForConfiguration()
-
-            // Set the optical zoom if the zoom level is not digital.
-            if !zoomLevel.useDigitalZoom {
-                newCamera.videoZoomFactor = 1.0
-            } else {
-                // Adjust digital zoom factor, considering the optical zoom factor.
-                let currentZoomFactor = newCamera.videoZoomFactor
-                let targetZoomFactor = CGFloat(zoom.rawValue)
-
-                if targetZoomFactor > currentZoomFactor {
-                    newCamera.videoZoomFactor = targetZoomFactor
-                } else {
-                    // For cases where we switch to a lesser zoom level, reset to 1x first, then apply digital zoom
-                    newCamera.videoZoomFactor = 1.0
-                    newCamera.videoZoomFactor = targetZoomFactor
-                }
+            if bestCamera != currentCamera {
+                // If the best camera is different from the current one, perform a seamless transition.
+                try performCameraTransition(to: bestCamera)
             }
 
-            newCamera.unlockForConfiguration()
+            if zoomModel.useDigitalZoom {
+                try bestCamera.lockForConfiguration()
+
+                bestCamera.videoZoomFactor = zoomModel.zoomLevel.rawValue
+
+                bestCamera.unlockForConfiguration()
+            }
         } catch {
             printDebug("Error occurred while setting video zoom factor: \(error)")
             return
         }
     }
 
+    private func performCameraTransition(to newCamera: AVCaptureDevice) throws {
+        let newVideoDeviceInput = try AVCaptureDeviceInput(device: newCamera)
+
+        // Remove the current video device input.
+        if let videoDeviceInput = videoDeviceInput {
+            session.removeInput(videoDeviceInput)
+        }
+
+        // Add the new video device input to the session.
+        if session.canAddInput(newVideoDeviceInput) {
+            session.addInput(newVideoDeviceInput)
+            videoDeviceInput = newVideoDeviceInput
+        } else if let videoDeviceInput = videoDeviceInput {
+            // Re-add the old input if the new input can't be added.
+            session.addInput(videoDeviceInput)
+        }
+
+        // Handle video stabilization, etc.
+        if let connection = photoOutput.connection(with: .video) {
+            if connection.isVideoStabilizationSupported {
+                connection.preferredVideoStabilizationMode = .auto
+            }
+        }
+    }
     public func flipCameraDevice() async {
         
         guard let currentVideoDevice = self.videoDeviceInput?.device else {
@@ -403,26 +393,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         currentCameraPosition = preferredPosition
 
         do {
-            let newVideoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
-
-
-            if let videoDeviceInput = self.videoDeviceInput {
-                session.removeInput(videoDeviceInput)
-            }
-
-            if session.canAddInput(newVideoDeviceInput) {
-                session.addInput(newVideoDeviceInput)
-                videoDeviceInput = newVideoDeviceInput
-
-            } else if let videoDeviceInput = videoDeviceInput {
-                session.addInput(videoDeviceInput)
-            }
-
-            if let connection = photoOutput.connection(with: .video) {
-                if connection.isVideoStabilizationSupported {
-                    connection.preferredVideoStabilizationMode = .auto
-                }
-            }
+            try performCameraTransition(to: videoDevice)
         } catch {
             printDebug("Error occurred while creating video device input: \(error)")
         }
@@ -431,6 +402,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     }
 
     public func configureForMode(targetMode: CameraMode) async {
+
         session.beginConfiguration()
         defer {
             session.commitConfiguration()
@@ -439,11 +411,11 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         do {
             switch targetMode {
             case .photo:
-                try self.addPhotoOutputToSession()
+                try addPhotoOutputToSession()
             case .video:
-                try self.addVideoOutputToSession()
+                try addVideoOutputToSession()
             }
-
+            model.cameraMode = targetMode
         } catch {
             printDebug("Could not switch to mode \(targetMode)", error)
             self.model.setupResult = .configurationFailed
@@ -475,6 +447,7 @@ extension CameraConfigurationService {
         if let photoOutputConnection = self.photoOutput.connection(with: .video) {
             photoOutputConnection.videoOrientation = model.orientation
         }
+        configurePhotoOutput()
 
         return AsyncPhotoCaptureProcessor(output: photoOutput, livePhotoEnabled: livePhotoEnabled, flashMode: flashMode)
     }
@@ -518,11 +491,6 @@ private extension CameraConfigurationService {
             self.movieOutput = nil
         }
         session.sessionPreset = .photo
-        photoOutput.maxPhotoQualityPrioritization = .quality
-        photoOutput.isHighResolutionCaptureEnabled = true
-        let canCaptureLivePhoto = photoOutput.isLivePhotoCaptureSupported
-        model.canCaptureLivePhoto = canCaptureLivePhoto
-        photoOutput.isLivePhotoCaptureEnabled = canCaptureLivePhoto
         guard session.canAddOutput(photoOutput) else {
             printDebug("Could not add photooutput to session")
             return
@@ -530,7 +498,15 @@ private extension CameraConfigurationService {
         printDebug("Calling addPhotoOutputToSession")
 
         session.addOutput(photoOutput)
+    }
 
+    private func configurePhotoOutput() {
+        photoOutput.maxPhotoQualityPrioritization = .quality
+        photoOutput.isHighResolutionCaptureEnabled = true
+        let canCaptureLivePhoto = photoOutput.isLivePhotoCaptureSupported
+        printDebug("canCaptureLivePhoto \(canCaptureLivePhoto)")
+        model.canCaptureLivePhoto = canCaptureLivePhoto
+        photoOutput.isLivePhotoCaptureEnabled = canCaptureLivePhoto
     }
 
     private func addVideoOutputToSession() throws {
