@@ -85,12 +85,16 @@ public class EventTracking {
         track(category: "camera", action: "live_photo_toggled", name: to ? "true" : "false")
     }
 
-    public static func trackMediaTaken(type: CameraMode, isLivePhotoEnabled: Bool? = nil) {
+    public static func trackMediaTaken(type: CameraMode, isLivePhotoEnabled: Bool? = nil, videoDuration: Double? = nil) {
         var title = type.title
         if isLivePhotoEnabled != nil {
             title = isLivePhotoEnabled! ? "live_photo" : "photo"
         }
-        track(category: "camera", action: "media_captured", name: title)
+        if let videoDuration {
+            track(category: "camera", action: "media_captured", name: title, value: Float(videoDuration))
+        } else {
+            track(category: "camera", action: "media_captured", name: title)
+        }
     }
 
     public static func trackCameraClosed() {
