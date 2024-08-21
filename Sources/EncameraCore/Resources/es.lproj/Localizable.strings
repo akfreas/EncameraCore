@@ -489,3 +489,9 @@
 "AlbumDetailView.OpenCamera" = "Tomar una nueva foto";
 "NotificationBanner.LeaveAReview.Title" = "¡Necesitamos tu ayuda!";
 "NotificationBanner.Reddit.Title" = "¿Estás en Reddit?";
+
+"GalleryView.PlayLivePhoto" = "Foto en Vivo - Mantén presionado para ver";
+"PinTooShort" = "El PIN es demasiado corto. Debe tener al menos %@ dígitos.";
+"UnlockWithPin" = "Desbloquear";
+"SavePinCode" = "Guardar código PIN";
+"OpenSystemSettings" = "Ir a Configuración";

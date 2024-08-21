@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import argparse
-from pathlib import Path
-import openai
-from itertools import islice
 import json
+from itertools import islice
+from pathlib import Path
+
+import openai
+
 
 def append_translations_to_file(file_path, translations):
     with open(file_path, 'a', encoding='utf-8') as file:
@@ -32,7 +34,7 @@ def get_translations(keys_and_values, from_lang, to_lang):
             ]
         # import ipdb; ipdb.set_trace()
         response = openai.chat.completions.create(
-            model="gpt-4-turbo",
+            model="gpt-4o",
             messages=messages,
             response_format={"type": "json_object" },
             temperature=0.5,
@@ -83,5 +85,7 @@ def main():
             to_lang = language_map.get(directory.name, "English")
             compare_and_translate(master_keys_and_values, directory, master_dir, from_lang, to_lang)
 
+if __name__ == '__main__':
+    main()
 if __name__ == '__main__':
     main()
