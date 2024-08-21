@@ -71,7 +71,7 @@
 "Terms of Use" = "Terms of Use";
 "Erase" = "Erase";
 "Erase keychain data" = "Erase keychain data";
-"Erase all data" = "Erase all data";
+"Erase All Data" = "Erase All Data";
 "allDataExplanation" = "Are you sure you want to erase ALL ENCAMERA DATA?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n• MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.";
 "appDataExplanation" = "Are you sure you want to erase ALL app data?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\nTHIS WILL NOT ERASE:\n\n• Media you have stored locally or on iCloud\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n";
 
@@ -85,7 +85,7 @@
 "Roadmap" = "Roadmap & Feature Requests";
 /* ./Encamera/Settings/PromptToErase.swift */
 "Hold to erase" = "Hold to erase";
-"Erase app data" = "Erase app data";
+"Erase App Data" = "Erase App Data";
 "Erasing in %@" = "Erasing in %@";
 /* ./Encamera/Tutorial/ChooseStorageModal.swift */
 "Congratulations!" = "Congratulations!";

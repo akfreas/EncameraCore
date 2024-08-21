@@ -246,10 +246,10 @@ public enum L10n {
   public static let enterYourPassword = L10n.tr("Localizable", "EnterYourPassword", fallback: "Enter your password")
   /// Erase
   public static let erase = L10n.tr("Localizable", "Erase", fallback: "Erase")
-  /// Erase all data
-  public static let eraseAllData = L10n.tr("Localizable", "Erase all data", fallback: "Erase all data")
-  /// Erase app data
-  public static let eraseAppData = L10n.tr("Localizable", "Erase app data", fallback: "Erase app data")
+  /// Erase All Data
+  public static let eraseAllData = L10n.tr("Localizable", "Erase All Data", fallback: "Erase All Data")
+  /// Erase App Data
+  public static let eraseAppData = L10n.tr("Localizable", "Erase App Data", fallback: "Erase App Data")
   /// Erase Device Data
   public static let eraseDeviceData = L10n.tr("Localizable", "Erase Device Data", fallback: "Erase Device Data")
   /// Erase keychain data

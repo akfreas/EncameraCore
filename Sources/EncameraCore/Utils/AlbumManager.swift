@@ -54,6 +54,12 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         }
     }
 
+    public var currentAlbumMediaCount: Int? {
+        guard let currentAlbum else {
+            return nil
+        }
+        return albumMediaCount(album: currentAlbum)
+    }
 
     public var defaultStorageForAlbum: StorageType = .local
     

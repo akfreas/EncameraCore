@@ -39,12 +39,12 @@ public class EventTracking {
     }
 
     private static func track(category: String, action: String, name: String? = nil, value: Float? = nil) {
-    #if DEBUG
+#if DEBUG
         debugPrint("[Tracking] Category: \(category), action: \(action), name: \(name ?? "none"), value: \(String(describing: value))")
 
 
 
-    #else
+#else
         if FeatureToggle.isEnabled(feature: .stopTracking) {
             return
         }
@@ -55,95 +55,106 @@ public class EventTracking {
         }
 
         Self.shared.piwikTracker.sendEvent(category: category, action: action, name: name, value: value as NSNumber?, path: nil)
-    #endif
+#endif
     }
-    #if DEBUG
-    #else
-//    add tracking
-    #endif
-   public static func trackAppLaunched() {
+#if DEBUG
+#else
+    //    add tracking
+#endif
+    public static func trackAppLaunched() {
         track(category: "app", action: "launched")
     }
 
-   public static func trackOpenedCameraFromWidget() {
+    public static func trackOpenedCameraFromWidget() {
         track(category: "app", action: "opened_camera_from_widget")
     }
 
-   public static func trackOpenedCameraFromBottomBar() {
+    public static func trackOpenedCameraFromBottomBar() {
         track(category: "camera", action: "opened", name: "bottom_bar")
     }
 
-   public static func trackOpenedCameraFromAlbumEmptyState() {
+    public static func trackOpenedCameraFromAlbumEmptyState() {
         track(category: "camera", action: "opened", name: "album_empty_state")
     }
 
-   public static func trackCameraButtonPressed() {
+    public static func trackCameraButtonPressed() {
         track(category: "camera", action: "button_pressed")
     }
 
-
-   public static func trackMediaTaken(type: CameraMode) {
-        track(category: "camera", action: "media_captured", name: type.title)
+    public static func livePhotoModeSet(to: Bool) {
+        track(category: "camera", action: "live_photo_toggled", name: to ? "true" : "false")
     }
 
-   public static func trackCameraClosed() {
+    public static func trackMediaTaken(type: CameraMode, isLivePhotoEnabled: Bool? = nil) {
+        var title = type.title
+        if isLivePhotoEnabled != nil {
+            title = isLivePhotoEnabled! ? "live_photo" : "photo"
+        }
+        track(category: "camera", action: "media_captured", name: title)
+    }
+
+    public static func trackCameraClosed() {
         track(category: "camera", action: "closed")
     }
 
-   public static func trackAlbumOpened() {
+    public static func trackAlbumOpened() {
         track(category: "album", action: "opened")
     }
 
-   public static func trackAlbumSelectedFromTopBar() {
+    public static func trackAlbumSelectedFromTopBar() {
         track(category: "album", action: "selected", name: "top_bar")
     }
 
-   public static func trackMediaImportOpened() {
+    public static func trackMediaImportOpened() {
         track(category: "media", action: "import_opened")
     }
 
-   public static func trackMediaImported(count: Int) {
+    public static func trackMediaImported(count: Int) {
         track(category: "media", action: "media_imported", value: Float(count))
     }
 
-   public static func trackImageViewed() {
+    public static func trackImageViewed() {
         track(category: "media", action: "viewed", name: "image")
     }
 
-   public static func trackMovieViewed() {
+    public static func trackLivePhotoViewed() {
+        track(category: "media", action: "viewed", name: "live_photo")
+    }
+
+    public static func trackMovieViewed() {
         track(category: "media", action: "viewed", name: "movie")
     }
 
-   public static func trackMediaShared() {
+    public static func trackMediaShared() {
         track(category: "media", action: "shared")
     }
 
-   public static func trackOnboardingViewReached(view: OnboardingFlowScreen, new: Bool = false) {
+    public static func trackOnboardingViewReached(view: OnboardingFlowScreen, new: Bool = false) {
         track(category: "\(new ? "new_": "")onboarding", action: "view_reached", name: view.rawValue)
     }
 
-   public static func trackOnboardingFinished(new: Bool = false) {
+    public static func trackOnboardingFinished(new: Bool = false) {
         track(category: "\(new ? "new_" : "")onboarding", action: "finished")
     }
 
-   public static func trackPhotoLimitReachedScreenUpgradeTapped(from screen: String) {
+    public static func trackPhotoLimitReachedScreenUpgradeTapped(from screen: String) {
         track(category: "photo_limit_reached", action: "upgrade_tapped", name: screen)
     }
 
-   public static func trackPhotoLimitReachedScreenDismissed(from screen: String) {
+    public static func trackPhotoLimitReachedScreenDismissed(from screen: String) {
         track(category: "photo_limit_reached", action: "dismissed", name: screen)
     }
 
-   public static func trackConfirmStorageTypeSelected(type: StorageType) {
+    public static func trackConfirmStorageTypeSelected(type: StorageType) {
         track(category: "storage_type", action: "selected", name: type.rawValue)
     }
 
-   public static func trackShowPurchaseScreen(from screen: String) {
+    public static func trackShowPurchaseScreen(from screen: String) {
         track(category: "purchase", action: "show", name: screen)
     }
 
-   public static func trackPurchaseCompleted(from screen: String, currency: String, amount: Decimal, product: String) {
-        track(category: "purchase_completed_\(product.lowercased())", action: product.lowercased(), name: screen)
+    public static func trackPurchaseCompleted(from screen: String, currency: String, amount: Decimal, product: String) {
+        track(category: "purchase_completed", action: product.lowercased(), name: screen)
 
         guard let goalId = PurchaseGoal(id: product) else {
             return
@@ -151,59 +162,67 @@ public class EventTracking {
         Self.shared.piwikTracker.sendGoal(ID: "\(goalId.rawValue)", revenue: amount as NSNumber)
     }
 
-   public static func trackPurchaseScreenDismissed(from screen: String) {
+    public static func trackPurchaseScreenDismissed(from screen: String) {
         track(category: "purchase", action: "dismissed", name: screen)
     }
 
-   public static func trackPurchaseIncomplete(from screen: String) {
-        track(category: "purchase", action: "incomplete", name: screen)
+    public static func trackPurchaseIncomplete(from screen: String, product: String) {
+        track(category: "purchase_incomplete", action: product.lowercased(), name: screen)
     }
 
-   public static func trackBiometricsEnabled() {
+    public static func trackPurchaseCancelled(from screen: String, product: String) {
+        track(category: "purchase_cancelled", action: product.lowercased(), name: screen)
+    }
+
+    public static func trackPurcasePending(from screen: String, product: String) {
+        track(category: "purchase_pending", action: product.lowercased(), name: screen)
+    }
+
+    public static func trackBiometricsEnabled() {
         track(category: "biometrics", action: "enabled", name: "settings")
     }
 
-   public static func trackBiometricsDisabled() {
+    public static func trackBiometricsDisabled() {
         track(category: "biometrics", action: "disabled", name: "settings")
     }
 
-   public static func trackOnboardingBiometricsEnabled(newOnboarding: Bool = false) {
+    public static func trackOnboardingBiometricsEnabled(newOnboarding: Bool = false) {
         track(category: "biometrics", action: "enabled", name: "\(newOnboarding ? "new_" : "")onboarding")
     }
 
-   public static func trackOnboardingBiometricsSkipped() {
+    public static func trackOnboardingBiometricsSkipped() {
         track(category: "biometrics", action: "skipped", name: "onboarding")
     }
 
-   public static func trackCameraPermissionsDenied() {
+    public static func trackCameraPermissionsDenied() {
         track(category: "permissions", action: "permissions_denied", name: "camera")
     }
 
-   public static func trackCameraPermissionsGranted() {
+    public static func trackCameraPermissionsGranted() {
         track(category: "permissions", action: "permissions_granted", name: "camera")
     }
 
-   public static func trackMicrophonePermissionsDenied() {
+    public static func trackMicrophonePermissionsDenied() {
         track(category: "permissions", action: "permissions_denied", name: "microphone")
     }
 
-   public static func trackMicrophonePermissionsGranted() {
+    public static func trackMicrophonePermissionsGranted() {
         track(category: "permissions", action: "permissions_granted", name: "microphone")
     }
 
-   public static func trackCameraPermissionsTapped() {
+    public static func trackCameraPermissionsTapped() {
         track(category: "permissions", action: "permissions_tapped", name: "camera")
     }
 
-   public static func trackMicrophonePermissionsTapped() {
+    public static func trackMicrophonePermissionsTapped() {
         track(category: "permissions", action: "permissions_tapped", name: "microphone")
     }
 
-   public static func trackNotificationPermissionsDenied() {
+    public static func trackNotificationPermissionsDenied() {
         track(category: "permissions", action: "permissions_denied", name: "notifications")
     }
 
-   public static func trackNotificationPermissionsGranted() {
+    public static func trackNotificationPermissionsGranted() {
         track(category: "permissions", action: "permissions_granted", name: "notifications")
     }
 
@@ -211,39 +230,39 @@ public class EventTracking {
         track(category: "notification", action: "opened", name: name)
     }
 
-   public static func trackAlbumCreated() {
+    public static func trackAlbumCreated() {
         track(category: "album", action: "created")
     }
 
-   public static func trackAppOpened() {
+    public static func trackAppOpened() {
         track(category: "app", action: "opened")
     }
 
-   public static func trackCreateAlbumButtonPressed() {
+    public static func trackCreateAlbumButtonPressed() {
         track(category: "album", action: "create_button_pressed")
     }
 
-   public static func trackNotificationBellPressed() {
+    public static func trackNotificationBellPressed() {
         track(category: "notification", action: "bell_pressed")
     }
 
-   public static func trackSettingsTelegramPressed() {
+    public static func trackSettingsTelegramPressed() {
         track(category: "settings", action: "telegram_pressed")
     }
 
-   public static func trackSettingsContactPressed() {
+    public static func trackSettingsContactPressed() {
         track(category: "settings", action: "contact_pressed")
     }
 
-   public static func trackSettingsLeaveReviewPressed() {
+    public static func trackSettingsLeaveReviewPressed() {
         track(category: "settings", action: "leave_review_pressed")
     }
 
-   public static func trackNotificationSwipedViewed(title: String) {
+    public static func trackNotificationSwipedViewed(title: String) {
         track(category: "notification_banner", action: "viewed", name: title)
     }
 
-   public static func trackNotificationButtonTapped(url: URL) {
+    public static func trackNotificationButtonTapped(url: URL) {
         track(category: "notification_banner", action: "button_tapped", name: url.absoluteString)
     }
- }
+}

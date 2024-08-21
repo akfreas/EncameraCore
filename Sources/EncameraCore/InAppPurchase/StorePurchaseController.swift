@@ -35,14 +35,18 @@ public final class StoreProductController: ObservableObject {
                 let transaction = try verificationResult.payloadValue
                 self.isEntitled = true
                 await transaction.finish()
+                action = .purchaseComplete(amount: product.price, currencyCode: product.priceFormatStyle.currencyCode)
             case .pending:
                 print("Purchase pending user action")
+                action = .pending
             case .userCancelled:
+                action = .cancelled
                 print("User cancelled purchase")
             @unknown default:
+                action = .noAction
                 print("Unknown result: \(result)")
             }
-            action = .noAction
+
         } catch let error as LocalizedError {
             purchaseError = error
             action = .displayError

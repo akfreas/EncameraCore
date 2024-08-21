@@ -57,10 +57,10 @@ public final class StoreSubscriptionController: ObservableObject {
                 action = .purchaseComplete(amount: subscription.product.price, currencyCode: subscription.product.priceFormatStyle.currencyCode)
             case .pending:
                 print("Purchase pending user action")
-                action = .noAction
+                action = .pending
             case .userCancelled:
                 print("User cancelled purchase")
-                action = .noAction
+                action = .cancelled
             @unknown default:
                 print("Unknown result: \(result)")
                 action = .noAction

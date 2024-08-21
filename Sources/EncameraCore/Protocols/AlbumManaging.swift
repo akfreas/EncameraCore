@@ -16,7 +16,8 @@ public protocol AlbumManaging {
     var albumOperationPublisher: AnyPublisher<AlbumOperation, Never> { get }
     var defaultStorageForAlbum: StorageType { get set }
     var currentAlbum: Album? { get set }
-    
+    var currentAlbumMediaCount: Int? { get }
+
     func delete(album: Album)
     func loadAlbumsFromFilesystem()
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album
@@ -25,5 +26,6 @@ public protocol AlbumManaging {
     func renameAlbum(album: Album, to newName: String) throws -> Album
     func validateAlbumName(name: String) throws
     func albumMediaCount(album: Album) -> Int
+
 }
 

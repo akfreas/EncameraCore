@@ -68,7 +68,7 @@
 "Terms of Use" = "Términos de Uso";
 "Erase" = "Borrar";
 "Erase keychain data" = "Borrar datos del llavero";
-"Erase all data" = "Borrar todos los datos";
+"Erase All Data" = "Borrar todos los datos";
 "allDataExplanation" = "¿Estás seguro de que quieres borrar TODOS LOS DATOS DE ENCAMERA?\n\nESTO BORRARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Ajustes de la app 🎛\n• MULTIMEDIA ALMACENADA LOCALMENTE O EN iCLOUD\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de gestión de claves.\n\nLa app se cerrará después de que se complete el borrado.";
 "appDataExplanation" = "¿Estás seguro de que quieres borrar TODOS los datos de la app?\n\nESTO BORRARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Ajustes de la app 🎛\n\nESTO NO BORRARÁ:\n\n• Multimedia que has almacenado localmente o en iCloud\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de gestión de claves.\n\nLa app se cerrará después de que se complete el borrado.\n\n";
 "Erase" = "Borrar";
@@ -82,7 +82,7 @@
 
 /* ./Encamera/Settings/PromptToErase.swift */
 "Hold to erase" = "Mantener presionado para borrar";
-"Erase app data" = "Borrar datos de la app";
+"Erase App Data" = "Borrar datos de la app";
 "Erasing in %@" = "Borrando en %@"; 
 
 /* ./Encamera/Tutorial/ChooseStorageModal.swift */

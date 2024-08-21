@@ -10,6 +10,10 @@ public class DemoAlbumManager: AlbumManaging {
         return 12
     }
 
+    public var currentAlbumMediaCount: Int? {
+        return 23
+    }
+
     public var albumOperationPublisher: AnyPublisher<AlbumOperation, Never> = PassthroughSubject<AlbumOperation, Never>().eraseToAnyPublisher()
 
     @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album {
