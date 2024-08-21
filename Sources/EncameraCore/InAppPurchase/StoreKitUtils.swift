@@ -77,7 +77,7 @@ public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, Observabl
     @MainActor
     public func isAllowedAccess(feature: AppFeature) -> Bool {
         switch feature {
-        case .accessPhoto(let count) where count <= AppConstants.maxPhotoCountBeforePurchase + 1 && count >= 0,
+        case .accessPhoto(let count) where count <= AppConstants.maxPhotoCountBeforePurchase && count >= 0,
             .createKey(let count) where count < AppConstants.maxPhotoCountBeforePurchase:
             return true
         default:
