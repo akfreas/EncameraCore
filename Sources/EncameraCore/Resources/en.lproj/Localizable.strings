@@ -437,8 +437,13 @@
 "ThanksForPurchasingLifetime" = "Thanks for purchasing a lifetime license!";
 "ThanksForPurchasingLifetimeSubtitle" = "You rock and you will unlock new benefits soon.";
 "ImportKeyPhrase" = "Import Key Phrase";
+"CopyPhrase" = "Copy Phrase to Clipboard";
+"CopyPhraseInstructions" = "Write down or copy these words in the right order and save them somewhere safe.\n\nThis phrase is used to generate the encryption key that encrypts your media.\n\nIt's important to save this key in case you lose your device.";
+"YourRecoveryPhrase" = "Your Recovery Phrase";
+"RecoveryPhraseCopied" = "Recovery Phrase Copied!";
 "EnterKeyPhrase" = "Enter Key Phrase";
-"EnterKeyPhraseDescription" = "Enter the key phrase you want to import. Separate each word with a space.\nThis will overwrite your current key phrase.";
+"EnterKeyPhraseDescription" = "Enter the key phrase you want to import. Separate each word with a space.";
+
 "Import" = "Import";
 "OverwriteKeyPhrase" = "Overwrite Key Phrase?";
 "OverwriteAreYouSure" = "Are you sure you want to overwrite your current key phrase? You will not be able to access any media encrypted with the current key phrase.";
@@ -472,4 +477,6 @@
 "Notification.Scheduling.Error" = "Error scheduling notification: %@";
 "Settings.Version" = "Version";
 "Settings.Contact" = "Contact Support";
+"Settings.BackupKeyPhrase" = "Backup Key Phrase";
+"Settings.ImportKeyPhrase" = "Import Key Phrase";
 

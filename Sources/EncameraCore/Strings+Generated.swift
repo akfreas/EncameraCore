@@ -135,6 +135,14 @@ public enum L10n {
   public static let coolPicture = L10n.tr("Localizable", "CoolPicture", fallback: "That's a cool picture!")
   /// Copied to Clipboard
   public static let copiedToClipboard = L10n.tr("Localizable", "Copied to Clipboard", fallback: "Copied to Clipboard")
+  /// Copy Phrase to Clipboard
+  public static let copyPhrase = L10n.tr("Localizable", "CopyPhrase", fallback: "Copy Phrase to Clipboard")
+  /// Write down or copy these words in the right order and save them somewhere safe.
+  /// 
+  /// This phrase is used to generate the encryption key that encrypts your media.
+  /// 
+  /// It's important to save this key in case you lose your device.
+  public static let copyPhraseInstructions = L10n.tr("Localizable", "CopyPhraseInstructions", fallback: "Write down or copy these words in the right order and save them somewhere safe.\n\nThis phrase is used to generate the encryption key that encrypts your media.\n\nIt's important to save this key in case you lose your device.")
   /// ./Encamera/ImageViewing/MovieViewing.swift
   public static func couldNotDecryptMovie(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Could not decrypt movie: %@", String(describing: p1), fallback: "Could not decrypt movie: %@")
@@ -240,8 +248,7 @@ public enum L10n {
   /// Enter Key Phrase
   public static let enterKeyPhrase = L10n.tr("Localizable", "EnterKeyPhrase", fallback: "Enter Key Phrase")
   /// Enter the key phrase you want to import. Separate each word with a space.
-  /// This will overwrite your current key phrase.
-  public static let enterKeyPhraseDescription = L10n.tr("Localizable", "EnterKeyPhraseDescription", fallback: "Enter the key phrase you want to import. Separate each word with a space.\nThis will overwrite your current key phrase.")
+  public static let enterKeyPhraseDescription = L10n.tr("Localizable", "EnterKeyPhraseDescription", fallback: "Enter the key phrase you want to import. Separate each word with a space.")
   /// Enter your password
   public static let enterYourPassword = L10n.tr("Localizable", "EnterYourPassword", fallback: "Enter your password")
   /// Erase
@@ -528,6 +535,8 @@ public enum L10n {
   public static let purchaseProduct = L10n.tr("Localizable", "PurchaseProduct", fallback: "Purchase")
   /// Widget
   public static let quicklyTakePictures = L10n.tr("Localizable", "QuicklyTakePictures", fallback: "Quickly take pictures and video.")
+  /// Recovery Phrase Copied!
+  public static let recoveryPhraseCopied = L10n.tr("Localizable", "RecoveryPhraseCopied", fallback: "Recovery Phrase Copied!")
   /// Rename
   public static let rename = L10n.tr("Localizable", "Rename", fallback: "Rename")
   /// Repeat Password
@@ -867,8 +876,12 @@ public enum L10n {
     public static let thanksForYourPurchase = L10n.tr("Localizable", "PostPurchaseView.ThanksForYourPurchase", fallback: "Thanks for your purchase!")
   }
   public enum Settings {
+    /// Backup Key Phrase
+    public static let backupKeyPhrase = L10n.tr("Localizable", "Settings.BackupKeyPhrase", fallback: "Backup Key Phrase")
     /// Contact Support
     public static let contact = L10n.tr("Localizable", "Settings.Contact", fallback: "Contact Support")
+    /// Import Key Phrase
+    public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
     /// Version
     public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
   }

@@ -9,7 +9,6 @@ import Foundation
 import PiwikPROSDK
 
 
-//let matomoTracker = MatomoTracker(siteId: "23", baseURL: URL(string: "https://demo2.matomo.org/piwik.php")!)
 
 enum PurchaseGoal: Int {
     case yearlyUnlimitedKeysAndPhotos
@@ -40,7 +39,8 @@ public class EventTracking {
 
     private static func track(category: String, action: String, name: String? = nil, value: Float? = nil) {
 #if DEBUG
-        debugPrint("[Tracking] Category: \(category), action: \(action), name: \(name ?? "none"), value: \(String(describing: value))")
+        
+        debugPrint("[Tracking] Category: \(category), action: \(action), name: \(name ?? "none"), value: \(value ?? 0)")
 
 
 

@@ -41,6 +41,7 @@ public class AskForReviewUtil {
             }
         }
     }
+
     @MainActor
     public static func requestReview() {
         guard let currentScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
@@ -48,7 +49,6 @@ public class AskForReviewUtil {
         }
         
         SKStoreReviewController.requestReview(in: currentScene)
-        
     }
 
 
