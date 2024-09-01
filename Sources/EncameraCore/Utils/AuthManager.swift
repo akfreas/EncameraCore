@@ -84,7 +84,6 @@ public protocol AuthManager {
     var canAuthenticateWithBiometrics: Bool { get }
     var deviceBiometryType: AuthenticationMethod? { get }
     func deauthorize()
-    func checkAuthorizationWithCurrentPolicy() async throws
     func authorize(with password: String, using keyManager: KeyManager) throws
     func authorizeWithBiometrics() async throws
     @discardableResult func evaluateWithBiometrics() async throws -> Bool
@@ -178,23 +177,7 @@ public class DeviceAuthManager: AuthManager {
         authState = .unauthenticated
     }
     
-    public func checkAuthorizationWithCurrentPolicy() async throws {
-        
-        guard case .unauthenticated = authState else {
-            return
-        }
-        let policy = loadAuthenticationPolicy()
-        
 
-        switch policy.preferredAuthenticationMethod {
-            
-        case .touchID, .faceID:
-            try await authorizeWithBiometrics()
-        case .password:
-            reauthorizeForPassword()
-        }
-        return
-    }
 
     public func waitForAuthResponse() async -> AuthManagerState {
         await waitForAuthResponse(delay: AppConstants.authenticationTimeout)

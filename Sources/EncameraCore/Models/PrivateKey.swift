@@ -70,6 +70,7 @@ public struct PrivateKey: Codable, Hashable {
 
         return name.replacingOccurrences(of: keyPrefix, with: "")
     }
+
     public var base64String: String? {
         return try? String(data: JSONEncoder().encode(self).base64EncodedData(), encoding: .utf8)
     }

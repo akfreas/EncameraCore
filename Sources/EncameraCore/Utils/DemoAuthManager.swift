@@ -29,10 +29,7 @@ public class DemoAuthManager: AuthManager {
     public func deauthorize() {
         
     }
-    
-    public func checkAuthorizationWithCurrentPolicy() async throws {
-        
-    }
+
     public func evaluateWithBiometrics() async throws -> Bool {
         return false
     }

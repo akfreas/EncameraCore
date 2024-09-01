@@ -2,6 +2,8 @@ import Foundation
 import Combine
 
 public class DemoKeyManager: KeyManager {
+    public var areKeysStoredIniCloud: Bool = false
+    
     public var keyPublisher: AnyPublisher<PrivateKey?, Never>
 
 
@@ -25,8 +27,8 @@ public class DemoKeyManager: KeyManager {
     public func createBackupDocument() throws -> String {
         return ""
     }
-    public func retrieveKeyPassphrase() throws -> [String] {
-        return ["your", "cool", "cat"]
+    public func retrieveKeyPassphrase() throws -> KeyPassphrase {
+        return KeyPassphrase(words: ["your", "cool", "cat"], iCloudBackupEnabled: true)
     }
     public func passwordExists() -> Bool {
         return hasExistingPassword
@@ -34,7 +36,8 @@ public class DemoKeyManager: KeyManager {
     public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
         return DemoPrivateKey.dummyKey()
     }
-    public func moveAllKeysToiCloud() throws {
+    
+    public func backupKeychainToiCloud(backupEnabled: Bool) throws {
 
     }
     @discardableResult public func generateKeyFromPasswordComponents(_ components: [String], name: String) throws -> PrivateKey {

@@ -439,7 +439,7 @@
 "ImportKeyPhrase" = "Import Key Phrase";
 "CopyPhrase" = "Copy Phrase to Clipboard";
 "CopyPhraseInstructions" = "Write down or copy these words in the right order and save them somewhere safe.\n\nThis phrase is used to generate the encryption key that encrypts your media.\n\nIt's important to save this key in case you lose your device.";
-"YourRecoveryPhrase" = "Your Recovery Phrase";
+"YourRecoveryPhrase" = "Key Backup";
 "RecoveryPhraseCopied" = "Recovery Phrase Copied!";
 "EnterKeyPhrase" = "Enter Key Phrase";
 "EnterKeyPhraseDescription" = "Enter the key phrase you want to import. Separate each word with a space.";
@@ -449,7 +449,6 @@
 "OverwriteAreYouSure" = "Are you sure you want to overwrite your current key phrase? You will not be able to access any media encrypted with the current key phrase.";
 "ImSure" = "I'm Sure";
 "ErrorImportingKeyPhrase" = "Error importing key phrase";
-"YourRecoveryPhrase" = "Your Recovery Phrase";
 "PostPurchaseView.ThanksForYourPurchase" = "Thanks for your purchase!";
 "PostPurchaseView.Subtext1" = "You are one of the early supporters of Encamera and we thank you for the support!";
 "PostPurchaseView.Subtext2" = "In the meantime, we will highly appreciate if you could help us with a Review on the App Store";

@@ -16,13 +16,28 @@ private enum KeychainConstants {
     static let passPhraseKeyItem = "encamera_key_passphrase"
 }
 
+struct KeychainItem {
+    let name: String
+    let creationDate: Date
+    let type: String
+    let storageType: String
+}
+
+public struct KeyPassphrase {
+    public let words: [String]
+    public let iCloudBackupEnabled: Bool
+}
+
 
 public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
+
+    
 
     public var isAuthenticated: AnyPublisher<Bool, Never>
     private var authenticated: Bool = false
     private var cancellables = Set<AnyCancellable>()
     private var sodium = Sodium()
+
     private var passwordValidator = PasswordValidator()
     private (set) public var currentKey: PrivateKey?  {
         didSet {
@@ -32,7 +47,23 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     public var keyPublisher: AnyPublisher<PrivateKey?, Never> {
         keySubject.eraseToAnyPublisher()
     }
-    
+
+    public var areKeysStoredIniCloud: Bool  {
+        let keyQuery: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizable
+        ]
+
+        do {
+            let keys = try keysFromQuery(query: keyQuery)
+            return keys.count > 0
+        } catch {
+            print("Error fetching keys: \(error)")
+            return false
+        }
+    }
+
     private var keySubject: PassthroughSubject<PrivateKey?, Never> = .init()
     
     required public init(isAuthenticated: AnyPublisher<Bool, Never>) {
@@ -55,7 +86,6 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         let _ = SecItemDelete(query as CFDictionary)
@@ -152,10 +182,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
         // Save or update the passphrase in the keychain
         let passphraseData = fullPassword.data(using: .utf8)!
-        let passphraseQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem,
-        ]
+        let passphraseQuery = queryForPassphrase(additionalQuery: [:])
 
         var withOptions: [String: Any] = passphraseQuery
         withOptions[kSecReturnData as String] = true
@@ -172,12 +199,10 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
             try checkStatus(status: updateStatus)
         case errSecItemNotFound:
             // Passphrase does not exist, add it
-            let addQuery: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem,
+            let addQuery = queryForPassphrase(additionalQuery: [
                 kSecValueData as String: passphraseData,
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
-            ]
+            ])
             let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
             try checkStatus(status: addStatus)
         default:
@@ -189,13 +214,12 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
     }
 
-    public func retrieveKeyPassphrase() throws -> [String] {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem,
+    public func retrieveKeyPassphrase() throws -> KeyPassphrase {
+        let query: [String: Any] = queryForPassphrase(additionalQuery: [
             kSecReturnData as String: true,
+            kSecReturnAttributes as String: true,  // Include attributes in the result
             kSecMatchLimit as String: kSecMatchLimitOne
-        ]
+        ])
 
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
@@ -203,12 +227,20 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
             throw KeyManagerError.notFound
         }
 
-        guard let data = item as? Data,
+        guard let result = item as? [String: Any],
+              let data = result[kSecValueData as String] as? Data,
               let passphrase = String(data: data, encoding: .utf8) else {
             throw KeyManagerError.dataError
         }
 
-        return passphrase.components(separatedBy: "-")
+        let words = passphrase.components(separatedBy: "-")
+
+        // Check if the item is stored in iCloud
+        let isStoredInICloud = (result[kSecAttrSynchronizable as String] as? Bool) == true
+
+        let keyPassphrase = KeyPassphrase(words: words, iCloudBackupEnabled: isStoredInICloud)
+
+        return keyPassphrase
     }
 
     public func validateKeyName(name: String) throws {
@@ -243,13 +275,18 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }
     }
 
-    public func moveAllKeysToiCloud() throws {
+    public func backupKeychainToiCloud(backupEnabled: Bool) throws {
         try checkAuthenticated()
 
         let keys = try storedKeys()
         for key in keys {
-            try update(key: key, backupToiCloud: true)
+            try update(key: key, backupToiCloud: backupEnabled)
         }
+        let updateQuery = [kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue : kCFBooleanFalse]
+        let updateStatus = SecItemUpdate(queryForPassphrase() as CFDictionary, updateQuery as CFDictionary)
+
+        try checkStatus(status: updateStatus)
+
     }
 
     public func update(key: PrivateKey, backupToiCloud: Bool) throws {
@@ -279,8 +316,13 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
             kSecReturnData as String: true,
             kSecReturnAttributes as String: true,
             kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
+        
+        return try keysFromQuery(query: query)
+    }
+
+    private func keysFromQuery(query: [String: Any]) throws -> [PrivateKey]  {
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         try checkStatus(status: status)
@@ -300,7 +342,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         })
         return keys
     }
-    
+
     public func deleteKey(_ key: PrivateKey) throws {
         try checkAuthenticated()
         let key = try getKey(by: key.name)
@@ -330,7 +372,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     func getActiveKey() throws -> PrivateKey {
         guard let activeKeyName = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String else {
-            guard let firstStoredKey = try? storedKeys().first else {
+            guard let firstStoredKey = try storedKeys().first else {
                 throw KeyManagerError.notFound
             }
             try setActiveKey(firstStoredKey.name)
@@ -381,7 +423,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
-            kSecValueData as String: hashed
+            kSecValueData as String: hashed,
         ]
         let setPasswordStatus = SecItemAdd(query as CFDictionary, nil)
         
@@ -392,7 +434,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         let hashed = try hashFrom(password: password)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.account
+            kSecAttrAccount as String: KeychainConstants.account,
         ]
         let update: [String: Any] = [
             kSecValueData as String: hashed
@@ -463,7 +505,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 }
 
 private extension MultipleKeyKeychainManager {
-    func checkStatus(status: OSStatus, defaultError: KeyManagerError? = nil) throws {
+    static func checkStatus(status: OSStatus, defaultError: KeyManagerError? = nil) throws {
         let throwDefault = defaultError ?? .unhandledError(determineOSStatus(status: status))
         switch status {
         case errSecItemNotFound:
@@ -476,7 +518,26 @@ private extension MultipleKeyKeychainManager {
             throw throwDefault
         }
     }
-    
+
+    func checkStatus(status: OSStatus, defaultError: KeyManagerError? = nil) throws {
+        try Self.checkStatus(status: status, defaultError: defaultError)
+    }
+
+    func queryForPassphrase(additionalQuery: [String: Any]? = nil) -> [String: Any] {
+        let baseQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+        ]
+
+        if let additionalQuery {
+
+            return baseQuery.merging(additionalQuery, uniquingKeysWith: { $1 })
+        }
+
+        return baseQuery
+    }
+
     func hashFrom(password: String) throws -> Data {
         let bytes = password.bytes
         let hashString = sodium.pwHash.str(passwd: bytes,
@@ -515,7 +576,7 @@ private extension MultipleKeyKeychainManager {
             kSecReturnData as String: true,
             kSecReturnAttributes as String: true,
             kSecAttrLabel as String: keyData,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
         return query as CFDictionary
     }
@@ -527,7 +588,7 @@ private extension MultipleKeyKeychainManager {
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecAttrLabel as String: keyData,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
         return query as CFDictionary
 

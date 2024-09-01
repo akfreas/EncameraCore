@@ -183,10 +183,6 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         // Determine the new storage URL based on the destination storage type
         let newStorage: DataStorageModel = toStorage == .local ? LocalStorageModel(album: album) : iCloudStorageModel(album: album)
 
-        if toStorage == .icloud {
-            try keyManager.moveAllKeysToiCloud()
-        }
-
         debugPrint("Current storage URL: \(currentStorage.baseURL)")
         debugPrint("New storage URL: \(newStorage.baseURL)")
 

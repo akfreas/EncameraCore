@@ -94,6 +94,7 @@ public protocol KeyManager {
     var isAuthenticated: AnyPublisher<Bool, Never> { get }
     var currentKey: PrivateKey? { get }
     var keyPublisher: AnyPublisher<PrivateKey?, Never> { get }
+    var areKeysStoredIniCloud: Bool { get }
     func clearKeychainData()
     func keyWith(name: String) -> PrivateKey?
     func deleteKey(_ key: PrivateKey) throws
@@ -103,7 +104,7 @@ public protocol KeyManager {
     func generateNewKey(name: String, backupToiCloud: Bool) throws -> PrivateKey
     func generateKeyUsingRandomWords(name: String) throws -> PrivateKey
     @discardableResult func generateKeyFromPasswordComponents(_ components: [String], name: String) throws -> PrivateKey
-    func retrieveKeyPassphrase() throws -> [String]
+    func retrieveKeyPassphrase() throws -> KeyPassphrase
     func validateKeyName(name: String) throws
     func createBackupDocument() throws -> String
     func checkPassword(_ password: String) throws -> Bool
@@ -111,5 +112,5 @@ public protocol KeyManager {
     func setOrUpdatePassword(_ password: String) throws
     func passwordExists() -> Bool
     func changePassword(newPassword: String, existingPassword: String) throws
-    func moveAllKeysToiCloud() throws
+    func backupKeychainToiCloud(backupEnabled: Bool) throws
 }
