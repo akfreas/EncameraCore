@@ -269,4 +269,21 @@ public class EventTracking {
     public static func trackNotificationButtonTapped(url: URL) {
         track(category: "notification_banner", action: "button_tapped", name: url.absoluteString)
     }
+
+    public static func trackKeyPhraseBackupCopied() {
+        track(category: "key_phrase", action: "phrase_copied")
+    }
+
+    public static func trackKeyPhraseBackupImported() {
+        track(category: "key_phrase", action: "phrase_imported")
+    }
+
+    public static func trackKeyPhraseBackupScreenOpened() {
+        track(category: "key_phrase", action: "backup_screen_opened")
+    }
+
+    public static func trackImportKeyPhraseScreenOpened() {
+        track(category: "key_phrase", action: "import_screen_opened")
+    }
+
 }
