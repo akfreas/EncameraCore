@@ -15,7 +15,7 @@ Some of the functionality of Encamera:
 
 - **File Handling and Encryption**: Inside the `Utils` directory are some of the interfaces for file encryption. EncameraCore integrates with SwiftSodium for high-level encryption services. SwiftSodium provides a safe and easy-to-use interface to perform common cryptographic operations on iOS.
 
-- **Key and Credential Management**: `MultipleKeyKeychainManager` manages keys and credentials securely via the system keychain.
+- **Key and Credential Management**: `KeychainManager` manages keys and credentials securely via the system keychain.
 
 - **Secret File Handling**: `SecretFileHandler` deals with file chunking, encryption, and metadata management to securely store files.
 

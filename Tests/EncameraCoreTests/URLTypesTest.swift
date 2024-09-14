@@ -14,7 +14,7 @@ import Combine
 class URLTypesTest: XCTestCase {
     
     var key: PrivateKey!
-    let keyManager = MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
+    let keyManager = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
     
     override func setUp() {
         

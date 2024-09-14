@@ -1,5 +1,5 @@
 //
-//  MultipleKeyKeychainManager.swift
+//  KeychainManager.swift
 //  Encamera
 //
 //  Created by Alexander Freas on 23.06.22.
@@ -29,7 +29,7 @@ public struct KeyPassphrase {
 }
 
 
-public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
+public class KeychainManager: ObservableObject, KeyManager {
 
     
 
@@ -504,7 +504,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
 }
 
-private extension MultipleKeyKeychainManager {
+private extension KeychainManager {
     static func checkStatus(status: OSStatus, defaultError: KeyManagerError? = nil) throws {
         let throwDefault = defaultError ?? .unhandledError(determineOSStatus(status: status))
         switch status {
