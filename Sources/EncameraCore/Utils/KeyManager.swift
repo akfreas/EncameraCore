@@ -104,6 +104,7 @@ public protocol KeyManager {
     func generateNewKey(name: String, backupToiCloud: Bool) throws -> PrivateKey
     func generateKeyUsingRandomWords(name: String) throws -> PrivateKey
     @discardableResult func generateKeyFromPasswordComponents(_ components: [String], name: String) throws -> PrivateKey
+    @discardableResult func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey
     func retrieveKeyPassphrase() throws -> KeyPassphrase
     func validateKeyName(name: String) throws
     func createBackupDocument() throws -> String

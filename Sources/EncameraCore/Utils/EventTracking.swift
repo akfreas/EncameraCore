@@ -12,14 +12,14 @@ import PiwikPROSDK
 
 enum PurchaseGoal: Int {
     case yearlyUnlimitedKeysAndPhotos
-    case montlyUnlimitedKeysAndPhotos
+    case monthlyUnlimitedKeysAndPhotos
 
     init?(id: String) {
         switch id {
         case "subscription.yearly.unlimitedkeysandphotos":
             self = .yearlyUnlimitedKeysAndPhotos
         case "subscription.monthly.unlimitedkeysandphotos":
-            self = .montlyUnlimitedKeysAndPhotos
+            self = .monthlyUnlimitedKeysAndPhotos
         default:
             return nil
         }
@@ -284,6 +284,14 @@ public class EventTracking {
 
     public static func trackImportKeyPhraseScreenOpened() {
         track(category: "key_phrase", action: "import_screen_opened")
+    }
+
+    public static func trackKeyMigrationPrepared() {
+        track(category: "key_migration", action: "prepared")
+    }
+
+    public static func trackKeyMigrationCompleted() {
+        track(category: "key_migration", action: "completed")
     }
 
 }

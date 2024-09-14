@@ -23,7 +23,7 @@ struct KeychainItem {
     let storageType: String
 }
 
-public struct KeyPassphrase {
+public struct KeyPassphrase: Codable {
     public let words: [String]
     public let iCloudBackupEnabled: Bool
 }
@@ -146,6 +146,10 @@ public class KeychainManager: ObservableObject, KeyManager {
         return try generateKeyFromPasswordComponents(selectedWords, name: name)
     }
 
+    @discardableResult public func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey {
+        
+        return try generateKeyFromPasswordComponents(passphrase.words, name: AppConstants.defaultKeyName)
+    }
 
     @discardableResult public func generateKeyFromPasswordComponents(_ components: [String], name: String) throws -> PrivateKey {
         guard !components.isEmpty else {

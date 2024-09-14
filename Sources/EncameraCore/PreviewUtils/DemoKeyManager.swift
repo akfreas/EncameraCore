@@ -44,6 +44,10 @@ public class DemoKeyManager: KeyManager {
         return DemoPrivateKey.dummyKey()
     }
 
+    public func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey {
+        return DemoPrivateKey.dummyKey()
+    }
+
     func validate(password: String) -> PasswordValidation {
         return .valid
     }
