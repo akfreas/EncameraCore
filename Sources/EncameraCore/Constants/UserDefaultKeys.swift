@@ -22,7 +22,7 @@ public enum UserDefaultKey {
     case hasOpenedAlbum
     case keyTutorialClosed
     case currentAlbumID
-    case showCameraOnLaunch
+    case showCurrentAlbumOnLaunch
     case usesPinPassword
     case lockoutEnd
     case launchCountKey

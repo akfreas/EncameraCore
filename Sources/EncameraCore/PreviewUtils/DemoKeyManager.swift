@@ -18,7 +18,13 @@ public class DemoKeyManager: KeyManager {
     public func keyWith(name: String) -> PrivateKey? {
         return nil
     }
+    public func getPasswordHash() throws -> Data {
+        return Data()
+    }
 
+    public func setPasswordHash(hash: Data) throws {
+
+    }
 
     public func setOrUpdatePassword(_ password: String) throws {
 

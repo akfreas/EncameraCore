@@ -39,9 +39,6 @@ public enum OnboardingFlowScreen: String, Identifiable {
     case biometricsWithPin
     case setPinCode
     case confirmPinCode
-    case setupPrivateKey
-    case dataStorageSetting
-    case permissions
     case finished
     public var id: Self { self }
 }
@@ -76,7 +73,6 @@ public enum OnboardingManagerError: Error, Equatable {
 
 public protocol OnboardingManaging {
     init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager)
-    func generateOnboardingFlow() -> [OnboardingFlowScreen]
     func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws
 }
 
@@ -165,26 +161,6 @@ public class OnboardingManager: OnboardingManaging {
         observables.onboardingState = state
         return observables.onboardingState
     }
-    
-    public func generateOnboardingFlow() -> [OnboardingFlowScreen] {
-        var screens: [OnboardingFlowScreen] = [.intro]
-        if keyManager.passwordExists() {
-            screens += [.enterExistingPassword]
-        } else {
-            screens += [.setPassword]
-        }
-        if authManager.canAuthenticateWithBiometrics {
-            screens += [.biometrics]
-        }
-
-        screens += [
-            .permissions,
-        ]
-        
-        return screens
-
-    }
-    
 }
 
 private extension OnboardingManager {

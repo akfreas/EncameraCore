@@ -424,14 +424,7 @@ public class KeychainManager: ObservableObject, KeyManager {
     
     public func setPassword(_ password: String) throws {
         let hashed = try hashFrom(password: password)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.account,
-            kSecValueData as String: hashed,
-        ]
-        let setPasswordStatus = SecItemAdd(query as CFDictionary, nil)
-        
-        try checkStatus(status: setPasswordStatus)
+        try setPasswordHash(hash: hashed)
     }
 
     public func setOrUpdatePassword(_ password: String) throws {
@@ -469,9 +462,8 @@ public class KeychainManager: ObservableObject, KeyManager {
         }
         try setPassword(newPassword)
     }
-    
-    public func checkPassword(_ password: String) throws -> Bool {
-        
+
+    public func getPasswordHash() throws -> Data  {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
@@ -481,9 +473,45 @@ public class KeychainManager: ObservableObject, KeyManager {
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         do {
             try checkStatus(status: status)
-            guard let item = item, let passwordData = item as? Data,
-                  let hashString = String(data: passwordData, encoding: .utf8) else {
+            guard let item = item, let passwordData = item as? Data else {
                 throw KeyManagerError.notFound
+            }
+            return passwordData
+        } catch let managerError as KeyManagerError {
+            if case .notFound = managerError {
+                throw KeyManagerError.invalidPassword
+            } else {
+                throw managerError
+            }
+        }
+    }
+
+    public func setPasswordHash(hash: Data) throws {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.account,
+            kSecValueData as String: hash,
+        ]
+        let setPasswordStatus = SecItemAdd(query as CFDictionary, nil)
+
+        try checkStatus(status: setPasswordStatus)
+
+    }
+
+    public func checkPassword(_ password: String) throws -> Bool {
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.account,
+            kSecReturnData as String: true,
+        ]
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        do {
+            try checkStatus(status: status)
+            let passwordData = try getPasswordHash()
+            guard let hashString = String(data: passwordData, encoding: .utf8) else {
+                throw KeyManagerError.dataError
             }
             let passwordBytes = password.bytes
             let passwordMatch = sodium.pwHash.strVerify(hash: hashString, passwd: passwordBytes)
