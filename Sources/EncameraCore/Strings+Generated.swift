@@ -439,6 +439,8 @@ public enum L10n {
   public static let notificationBannerBody = L10n.tr("Localizable", "NotificationBannerBody", fallback: "All media is encrypted before saving. Nobody can view your files except you.")
   /// Notification Banners
   public static let notificationBannerTitle = L10n.tr("Localizable", "NotificationBannerTitle", fallback: "Secured with Encryption")
+  /// Notifications
+  public static let notificationListTitle = L10n.tr("Localizable", "NotificationListTitle", fallback: "Notifications")
   /// Nobody can access your data except you.
   public static let noTrackingExplanation = L10n.tr("Localizable", "NoTrackingExplanation", fallback: "Nobody can access your data except you.")
   /// Your Data is Secure
@@ -741,8 +743,8 @@ public enum L10n {
   public static let youTookYourFirstPhoto📸🥳 = L10n.tr("Localizable", "You took your first photo! 📸 🥳", fallback: "You took your first photo! 📸 🥳")
   /// Your Keys
   public static let yourKeys = L10n.tr("Localizable", "Your Keys", fallback: "Your Keys")
-  /// Your Recovery Phrase
-  public static let yourRecoveryPhrase = L10n.tr("Localizable", "YourRecoveryPhrase", fallback: "Your Recovery Phrase")
+  /// Key Backup
+  public static let yourRecoveryPhrase = L10n.tr("Localizable", "YourRecoveryPhrase", fallback: "Key Backup")
   /// Afterwards, you will be sent a promo code via DM that you can redeem in the app.
   public static let youWillBeSentAPromoCode = L10n.tr("Localizable", "YouWillBeSentAPromoCode", fallback: "Afterwards, you will be sent a promo code via DM that you can redeem in the app.")
   public enum AlbumDetailView {
@@ -774,6 +776,12 @@ public enum L10n {
   public enum KeyCopiedToClipboard {
     /// Key copied to clipboard. Store this in a password manager or other secure place.
     public static let storeThisInAPasswordManagerOrOtherSecurePlace = L10n.tr("Localizable", "Key copied to clipboard. Store this in a password manager or other secure place.", fallback: "Key copied to clipboard. Store this in a password manager or other secure place.")
+  }
+  public enum MediaSelectionTray {
+    /// Item Selected
+    public static let itemSelected = L10n.tr("Localizable", "MediaSelectionTray.ItemSelected", fallback: "Item Selected")
+    /// SelectMedia
+    public static let selectMedia = L10n.tr("Localizable", "MediaSelectionTray.SelectMedia", fallback: "SelectMedia")
   }
   public enum Notification {
     /// Unknown notification identifier

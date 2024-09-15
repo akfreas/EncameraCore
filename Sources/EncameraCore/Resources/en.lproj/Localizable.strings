@@ -443,7 +443,7 @@
 "RecoveryPhraseCopied" = "Recovery Phrase Copied!";
 "EnterKeyPhrase" = "Enter Key Phrase";
 "EnterKeyPhraseDescription" = "Enter the key phrase you want to import. Separate each word with a space.";
-
+"NotificationListTitle" = "Notifications";
 "Import" = "Import";
 "OverwriteKeyPhrase" = "Overwrite Key Phrase?";
 "OverwriteAreYouSure" = "Are you sure you want to overwrite your current key phrase? You will not be able to access any media encrypted with the current key phrase.";
@@ -479,3 +479,5 @@
 "Settings.BackupKeyPhrase" = "Backup Key Phrase";
 "Settings.ImportKeyPhrase" = "Import Key Phrase";
 
+"MediaSelectionTray.SelectMedia" = "Select Media";
+"MediaSelectionTray.ItemSelected" = "Item Selected";
