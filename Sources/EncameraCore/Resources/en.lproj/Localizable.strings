@@ -246,8 +246,8 @@
 "Decryption error: %@" = "Decryption error: %@";
 "Decryption error: %@" = "Decryption error: %@";
 /* ./Encamera/ImageViewing/MovieViewing.swift */
-"Could not decrypt movie: %@" = "Could not decrypt movie: %@";
 "Decrypting..." = "Decrypting...";
+"MovieDecryptionError" = "Could not load or decrypt movie. It may not be able to be downloaded. If this media is on iCloud, make sure you are able to download files with your current Internet connection. Error: %@";
 /* ./Encamera/ImageViewing/PhotoInfoView.swift */
 "No info available" = "No info available";
 /* ./Encamera/Onboarding/MainOnboardingView.swift */

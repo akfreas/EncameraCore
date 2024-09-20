@@ -143,10 +143,6 @@ public enum L10n {
   /// 
   /// It's important to save this key in case you lose your device.
   public static let copyPhraseInstructions = L10n.tr("Localizable", "CopyPhraseInstructions", fallback: "Write down or copy these words in the right order and save them somewhere safe.\n\nThis phrase is used to generate the encryption key that encrypts your media.\n\nIt's important to save this key in case you lose your device.")
-  /// ./Encamera/ImageViewing/MovieViewing.swift
-  public static func couldNotDecryptMovie(_ p1: Any) -> String {
-    return L10n.tr("Localizable", "Could not decrypt movie: %@", String(describing: p1), fallback: "Could not decrypt movie: %@")
-  }
   /// ./EncameraCore/Utils/KeyManager.swift
   public static let couldNotDeleteKeychainItems = L10n.tr("Localizable", "Could not delete keychain items.", fallback: "Could not delete keychain items.")
   /// Could not rename album.
@@ -167,7 +163,7 @@ public enum L10n {
   }
   /// Current Password
   public static let currentPassword = L10n.tr("Localizable", "Current Password", fallback: "Current Password")
-  /// Decrypting...
+  /// ./Encamera/ImageViewing/MovieViewing.swift
   public static let decrypting = L10n.tr("Localizable", "Decrypting...", fallback: "Decrypting...")
   /// Decryption error: %@
   public static func decryptionError(_ p1: Any) -> String {
@@ -403,6 +399,10 @@ public enum L10n {
   public static let mostPopular = L10n.tr("Localizable", "MostPopular", fallback: "MOST POPULAR")
   /// Change Storage
   public static let moveAlbumStorage = L10n.tr("Localizable", "MoveAlbumStorage", fallback: "Change Storage")
+  /// Could not load or decrypt movie. It may not be able to be downloaded. If this media is on iCloud, make sure you are able to download files with your current Internet connection. Error: %@
+  public static func movieDecryptionError(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "MovieDecryptionError", String(describing: p1), fallback: "Could not load or decrypt movie. It may not be able to be downloaded. If this media is on iCloud, make sure you are able to download files with your current Internet connection. Error: %@")
+  }
   /// You can have multiple keys for different purposes, e.g. one named "Documents" and another "Personal".
   public static let multipleKeysForMultiplePurposesExplanation = L10n.tr("Localizable", "MultipleKeysForMultiplePurposesExplanation", fallback: "You can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".")
   /// New Album
@@ -780,8 +780,8 @@ public enum L10n {
   public enum MediaSelectionTray {
     /// Item Selected
     public static let itemSelected = L10n.tr("Localizable", "MediaSelectionTray.ItemSelected", fallback: "Item Selected")
-    /// SelectMedia
-    public static let selectMedia = L10n.tr("Localizable", "MediaSelectionTray.SelectMedia", fallback: "SelectMedia")
+    /// Select Media
+    public static let selectMedia = L10n.tr("Localizable", "MediaSelectionTray.SelectMedia", fallback: "Select Media")
   }
   public enum Notification {
     /// Unknown notification identifier

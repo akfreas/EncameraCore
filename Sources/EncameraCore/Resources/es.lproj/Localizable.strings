@@ -495,3 +495,12 @@
 "UnlockWithPin" = "Desbloquear";
 "SavePinCode" = "Guardar código PIN";
 "OpenSystemSettings" = "Ir a Configuración";
+"Settings.BackupKeyPhrase" = "Frase de Respaldo";
+"Settings.ImportKeyPhrase" = "Importar Frase de Respaldo";
+"MediaSelectionTray.ItemSelected" = "Elemento Seleccionado";
+"NotificationListTitle" = "Notificaciones";
+"MediaSelectionTray.SelectMedia" = "Seleccionar Medios";
+"CopyPhraseInstructions" = "Escribe o copia estas palabras en el orden correcto y guárdalas en un lugar seguro.\n\nEsta frase se usa para generar la clave de cifrado que encripta tus medios.\n\nEs importante guardar esta clave en caso de que pierdas tu dispositivo.";
+"RecoveryPhraseCopied" = "¡Frase de recuperación copiada!";
+"CopyPhrase" = "Copiar frase al portapapeles";
+"MovieDecryptionError" = "No se pudo cargar o descifrar la película. Puede que no se pueda descargar. Si este medio está en iCloud, asegúrate de poder descargar archivos con tu conexión actual a Internet.";

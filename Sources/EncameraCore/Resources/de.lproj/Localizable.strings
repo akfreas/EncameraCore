@@ -261,7 +261,6 @@
 "Decryption error: %@" = "Entschlüsselungsfehler: %@"; 
 
 /* ./Encamera/ImageViewing/MovieViewing.swift */
-"Could not decrypt movie: %@" = "Film konnte nicht entschlüsselt werden: %@";
 "Decrypting..." = "Entschlüsselung läuft..."; 
 
 /* ./Encamera/ImageViewing/PhotoInfoView.swift */
@@ -496,3 +495,13 @@
 "UnlockWithPin" = "Entsperren";
 "SavePinCode" = "PIN-Code speichern";
 "OpenSystemSettings" = "Zu den Einstellungen gehen";
+
+"Settings.BackupKeyPhrase" = "Sicherungsschlüsselphrase";
+"Settings.ImportKeyPhrase" = "Schlüsselphrase importieren";
+"MediaSelectionTray.ItemSelected" = "Element ausgewählt";
+"NotificationListTitle" = "Benachrichtigungen";
+"MediaSelectionTray.SelectMedia" = "Medien auswählen";
+"CopyPhraseInstructions" = "Schreiben Sie diese Wörter in der richtigen Reihenfolge auf oder kopieren Sie sie und speichern Sie sie an einem sicheren Ort.\n\nDieser Satz wird verwendet, um den Verschlüsselungsschlüssel zu generieren, der Ihre Medien verschlüsselt.\n\nEs ist wichtig, diesen Schlüssel zu speichern, falls Sie Ihr Gerät verlieren.";
+"RecoveryPhraseCopied" = "Wiederherstellungsphrase kopiert!";
+"CopyPhrase" = "Phrase in die Zwischenablage kopieren";
+"MovieDecryptionError" = "Film konnte nicht geladen oder entschlüsselt werden. Möglicherweise kann er nicht heruntergeladen werden. Wenn sich dieses Medium in iCloud befindet, stellen Sie sicher, dass Sie Dateien mit Ihrer aktuellen Internetverbindung herunterladen können.";
