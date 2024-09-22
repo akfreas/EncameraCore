@@ -505,3 +505,11 @@
 "RecoveryPhraseCopied" = "Wiederherstellungsphrase kopiert!";
 "CopyPhrase" = "Phrase in die Zwischenablage kopieren";
 "MovieDecryptionError" = "Film konnte nicht geladen oder entschlüsselt werden. Möglicherweise kann er nicht heruntergeladen werden. Wenn sich dieses Medium in iCloud befindet, stellen Sie sicher, dass Sie Dateien mit Ihrer aktuellen Internetverbindung herunterladen können.";
+
+"AlbumDetailView.PhotoAccessAlertTitle" = "Nach dem Import löschen?";
+"AlbumDetailView.NoLicenseDeletionWarningMessage" = "Da Sie keine kostenpflichtige Lizenz für Encamera haben, können Sie in der App nur 10 Bilder anzeigen. Wenn Sie Bilder aus Ihrer Fotobibliothek löschen, können Sie sie möglicherweise ohne eine kostenpflichtige Lizenz nicht anzeigen.";
+"AlbumDetailView.PhotoAccessAlertMessage" = "Möchten Sie die Bilder nach dem Import aus Ihrer Fotobibliothek löschen? Encamera benötigt hierfür die Berechtigung zu Ihrer Fotobibliothek.";
+"AlbumDetailView.PhotoAccessAlertSecondaryButton" = "Nicht jetzt";
+"AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "Ich verstehe";
+"AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Wichtig ⚠️";
+"AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Löschen";
