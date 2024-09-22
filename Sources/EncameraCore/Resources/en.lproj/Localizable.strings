@@ -485,6 +485,7 @@
 "Settings.Contact" = "Contact Support";
 "Settings.BackupKeyPhrase" = "Backup Key Phrase";
 "Settings.ImportKeyPhrase" = "Import Key Phrase";
+"Settings.DefaultStorageOption" = "Default Storage Option";
 
 "MediaSelectionTray.SelectMedia" = "Select Media";
 "MediaSelectionTray.ItemSelected" = "Item Selected";

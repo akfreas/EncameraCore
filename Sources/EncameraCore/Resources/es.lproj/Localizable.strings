@@ -512,3 +512,4 @@
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "Entiendo";
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Importante ⚠️";
 "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Eliminar";
+"Settings.DefaultStorageOption" = "Opción de Almacenamiento Predeterminada";

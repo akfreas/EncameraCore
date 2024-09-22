@@ -61,8 +61,12 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         return albumMediaCount(album: currentAlbum)
     }
 
-    public var defaultStorageForAlbum: StorageType = .local
-    
+    public var defaultStorageForAlbum: StorageType {
+        didSet {
+            UserDefaultUtils.set(defaultStorageForAlbum.rawValue, forKey: .defaultStorageLocation)
+        }
+    }
+
     private var keyManager: KeyManager
 
     private var albumSet: Set<Album> = [] {
@@ -110,6 +114,13 @@ public class AlbumManager: AlbumManaging, ObservableObject {
 
     required public init(keyManager: KeyManager) {
         self.keyManager = keyManager
+        if let defaultStorageLocationValue = UserDefaultUtils.string(forKey: .defaultStorageLocation),
+           let defaultStorageLocation = StorageType(rawValue: defaultStorageLocationValue) {
+            self.defaultStorageForAlbum = defaultStorageLocation
+        } else {
+            self.defaultStorageForAlbum = .local
+        }
+
         loadAlbumsFromFilesystem()
     }
 

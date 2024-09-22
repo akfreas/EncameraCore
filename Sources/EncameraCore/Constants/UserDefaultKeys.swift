@@ -32,6 +32,7 @@ public enum UserDefaultKey {
     case widgetOpenCount
     case notificationScheduledCount(identifier: NotificationIdentifier)
     case livePhotosActivated
+    case defaultStorageLocation
 
 
     var rawValue: String {
