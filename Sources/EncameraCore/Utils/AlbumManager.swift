@@ -243,11 +243,15 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         if albumSet.contains(where: { $0.name == newName }) {
             throw AlbumError.albumExists
         }
-
+        guard var albumToUpdate = albumSet.first(where: { $0.id == album.id }) else {
+            throw AlbumError.albumNotFoundAtSourceLocation
+        }
+        
+        albumToUpdate.name = newName
         // Rename the album in the file system
         let fileManager = FileManager.default
         let oldURL = album.storageURL
-        let newURL = oldURL.deletingLastPathComponent().appendingPathComponent(newName)
+        let newURL = oldURL.deletingLastPathComponent().appendingPathComponent(albumToUpdate.encryptedPathComponent)
 
         if fileManager.fileExists(atPath: oldURL.path) {
             try fileManager.moveItem(at: oldURL, to: newURL)
@@ -255,23 +259,13 @@ public class AlbumManager: AlbumManaging, ObservableObject {
             throw AlbumError.albumNotFoundAtSourceLocation
         }
 
-        // Update the album's name and storage URL in your model
-        if var albumToUpdate = albumSet.first(where: { $0.id == album.id }) {
-            albumToUpdate.name = newName
-            // Update storageURL if your Album model has this property
-            // albumToUpdate.storageURL = newURL
-
-            // Update the albums set and array
-            albumSet.remove(album)
-            albumSet.insert(albumToUpdate)
-            albumOperationSubject.send(.albumRenamed(album: albumToUpdate))
-            if currentAlbum?.id == album.id {
-                currentAlbum = albumToUpdate
-            }
-            return albumToUpdate
-        } else {
-            throw AlbumError.albumNotFoundAtSourceLocation
+        albumSet.remove(album)
+        albumSet.insert(albumToUpdate)
+        albumOperationSubject.send(.albumRenamed(album: albumToUpdate))
+        if currentAlbum?.id == album.id {
+            currentAlbum = albumToUpdate
         }
+        return albumToUpdate
     }
 
 

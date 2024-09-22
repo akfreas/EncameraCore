@@ -28,7 +28,12 @@ public struct Album: Codable, Identifiable, Hashable {
     }
 
     public var key: PrivateKey
-    public var name: String
+    public var name: String {
+        didSet {
+            encryptedName = nil
+            encryptedName = encryptedPathComponent
+        }
+    }
     public var storageOption: StorageType
     public var creationDate: Date
     private var encryptedName: String?
