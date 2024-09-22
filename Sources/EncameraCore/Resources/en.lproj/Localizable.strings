@@ -397,6 +397,13 @@
 "AlbumDetailView.AddFirstImageSubtitle" = "Import an image from your album or open the camera and take a new picture for this album";
 "AlbumDetailView.ImportButton" = "Import Pictures";
 "AlbumDetailView.OpenCamera" = "Take a New Picture";
+"AlbumDetailView.PhotoAccessAlertTitle" = "Delete After Import?";
+"AlbumDetailView.PhotoAccessAlertMessage" = "Do you want to delete the images from your photo library after importing them? Encamera requires permission to your photo library to do this.";
+"AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Delete";
+"AlbumDetailView.PhotoAccessAlertSecondaryButton" = "Not Now";
+"AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Important ⚠️";
+"AlbumDetailView.NoLicenseDeletionWarningMessage" = "Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.";
+"AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "I Understand";
 "LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";
 "SetPinCode" = "Set Pin Code";
 "SetPinCodeSubtitle" = "This pin will be used to securely login in your app. Make sure you remember it!";

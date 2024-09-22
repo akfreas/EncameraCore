@@ -294,4 +294,20 @@ public class EventTracking {
         track(category: "key_migration", action: "completed")
     }
 
+    public static func trackKeyMigrationFailedWithError() {
+        track(category: "key_migration", action: "failed")
+    }
+
+    public static func trackPhotoLibraryPermissionsGranted() {
+        track(category: "permissions", action: "permissions_granted", name: "photo_library")
+    }
+
+    public static func trackPhotoLibraryPermissionsDenied() {
+        track(category: "permissions", action: "permissions_denied", name: "photo_library")
+    }
+
+    public static func trackPhotoLibraryPermissionsLimited() {
+        track(category: "permissions", action: "permissions_limited", name: "photo_library")
+    }
+
 }

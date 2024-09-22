@@ -754,8 +754,22 @@ public enum L10n {
     public static let addFirstImageSubtitle = L10n.tr("Localizable", "AlbumDetailView.AddFirstImageSubtitle", fallback: "Import an image from your album or open the camera and take a new picture for this album")
     /// Import Pictures
     public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Pictures")
+    /// Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.
+    public static let noLicenseDeletionWarningMessage = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningMessage", fallback: "Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.")
+    /// I Understand
+    public static let noLicenseDeletionWarningPrimaryButton = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton", fallback: "I Understand")
+    /// ⚠️ Important ⚠️
+    public static let noLicenseDeletionWarningTitle = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningTitle", fallback: "⚠️ Important ⚠️")
     /// Take a New Picture
     public static let openCamera = L10n.tr("Localizable", "AlbumDetailView.OpenCamera", fallback: "Take a New Picture")
+    /// Do you want to delete the images from your photo library after importing them? Encamera requires permission to your photo library to do this.
+    public static let photoAccessAlertMessage = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertMessage", fallback: "Do you want to delete the images from your photo library after importing them? Encamera requires permission to your photo library to do this.")
+    /// Delete
+    public static let photoAccessAlertPrimaryButton = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertPrimaryButton", fallback: "Delete")
+    /// Not Now
+    public static let photoAccessAlertSecondaryButton = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertSecondaryButton", fallback: "Not Now")
+    /// Delete After Import?
+    public static let photoAccessAlertTitle = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertTitle", fallback: "Delete After Import?")
   }
   public enum EnterTheNameOfTheKeyToDeleteItForever {
     /// Enter the name of the key to delete it forever. All media will remain saved.
