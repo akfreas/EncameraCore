@@ -8,8 +8,6 @@
 import Foundation
 import PiwikPROSDK
 
-
-
 enum PurchaseGoal: Int {
     case yearlyUnlimitedKeysAndPhotos
     case monthlyUnlimitedKeysAndPhotos

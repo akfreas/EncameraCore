@@ -21,7 +21,7 @@ struct LocalStorageModel: DataStorageModel {
     }
     
     var baseURL: URL {
-        let filesDirectory = Self.rootURL.appendingPathComponent(album.name)
+        let filesDirectory = Self.rootURL.appendingPathComponent(album.encryptedPathComponent)
         return filesDirectory
     }
     

@@ -296,9 +296,9 @@ public class AlbumManager: AlbumManaging, ObservableObject {
     private func matchAlbumToKeyIfNeeded(albumName: String, storageType: StorageType, creationDate: Date) -> Album? {
         let key = keyManager.keyWith(name: albumName)
         if let key {
-            return Album(name: albumName, storageOption: storageType, creationDate: creationDate, key: key)
+            return Album(encryptedName: albumName, storageOption: storageType, creationDate: creationDate, key: key)
         } else if let key = keyManager.currentKey {
-            return Album(name: albumName, storageOption: storageType, creationDate: creationDate, key: key)
+            return Album(encryptedName: albumName, storageOption: storageType, creationDate: creationDate, key: key)
         } else {
             return nil
         }
