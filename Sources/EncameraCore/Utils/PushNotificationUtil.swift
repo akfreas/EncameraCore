@@ -19,7 +19,28 @@ public class NotificationManager {
         #endif
     }
 
-    public class func requestLocalNotificationPermission() async throws -> Bool {
+    public static var isAuthorized: Bool {
+        get async {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            return settings.authorizationStatus == .authorized
+        }
+    }
+
+    public static var isDenied: Bool {
+        get async {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            return settings.authorizationStatus == .denied
+        }
+    }
+
+    public static var isNotDetermined: Bool {
+        get async {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            return settings.authorizationStatus == .notDetermined
+        }
+    }
+
+    @discardableResult public class func requestLocalNotificationPermission() async throws -> Bool {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         if settings.authorizationStatus == .notDetermined {
             let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])

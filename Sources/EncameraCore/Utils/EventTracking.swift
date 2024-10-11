@@ -51,7 +51,6 @@ public class EventTracking {
         } else if let productId = StoreActor.shared.productController.purchasedProduct?.id {
             Self.shared.piwikTracker.setCustomDimension(identifier: 2, value: productId)
         }
-
         Self.shared.piwikTracker.sendEvent(category: category, action: action, name: name, value: value as NSNumber?, path: nil)
 #endif
     }
@@ -308,4 +307,22 @@ public class EventTracking {
         track(category: "permissions", action: "permissions_limited", name: "photo_library")
     }
 
+    public static func trackNotificationPromptShown() {
+        track(category: "notification_prompt", action: "shown")
+    }
+    public static func trackNotificationPromptDismissed() {
+        track(category: "notification_prompt", action: "dismissed")
+    }
+
+    public static func trackNotificationPromptAccepted() {
+        track(category: "notification_prompt", action: "accepted")
+    }
+
+    public static func trackReviewAlertNoPressed() {
+        track(category: "review_alert", action: "no_pressed")
+    }
+
+    public static func trackReviewAlertYesPressed() {
+        track(category: "review_alert", action: "yes_pressed")
+    }
 }

@@ -18,6 +18,7 @@ public enum UserDefaultKey {
     case capturedPhotos
     case featureToggle(feature: Feature)
     case viewGalleryCount
+    case reviewRequestedMetric
     case lastVersionReviewRequested
     case hasOpenedAlbum
     case keyTutorialClosed

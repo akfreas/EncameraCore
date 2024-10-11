@@ -86,7 +86,7 @@ public struct UserDefaultUtils {
             defaults.removeObject(forKey: key)
         }
     }
-    
+
     public static func migrateUserDefaultsToAppGroups() {
         
         // User Defaults - Old
@@ -115,4 +115,12 @@ public struct UserDefaultUtils {
         
     }
     
+}
+
+
+public extension UserDefaultUtils {
+
+    static func resetReviewMetric() {
+        Self.set(0, forKey: .reviewRequestedMetric)
+    }
 }

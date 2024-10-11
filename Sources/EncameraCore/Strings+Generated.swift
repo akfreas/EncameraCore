@@ -413,6 +413,8 @@ public enum L10n {
   public static let newPassword = L10n.tr("Localizable", "New Password", fallback: "New Password")
   /// ./Encamera/Onboarding/MainOnboardingView.swift
   public static let next = L10n.tr("Localizable", "Next", fallback: "Next")
+  /// No
+  public static let no = L10n.tr("Localizable", "No", fallback: "No")
   /// No file access available.
   public static let noFileAccessAvailable = L10n.tr("Localizable", "No file access available.", fallback: "No file access available.")
   /// ./EncameraCore/Utils/DataStorageUserDefaultsSetting.swift
@@ -737,6 +739,8 @@ public enum L10n {
   public static let whereToFindYourPictures = L10n.tr("Localizable", "WhereToFindYourPictures", fallback: "You will find all of your photos and videos grouped in the “Albums”")
   /// Why Encrypt Media?
   public static let whyEncryptMedia = L10n.tr("Localizable", "Why Encrypt Media?", fallback: "Why Encrypt Media?")
+  /// Yes
+  public static let yes = L10n.tr("Localizable", "Yes", fallback: "Yes")
   /// You have an existing password for this device.
   public static let youHaveAnExistingPasswordForThisDevice = L10n.tr("Localizable", "You have an existing password for this device.", fallback: "You have an existing password for this device.")
   /// You took your first photo! 📸 🥳
@@ -770,6 +774,10 @@ public enum L10n {
     public static let photoAccessAlertSecondaryButton = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertSecondaryButton", fallback: "Not Now")
     /// Delete After Import?
     public static let photoAccessAlertTitle = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertTitle", fallback: "Delete After Import?")
+  }
+  public enum AskForReview {
+    /// Are you enjoying the app?
+    public static let enjoyingTheApp = L10n.tr("Localizable", "AskForReview.EnjoyingTheApp", fallback: "Are you enjoying the app?")
   }
   public enum EnterTheNameOfTheKeyToDeleteItForever {
     /// Enter the name of the key to delete it forever. All media will remain saved.

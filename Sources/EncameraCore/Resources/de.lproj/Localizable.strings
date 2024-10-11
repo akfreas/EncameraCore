@@ -515,3 +515,6 @@
 "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Löschen";
 
 "Settings.DefaultStorageOption" = "Standard Speicheroption";
+"Yes" = "Ja";
+"AskForReview.EnjoyingTheApp" = "Genießen Sie die App?";
+"No" = "Nein";
