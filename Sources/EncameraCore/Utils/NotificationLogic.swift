@@ -8,7 +8,7 @@ public class NotificationLogic {
             guard UserDefaultUtils.bool(forKey: .showPushNotificationPrompt) else {
                 return false
             }
-            guard await NotificationManager.isNotDetermined else {
+            guard !(await NotificationManager.isAuthorized) else {
                 return false
             }
 
