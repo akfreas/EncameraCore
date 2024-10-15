@@ -59,7 +59,7 @@ public class AskForReviewUtil {
             requestReview()
         }
 
-        let noAction = UIAlertAction(title: L10n.no, style: .cancel) { _ in
+        let noAction = UIAlertAction(title: L10n.no, style: .default) { _ in
             EventTracking.trackReviewAlertNoPressed()
         }
 

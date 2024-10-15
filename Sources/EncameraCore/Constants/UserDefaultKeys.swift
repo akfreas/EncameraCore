@@ -34,6 +34,7 @@ public enum UserDefaultKey {
     case notificationScheduledCount(identifier: NotificationIdentifier)
     case livePhotosActivated
     case defaultStorageLocation
+    case showPushNotificationPrompt
 
 
     var rawValue: String {

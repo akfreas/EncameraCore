@@ -4,6 +4,10 @@ public class NotificationLogic {
 
     static public var shouldAskForNotificationPermissions: Bool {
         get async {
+
+            guard UserDefaultUtils.bool(forKey: .showPushNotificationPrompt) else {
+                return false
+            }
             guard await NotificationManager.isNotDetermined else {
                 return false
             }
