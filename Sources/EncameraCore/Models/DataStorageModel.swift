@@ -116,13 +116,13 @@ extension DataStorageModel {
     }
     
     func driveURLForNewMedia<T: MediaDescribing>(_ media: T) -> URL {
-        let filename = "\(media.id).\(media.mediaType.fileExtension)"
+        let filename = "\(media.id).\(media.mediaType.encryptedFileExtension)"
         return baseURL.appendingPathComponent(filename)
     }
     
     
     func previewURLForMedia<T: MediaDescribing>(_ media: T) -> URL {
-        let thumbnailPath = Self.thumbnailDirectory.appendingPathComponent("\(media.id).\(MediaType.preview.fileExtension)")
+        let thumbnailPath = Self.thumbnailDirectory.appendingPathComponent("\(media.id).\(MediaType.preview.encryptedFileExtension)")
         return thumbnailPath
     }
     
@@ -130,7 +130,7 @@ extension DataStorageModel {
         return Self.enumeratorForStorageDirectory(at: baseURL, resourceKeys: resourceKeys, fileExtensionFilter: fileExtensionFilter)
     }
 
-    public func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.fileExtension]) -> Int {
+    public func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.encryptedFileExtension]) -> Int {
         let files = enumeratorForStorageDirectory(resourceKeys: Set(), fileExtensionFilter: matchingFileExtension)
 
         var uniqueFileNames = Set<String>()

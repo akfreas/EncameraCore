@@ -87,7 +87,7 @@ public enum MediaType: Int, CaseIterable, Codable {
     private static func typeFromURL(_ url: URL) -> MediaType {
         
         guard let fileExtension = url.lastPathComponent.split(separator: ".")[safe: 1],
-              let type = self.allCases.filter({$0.fileExtension == fileExtension }).first
+              let type = self.allCases.filter({$0.encryptedFileExtension == fileExtension }).first
         else {
             return .unknown
         }
@@ -107,7 +107,7 @@ public enum MediaType: Int, CaseIterable, Codable {
         return .photo
     }
     
-    public var fileExtension: String {
+    public var encryptedFileExtension: String {
         switch self {
         case .video:
             return "encvideo"

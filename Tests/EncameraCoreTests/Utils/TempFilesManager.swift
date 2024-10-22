@@ -27,7 +27,7 @@ public class TempFilesManager {
     init() {}
     
     func createTempURL(for mediaType: MediaType, id: String) -> URL {
-        let path = tempUrl.appendingPathComponent(id).appendingPathExtension(mediaType.fileExtension)
+        let path = tempUrl.appendingPathComponent(id).appendingPathExtension(mediaType.encryptedFileExtension)
         createdTempFiles.insert(path)
         return path
     }

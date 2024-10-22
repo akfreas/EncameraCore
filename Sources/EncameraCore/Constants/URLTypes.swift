@@ -93,7 +93,7 @@ public enum URLType: Equatable {
     }
     
     private static func extractMediaSource(url: URL) -> EncryptedMedia? {
-        guard url.pathExtension == MediaType.photo.fileExtension || url.pathExtension == MediaType.video.fileExtension else {
+        guard url.pathExtension == MediaType.photo.encryptedFileExtension || url.pathExtension == MediaType.video.encryptedFileExtension else {
             return nil
         }
         return EncryptedMedia(source: url)

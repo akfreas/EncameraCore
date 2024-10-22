@@ -406,6 +406,8 @@
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Important ⚠️";
 "AlbumDetailView.NoLicenseDeletionWarningMessage" = "Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "I Understand";
+"AlbumDetailView.Select" = "Select";
+"AlbumDetailView.RenameAlbum" = "Rename Album";
 "LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";
 "SetPinCode" = "Set Pin Code";
 "SetPinCodeSubtitle" = "This pin will be used to securely login in your app. Make sure you remember it!";

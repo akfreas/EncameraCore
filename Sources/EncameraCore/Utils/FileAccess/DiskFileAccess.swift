@@ -45,7 +45,7 @@ public actor DiskFileAccess {
         }
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
 
-        let filter = [MediaType.photo.fileExtension, MediaType.video.fileExtension]
+        let filter = [MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension]
 
         let urls: [URL] = directoryModel.enumeratorForStorageDirectory(
             resourceKeys: resourceKeys,
@@ -68,8 +68,8 @@ public actor DiskFileAccess {
                 }
 
                 // If dates are the same, prioritize photos over videos
-                let isPhoto1 = url1.pathExtension == MediaType.photo.fileExtension
-                let isPhoto2 = url2.pathExtension == MediaType.photo.fileExtension
+                let isPhoto1 = url1.pathExtension == MediaType.photo.encryptedFileExtension
+                let isPhoto2 = url2.pathExtension == MediaType.photo.encryptedFileExtension
 
                 return isPhoto1 && !isPhoto2
             }.compactMap { (itemUrl: URL) in

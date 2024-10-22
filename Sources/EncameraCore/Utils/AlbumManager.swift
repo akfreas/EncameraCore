@@ -295,7 +295,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
 
     public func albumMediaCount(album: Album) -> Int {
         let storageModel = storageModel(for: album)
-        return storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.fileExtension, MediaType.video.fileExtension]) ?? 0
+        return storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension]) ?? 0
     }
 
     private func matchAlbumToKeyIfNeeded(albumName: String, storageType: StorageType, creationDate: Date) -> Album? {

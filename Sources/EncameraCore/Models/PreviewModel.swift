@@ -12,7 +12,7 @@ public struct PreviewModel: Codable {
     
     public var thumbnailMedia: CleartextMedia
     public var gridID: String {
-        "\(thumbnailMedia.mediaType.fileExtension)_\(thumbnailMedia.id)"
+        "\(thumbnailMedia.mediaType.encryptedFileExtension)_\(thumbnailMedia.id)"
     }
     public var videoDuration: String?
     public var isLivePhoto: Bool = false

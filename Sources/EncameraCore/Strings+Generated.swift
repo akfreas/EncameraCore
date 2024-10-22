@@ -774,6 +774,10 @@ public enum L10n {
     public static let photoAccessAlertSecondaryButton = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertSecondaryButton", fallback: "Not Now")
     /// Delete After Import?
     public static let photoAccessAlertTitle = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertTitle", fallback: "Delete After Import?")
+    /// Rename Album
+    public static let renameAlbum = L10n.tr("Localizable", "AlbumDetailView.RenameAlbum", fallback: "Rename Album")
+    /// Select
+    public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select")
   }
   public enum AskForReview {
     /// Are you enjoying the app?
