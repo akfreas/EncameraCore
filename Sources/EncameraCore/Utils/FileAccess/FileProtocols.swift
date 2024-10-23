@@ -52,6 +52,9 @@ public protocol FileWriter: FileEnumerator {
 public protocol FileAccess: FileEnumerator, FileReader, FileWriter {
     init()
     init(for album: Album, albumManager: AlbumManaging) async
+    func loadMediaToURLs(
+        media: InteractableMedia<EncryptedMedia>,
+        progress: @escaping (FileLoadingStatus) -> Void) async throws -> [URL]
 }
 
 extension FileAccess {

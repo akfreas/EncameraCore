@@ -62,12 +62,17 @@ public actor InteractableMediaDiskAccess: FileAccess {
         return preview
     }
 
-    public func loadMediaToURL<T>(media: InteractableMedia<T>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> URL where T : MediaDescribing {
+    public func loadMediaToURLs(
+        media: InteractableMedia<EncryptedMedia>,
+        progress: @escaping (FileLoadingStatus) -> Void) async throws -> [URL] {
         var urls = [URL]()
         for mediaItem in media.underlyingMedia {
 
-            let loaded = try await fileAccess.loadMediaToURL(media: mediaItem.underlyingMedia, progress: progress)
-            urls.append(loaded.source)
+            let loaded = try await fileAccess.loadMediaToURL(media: mediaItem, progress: progress)
+            guard let url = loaded.url else {
+                continue
+            }
+            urls.append(url)
         }
         return urls
     }

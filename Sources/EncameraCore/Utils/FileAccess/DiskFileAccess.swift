@@ -202,7 +202,7 @@ extension DiskFileAccess {
         _ = sourceURL.startAccessingSecurityScopedResource()
         let targetURL = URL.tempMediaDirectory
             .appendingPathComponent(encrypted.id)
-            .appendingPathExtension("mov")
+            .appendingPathExtension(encrypted.mediaType.decryptedFileExtension)
         if FileManager.default.fileExists(atPath: targetURL.path) {
             return CleartextMedia(source: targetURL)
         }

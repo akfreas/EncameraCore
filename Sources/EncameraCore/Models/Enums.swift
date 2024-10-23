@@ -119,6 +119,19 @@ public enum MediaType: Int, CaseIterable, Codable {
             return "encpreview"
         }
     }
+
+    public var decryptedFileExtension: String {
+        switch self {
+        case .video:
+            return "mov"
+        case .photo:
+            return "jpg"
+        case .unknown:
+            return "unknown"
+        case .preview:
+            return "jpg"
+        }
+    }
 }
 
 public enum CameraMode: Int {
