@@ -10,6 +10,12 @@ import UIKit
 import LinkPresentation
 import UniformTypeIdentifiers
 
+public enum SharingError: Error {
+    case noMediaToShare
+    case errorDownloading
+    case errorSharing(internalErrror: Error)
+}
+
 public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
 
     let targetMedia: [InteractableMedia<EncryptedMedia>]
@@ -46,7 +52,7 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
             do {
                 let media = try await self.fileAccess.loadMediaToURLs(media: media) { status in
                     // Using lock to ensure thread-safety when updating overall progress
-                    self.printDebug("Status: \(status)")
+                    self.printDebug("Status: \(status), overallstatus: \(overallProgress), totalMedia: \(totalMediaToLoad)")
                     progressLock.lock()
                     defer { progressLock.unlock() }
 
@@ -82,25 +88,30 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
     }
 
     @MainActor
-    public func showShareSheet() {
-
+    public func showShareSheet() async throws {
         guard !preparedMediaURLs.isEmpty else {
             printDebug("No media loaded")
             return
         }
 
         let activityView = UIActivityViewController(activityItems: self.preparedMediaURLs + [self], applicationActivities: nil)
-        activityView.completionWithItemsHandler = { activityType, completed, returnedItems, error in
-            if let error = error {
-                self.printDebug("Share error: \(error.localizedDescription)")
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            activityView.completionWithItemsHandler = { activityType, completed, returnedItems, error in
+                if let error = error {
+                    self.printDebug("Share error: \(error.localizedDescription)")
+                    continuation.resume(throwing: SharingError.errorSharing(internalError: error))
+                } else {
+                    continuation.resume()
+                }
             }
-        }
 
-        let allScenes = UIApplication.shared.connectedScenes
-        let scene = allScenes.first { $0.activationState == .foregroundActive }
+            let allScenes = UIApplication.shared.connectedScenes
+            let scene = allScenes.first { $0.activationState == .foregroundActive }
 
-        if let windowScene = scene as? UIWindowScene {
-            windowScene.keyWindow?.rootViewController?.present(activityView, animated: true, completion: nil)
+            if let windowScene = scene as? UIWindowScene {
+                windowScene.keyWindow?.rootViewController?.present(activityView, animated: true, completion: nil)
+            }
         }
     }
 
