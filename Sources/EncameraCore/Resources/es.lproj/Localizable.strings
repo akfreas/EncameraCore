@@ -516,3 +516,8 @@
 "Yes" = "Sí";
 "AskForReview.EnjoyingTheApp" = "¿Estás disfrutando de la aplicación?";
 "No" = "No";
+"AlbumDetailView.Select" = "Seleccionar";
+"GetPremiumPromoText" = "¡Venta de Halloween!";
+"PromoPremiumUnlockTheseBenefits" = "Álbumes ilimitados y almacenamiento en iCloud\n y DOS MESES GRATIS";
+"AlbumDetailView.RenameAlbum" = "Renombrar álbum";
+"PromoFreeTrialTerms" = "60 días gratis, luego %@";

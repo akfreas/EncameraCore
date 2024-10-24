@@ -13,7 +13,7 @@ import UniformTypeIdentifiers
 public enum SharingError: Error {
     case noMediaToShare
     case errorDownloading
-    case errorSharing(internalErrror: Error)
+    case errorSharing(internalError: Error)
 }
 
 public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {

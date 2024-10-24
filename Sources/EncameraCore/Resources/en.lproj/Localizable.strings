@@ -63,7 +63,9 @@
 "Leave a Review" = "Leave a Review";
 "Password successfully changed" = "Password successfully changed";
 "GetPremium" = "Get Premium";
+"GetPremiumPromoText" = "Halloween Sale!";
 "PremiumUnlockTheseBenefits" = "Unlimited albums and iCloud storage";
+"PromoPremiumUnlockTheseBenefits" = "Unlimited albums and iCloud storage\n and TWO MONTHS FREE";
 "Restore Purchases" = "Restore Purchases";
 "Settings" = "Settings";
 "Join Telegram Group" = "Join Telegram Group";
@@ -320,6 +322,7 @@
 "UnlockUnlimitedForFree" = "Unlock Unlimited for Free!";
 "Start trial offer" = "Free Trial";
 "FreeTrialTerms" = "7 days free, then %@";
+"PromoFreeTrialTerms" = "60 days free, then %@";
 
 "NoCommitmentCancelAnytime" = "No commitment, cancel anytime";
 "MostPopular" = "MOST POPULAR";

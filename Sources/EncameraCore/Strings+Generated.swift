@@ -302,6 +302,8 @@ public enum L10n {
   public static let getOneYearFree = L10n.tr("Localizable", "GetOneYearFree", fallback: "Get 1 Year Free!")
   /// Get Premium
   public static let getPremium = L10n.tr("Localizable", "GetPremium", fallback: "Get Premium")
+  /// Halloween Sale!
+  public static let getPremiumPromoText = L10n.tr("Localizable", "GetPremiumPromoText", fallback: "Halloween Sale!")
   /// Let's Start
   public static let getStartedButtonText = L10n.tr("Localizable", "GetStartedButtonText", fallback: "Let's Start")
   /// ./Encamera/ImageViewing/GalleryGridView.swift
@@ -535,6 +537,13 @@ public enum L10n {
   public static let privacyPolicy = L10n.tr("Localizable", "Privacy Policy", fallback: "Privacy Policy")
   /// ./Encamera/Onboarding/OnboardingView.swift
   public static let profileSetup = L10n.tr("Localizable", "ProfileSetup", fallback: "PROFILE SETUP")
+  /// 60 days free, then %@
+  public static func promoFreeTrialTerms(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "PromoFreeTrialTerms", String(describing: p1), fallback: "60 days free, then %@")
+  }
+  /// Unlimited albums and iCloud storage
+  ///  and TWO MONTHS FREE
+  public static let promoPremiumUnlockTheseBenefits = L10n.tr("Localizable", "PromoPremiumUnlockTheseBenefits", fallback: "Unlimited albums and iCloud storage\n and TWO MONTHS FREE")
   /// Purchase
   public static let purchaseProduct = L10n.tr("Localizable", "PurchaseProduct", fallback: "Purchase")
   /// Widget
