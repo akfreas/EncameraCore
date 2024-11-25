@@ -11,6 +11,11 @@ import UIKit
 
 public class AskForReviewUtil {
 
+    private static var currentVersion: String? {
+        let infoDictionaryKey = kCFBundleVersionKey as String
+        return Bundle.main.object(forInfoDictionaryKey: infoDictionaryKey) as? String
+    }
+
     public static var reviewURL: URL {
         return URL(string: AppConstants.appStoreURL)!.appending(queryItems: [URLQueryItem(name: "action", value: "write-review")])
     }
@@ -27,18 +32,14 @@ public class AskForReviewUtil {
         let lastVersionPromptedForReview = UserDefaultUtils.string(forKey: .lastVersionReviewRequested)
 
         // Get the current bundle version for the app.
-        let infoDictionaryKey = kCFBundleVersionKey as String
-        guard let currentVersion = Bundle.main.object(forInfoDictionaryKey: infoDictionaryKey) as? String
-        else { fatalError("Expected to find a bundle version in the info dictionary.") }
+        guard let currentVersion else { fatalError("Expected to find a bundle version in the info dictionary.") }
 
-        // Verify the user completes the process several times and doesn’t receive a prompt for this app version.
-        if count >= AppConstants.reviewRequestThreshold && currentVersion != lastVersionPromptedForReview {
+//         Verify the user completes the process several times and doesn’t receive a prompt for this app version.
+        if count % AppConstants.reviewRequestThreshold == 0 && currentVersion != lastVersionPromptedForReview {
             Task {
                 try? await Task.sleep(nanoseconds: UInt64(2e9))
 
                 await presentReviewAlert()
-
-                UserDefaultUtils.set(currentVersion, forKey: .lastVersionReviewRequested)
             }
         } else {
             debugPrint("Not showing review alert. Count: \(count), threshold: \(AppConstants.reviewRequestThreshold), current version: \(currentVersion), last version prompted: \(lastVersionPromptedForReview ?? "none")")
@@ -55,16 +56,23 @@ public class AskForReviewUtil {
         let alert = UIAlertController(title: L10n.AskForReview.enjoyingTheApp, message: nil, preferredStyle: .alert)
 
         let yesAction = UIAlertAction(title: L10n.yes, style: .default) { _ in
+            UserDefaultUtils.set(currentVersion, forKey: .lastVersionReviewRequested)
             EventTracking.trackReviewAlertYesPressed()
             requestReview()
         }
 
         let noAction = UIAlertAction(title: L10n.no, style: .default) { _ in
+            UserDefaultUtils.set(currentVersion, forKey: .lastVersionReviewRequested)
             EventTracking.trackReviewAlertNoPressed()
+        }
+
+        let askMeLaterAction = UIAlertAction(title: L10n.AskForReview.askMeLater, style: .default) { _ in
+            EventTracking.trackReviewAlertAskLaterPressed()
         }
 
         alert.addAction(yesAction)
         alert.addAction(noAction)
+        alert.addAction(askMeLaterAction)
 
         rootViewController.present(alert, animated: true, completion: nil)
     }

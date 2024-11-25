@@ -325,4 +325,8 @@ public class EventTracking {
     public static func trackReviewAlertYesPressed() {
         track(category: "review_alert", action: "yes_pressed")
     }
+
+    public static func trackReviewAlertAskLaterPressed() {
+        track(category: "review_alert", action: "ask_later_pressed")
+    }
 }

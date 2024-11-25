@@ -765,6 +765,12 @@ public enum L10n {
     public static let addFirstImage = L10n.tr("Localizable", "AlbumDetailView.AddFirstImage", fallback: "Add your first image")
     /// Import an image from your album or open the camera and take a new picture for this album
     public static let addFirstImageSubtitle = L10n.tr("Localizable", "AlbumDetailView.AddFirstImageSubtitle", fallback: "Import an image from your album or open the camera and take a new picture for this album")
+    /// Confirm Delete
+    public static let confirmDeletion = L10n.tr("Localizable", "AlbumDetailView.confirmDeletion", fallback: "Confirm Delete")
+    /// Do you want to delete %@?
+    public static func deleteSelectedMedia(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.deleteSelectedMedia", String(describing: p1), fallback: "Do you want to delete %@?")
+    }
     /// Import Pictures
     public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Pictures")
     /// Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.
@@ -789,6 +795,8 @@ public enum L10n {
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select")
   }
   public enum AskForReview {
+    /// Ask me later
+    public static let askMeLater = L10n.tr("Localizable", "AskForReview.AskMeLater", fallback: "Ask me later")
     /// Are you enjoying the app?
     public static let enjoyingTheApp = L10n.tr("Localizable", "AskForReview.EnjoyingTheApp", fallback: "Are you enjoying the app?")
   }
@@ -813,8 +821,10 @@ public enum L10n {
     public static let storeThisInAPasswordManagerOrOtherSecurePlace = L10n.tr("Localizable", "Key copied to clipboard. Store this in a password manager or other secure place.", fallback: "Key copied to clipboard. Store this in a password manager or other secure place.")
   }
   public enum MediaSelectionTray {
-    /// Item Selected
-    public static let itemSelected = L10n.tr("Localizable", "MediaSelectionTray.ItemSelected", fallback: "Item Selected")
+    /// Selected
+    public static let itemSelected = L10n.tr("Localizable", "MediaSelectionTray.ItemSelected", fallback: "Selected")
+    /// Move
+    public static let moveMedia = L10n.tr("Localizable", "MediaSelectionTray.MoveMedia", fallback: "Move")
     /// Select Media
     public static let selectMedia = L10n.tr("Localizable", "MediaSelectionTray.SelectMedia", fallback: "Select Media")
   }

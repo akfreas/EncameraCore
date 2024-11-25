@@ -90,6 +90,14 @@ public class InteractableMedia<T: MediaDescribing>: Hashable, Identifiable, Equa
         }
     }
 
+    public var uiImage: UIImage? {
+        guard let imageData else {
+            return nil
+        }
+
+        return UIImage(data: imageData)
+    }
+
     public var photoURL: URL? {
         switch mediaType {
         case .stillPhoto, .livePhoto:

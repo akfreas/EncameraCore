@@ -109,8 +109,13 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
             let allScenes = UIApplication.shared.connectedScenes
             let scene = allScenes.first { $0.activationState == .foregroundActive }
 
-            if let windowScene = scene as? UIWindowScene {
-                windowScene.keyWindow?.rootViewController?.present(activityView, animated: true, completion: nil)
+            if let windowScene = scene as? UIWindowScene, let rootViewController = windowScene.keyWindow?.rootViewController {
+                // Find the topmost presented view controller
+                var currentVC = rootViewController
+                while let presentedVC = currentVC.presentedViewController {
+                    currentVC = presentedVC
+                }
+                currentVC.present(activityView, animated: true, completion: nil)
             }
         }
     }

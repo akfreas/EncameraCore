@@ -50,8 +50,11 @@ public class LivePhotoUtility {
         }
 
         // Request a PHLivePhoto
+        debugPrint("Requesting live photo for id \(media.id)")
         PHLivePhoto.request(withResourceFileURLs: [imageFileURL, videoURL], placeholderImage: image, targetSize: image.size, contentMode: .aspectFit) { (livePhoto, info) in
+
             if let livePhoto = livePhoto {
+                debugPrint("Live photo request completed for id \(media.id)", livePhoto)
                 sendResult(livePhoto, to: subject)
             } else if let error = info[PHLivePhotoInfoErrorKey] as? Error {
                 sendError(error, to: subject)
