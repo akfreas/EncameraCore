@@ -1,4 +1,4 @@
-//
+///
 //  AskForReviewUtil.swift
 //  EncameraCore
 //
@@ -20,7 +20,9 @@ public class AskForReviewUtil {
         return URL(string: AppConstants.appStoreURL)!.appending(queryItems: [URLQueryItem(name: "action", value: "write-review")])
     }
 
-    public static func askForReviewIfNeeded() {
+    public static func askForReviewIfNeeded(completion: @escaping (ReviewSelection) -> Void) {
+
+
         // If the app doesn't store the count, this returns 0.
         var count = UserDefaultUtils.integer(forKey: .reviewRequestedMetric)
 
@@ -33,13 +35,17 @@ public class AskForReviewUtil {
 
         // Get the current bundle version for the app.
         guard let currentVersion else { fatalError("Expected to find a bundle version in the info dictionary.") }
-
-//         Verify the user completes the process several times and doesn’t receive a prompt for this app version.
+#if DEBUG
+        Task {
+            await showReviewPrompt(currentVersion: currentVersion, completion: completion)
+        }
+        return
+#endif
+        // Verify the user completes the process several times and doesn’t receive a prompt for this app version.
         if count % AppConstants.reviewRequestThreshold == 0 && currentVersion != lastVersionPromptedForReview {
             Task {
                 try? await Task.sleep(nanoseconds: UInt64(2e9))
-
-                await presentReviewAlert()
+                await showReviewPrompt(currentVersion: currentVersion, completion: completion)
             }
         } else {
             debugPrint("Not showing review alert. Count: \(count), threshold: \(AppConstants.reviewRequestThreshold), current version: \(currentVersion), last version prompted: \(lastVersionPromptedForReview ?? "none")")
@@ -47,7 +53,17 @@ public class AskForReviewUtil {
     }
 
     @MainActor
-    private static func presentReviewAlert() {
+    private static func showReviewPrompt(currentVersion: String, completion: @escaping (ReviewSelection) -> Void) {
+        presentReviewAlert { selection in
+            Task { @MainActor in
+                handleReviewSelection(selection, currentVersion: currentVersion)
+                completion(selection)
+            }
+        }
+    }
+
+    @MainActor
+    private static func presentReviewAlert(completion: @escaping (ReviewSelection) -> Void) {
         guard let currentScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootViewController = currentScene.windows.first?.rootViewController else {
             return
@@ -56,25 +72,37 @@ public class AskForReviewUtil {
         let alert = UIAlertController(title: L10n.AskForReview.enjoyingTheApp, message: nil, preferredStyle: .alert)
 
         let yesAction = UIAlertAction(title: L10n.yes, style: .default) { _ in
-            UserDefaultUtils.set(currentVersion, forKey: .lastVersionReviewRequested)
-            EventTracking.trackReviewAlertYesPressed()
-            requestReview()
+            completion(.yes)
         }
 
         let noAction = UIAlertAction(title: L10n.no, style: .default) { _ in
-            UserDefaultUtils.set(currentVersion, forKey: .lastVersionReviewRequested)
-            EventTracking.trackReviewAlertNoPressed()
+            completion(.no)
         }
 
         let askMeLaterAction = UIAlertAction(title: L10n.AskForReview.askMeLater, style: .default) { _ in
-            EventTracking.trackReviewAlertAskLaterPressed()
+            completion(.askMeLater)
         }
 
         alert.addAction(yesAction)
         alert.addAction(noAction)
         alert.addAction(askMeLaterAction)
 
-        rootViewController.present(alert, animated: true, completion: nil)
+        UIApplication.topMostViewController()?.present(alert, animated: true, completion: nil)
+    }
+
+    @MainActor
+    private static func handleReviewSelection(_ selection: ReviewSelection, currentVersion: String) {
+        switch selection {
+        case .yes:
+            UserDefaultUtils.set(currentVersion, forKey: .lastVersionReviewRequested)
+            EventTracking.trackReviewAlertYesPressed()
+            requestReview()
+        case .no:
+            UserDefaultUtils.set(currentVersion, forKey: .lastVersionReviewRequested)
+            EventTracking.trackReviewAlertNoPressed()
+        case .askMeLater:
+            EventTracking.trackReviewAlertAskLaterPressed()
+        }
     }
 
     @MainActor
@@ -89,5 +117,12 @@ public class AskForReviewUtil {
     @MainActor
     public static func openAppStoreReview() {
         UIApplication.shared.open(reviewURL, options: [:], completionHandler: nil)
+    }
+
+    // Enum to represent the user's selection in the review alert
+    public enum ReviewSelection {
+        case yes
+        case no
+        case askMeLater
     }
 }

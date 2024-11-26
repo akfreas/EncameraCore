@@ -812,6 +812,16 @@ public enum L10n {
     /// Error deleting key and associated files. Please try again or try to delete files manually via the Files app.
     public static let pleaseTryAgainOrTryToDeleteFilesManuallyViaTheFilesApp = L10n.tr("Localizable", "Error deleting key and associated files. Please try again or try to delete files manually via the Files app.", fallback: "Error deleting key and associated files. Please try again or try to delete files manually via the Files app.")
   }
+  public enum FeedbackView {
+    /// What could we improve?
+    public static let placeholderText = L10n.tr("Localizable", "FeedbackView.PlaceholderText", fallback: "What could we improve?")
+    /// Your feedback is really important to us and helps us build a better product. We really appreciate it!
+    public static let subheading = L10n.tr("Localizable", "FeedbackView.Subheading", fallback: "Your feedback is really important to us and helps us build a better product. We really appreciate it!")
+    /// Submit
+    public static let submit = L10n.tr("Localizable", "FeedbackView.Submit", fallback: "Submit")
+    /// Leave feedback
+    public static let title = L10n.tr("Localizable", "FeedbackView.Title", fallback: "Leave feedback")
+  }
   public enum GalleryView {
     /// Live Photo - Hold to View
     public static let playLivePhoto = L10n.tr("Localizable", "GalleryView.PlayLivePhoto", fallback: "Live Photo - Hold to View")
