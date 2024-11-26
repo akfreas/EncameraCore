@@ -113,7 +113,7 @@ extension DiskFileAccess {
                 // of the file, so we can load the preview without decrypting
                 // the entire file
                 debugPrint("loadMediaPreview: No thumbnail found for video with id: \(media.id)")
-                throw SecretFilesError.createVideoThumbnailError
+                return try await createPreview(for: media)
             default:
                 debugPrint("loadMediaPreview: No thumbnail found for unknown media type")
                 throw SecretFilesError.createThumbnailError

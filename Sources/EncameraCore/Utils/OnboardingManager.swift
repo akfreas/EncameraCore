@@ -158,6 +158,16 @@ public class OnboardingManager: OnboardingManaging {
     
     @discardableResult public func loadOnboardingState() throws -> OnboardingState {
         let state = try getOnboardingStateFromDefaults()
+        
+        let passwordExists = keyManager.passwordExists()
+        
+        if state == .notStarted && passwordExists == true {
+            Task {
+                try await saveOnboardingState(.completed, settings: SavedSettings(useBiometricsForAuth: true))
+            }
+            UserDefaultUtils.set(true, forKey: .usesPinPassword)
+            return .completed
+        }
         observables.onboardingState = state
         return observables.onboardingState
     }

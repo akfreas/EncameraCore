@@ -8,10 +8,13 @@ public class NotificationLogic {
             guard UserDefaultUtils.bool(forKey: .showPushNotificationPrompt) else {
                 return false
             }
+
             guard !(await NotificationManager.isAuthorized) else {
                 return false
             }
-
+            if LaunchCountUtils.fetchCurrentVersionLaunchCount() % 3 != 0 {
+                return false
+            }
             if UserDefaultUtils.integer(forKey: .videoAddedCount) >= 3
                 || UserDefaultUtils.integer(forKey: .photoAddedCount) >= 3
                 || UserDefaultUtils.integer(forKey: .capturedPhotos) >= 3 {
