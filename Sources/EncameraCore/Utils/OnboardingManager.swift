@@ -158,10 +158,8 @@ public class OnboardingManager: OnboardingManaging {
     
     @discardableResult public func loadOnboardingState() throws -> OnboardingState {
         let state = try getOnboardingStateFromDefaults()
-        
-        let passwordExists = keyManager.passwordExists()
-        
-        if state == .notStarted && passwordExists == true {
+
+        if state == .hasPasswordAndNotOnboarded {
             Task {
                 try await saveOnboardingState(.completed, settings: SavedSettings(useBiometricsForAuth: true))
             }
