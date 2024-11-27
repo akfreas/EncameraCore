@@ -26,8 +26,8 @@ enum PurchaseGoal: Int {
 
 @MainActor
 public class EventTracking {
-    private let piwikTracker: PiwikTracker = PiwikTracker.sharedInstance(siteID: "5ed9378f-f689-439c-ba90-694075efc81a", baseURL: URL(string: "https://encamera.piwik.pro/piwik.php")!)!
-    static let shared = EventTracking()
+    public let piwikTracker: PiwikTracker = PiwikTracker.sharedInstance(siteID: "5ed9378f-f689-439c-ba90-694075efc81a", baseURL: URL(string: "https://encamera.piwik.pro/piwik.php")!)!
+    public static let shared = EventTracking()
 
     private init() {
         // set device locale as custom dimension

@@ -819,8 +819,16 @@ public enum L10n {
     public static let subheading = L10n.tr("Localizable", "FeedbackView.Subheading", fallback: "Your feedback is really important to us and helps us build a better product. We really appreciate it!")
     /// Submit
     public static let submit = L10n.tr("Localizable", "FeedbackView.Submit", fallback: "Submit")
+    /// Thanks!
+    public static let thanks = L10n.tr("Localizable", "FeedbackView.Thanks", fallback: "Thanks!")
     /// Leave feedback
     public static let title = L10n.tr("Localizable", "FeedbackView.Title", fallback: "Leave feedback")
+    /// We appreciate your feedback
+    public static let weAppreciateIt = L10n.tr("Localizable", "FeedbackView.WeAppreciateIt", fallback: "We appreciate your feedback")
+  }
+  public enum FooterView {
+    /// Media Details
+    public static let mediaDetails = L10n.tr("Localizable", "FooterView.MediaDetails", fallback: "Media Details")
   }
   public enum GalleryView {
     /// Live Photo - Hold to View

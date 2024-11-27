@@ -505,5 +505,9 @@
 "AskForReview.AskMeLater" = "Ask me later";
 "FeedbackView.Title" = "Leave feedback";
 "FeedbackView.Subheading" = "Your feedback is really important to us and helps us build a better product. We really appreciate it!";
+"FeedbackView.Thanks" = "Thanks!";
+"FeedbackView.WeAppreciateIt" = "We appreciate your feedback";
 "FeedbackView.PlaceholderText" = "What could we improve?";
 "FeedbackView.Submit" = "Submit";
+
+"FooterView.MediaDetails" = "Media Details";

@@ -36,6 +36,7 @@ public class AskForReviewUtil {
         // Get the current bundle version for the app.
         guard let currentVersion else { fatalError("Expected to find a bundle version in the info dictionary.") }
 #if DEBUG
+        guard count % AppConstants.reviewRequestThreshold == 0 else { return }
         Task {
             await showReviewPrompt(currentVersion: currentVersion, completion: completion)
         }
