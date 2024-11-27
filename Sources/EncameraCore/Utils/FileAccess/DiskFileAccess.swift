@@ -230,11 +230,13 @@ extension DiskFileAccess {
                 case .video:
                     let video: CleartextMedia = try await decryptMediaToURL(encrypted: encrypted, progress: {_ in })
                     guard let url = video.url else {
+                        debugPrint("createPreview: Could not get video URL")
                         throw SecretFilesError.createPreviewError
                     }
                     let asset = AVURLAsset(url: url, options: nil)
                     preview.videoDuration = asset.duration.durationText
                 default:
+                    debugPrint("createPreview: Unknown media type")
                     throw SecretFilesError.createPreviewError
                 }
             } else if let decrypted = media as? CleartextMedia, decrypted.mediaType == .video, case .url(let source) = decrypted.source {

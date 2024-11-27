@@ -794,6 +794,14 @@ public enum L10n {
     /// Select
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select")
   }
+  public enum Alert {
+    public enum LoadingFile {
+      /// Please wait...
+      public static let message = L10n.tr("Localizable", "Alert.LoadingFile.Message", fallback: "Please wait...")
+      /// Loading File
+      public static let title = L10n.tr("Localizable", "Alert.LoadingFile.Title", fallback: "Loading File")
+    }
+  }
   public enum AskForReview {
     /// Ask me later
     public static let askMeLater = L10n.tr("Localizable", "AskForReview.AskMeLater", fallback: "Ask me later")
@@ -803,6 +811,18 @@ public enum L10n {
   public enum EnterTheNameOfTheKeyToDeleteItForever {
     /// Enter the name of the key to delete it forever. All media will remain saved.
     public static let allMediaWillRemainSaved = L10n.tr("Localizable", "Enter the name of the key to delete it forever. All media will remain saved.", fallback: "Enter the name of the key to delete it forever. All media will remain saved.")
+  }
+  public enum Error {
+    public enum Alert {
+      /// Failed to load file: %@
+      public static func failedToLoadFile(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "Error.Alert.FailedToLoadFile", String(describing: p1), fallback: "Failed to load file: %@")
+      }
+      /// OK
+      public static let okayButton = L10n.tr("Localizable", "Error.Alert.OkayButton", fallback: "OK")
+      /// Error
+      public static let title = L10n.tr("Localizable", "Error.Alert.Title", fallback: "Error")
+    }
   }
   public enum ErrorDeletingKey {
     /// ./Encamera/KeyManagement/AlbumDetailView.swift
@@ -945,6 +965,20 @@ public enum L10n {
     public static let subtext2 = L10n.tr("Localizable", "PostPurchaseView.Subtext2", fallback: "In the meantime, we will highly appreciate if you could help us with a Review on the App Store")
     /// Thanks for your purchase!
     public static let thanksForYourPurchase = L10n.tr("Localizable", "PostPurchaseView.ThanksForYourPurchase", fallback: "Thanks for your purchase!")
+  }
+  public enum ProgressView {
+    /// Decrypting: %.0f%%
+    public static func decrypting(_ p1: Float) -> String {
+      return L10n.tr("Localizable", "ProgressView.Decrypting", p1, fallback: "Decrypting: %.0f%%")
+    }
+    /// Downloading: %.0f%%
+    public static func downloading(_ p1: Float) -> String {
+      return L10n.tr("Localizable", "ProgressView.Downloading", p1, fallback: "Downloading: %.0f%%")
+    }
+    /// File loaded successfully
+    public static let fileLoadedSuccessfully = L10n.tr("Localizable", "ProgressView.FileLoadedSuccessfully", fallback: "File loaded successfully")
+    /// Starting download...
+    public static let startingDownload = L10n.tr("Localizable", "ProgressView.StartingDownload", fallback: "Starting download...")
   }
   public enum Settings {
     /// Backup Key Phrase

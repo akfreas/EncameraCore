@@ -10,7 +10,7 @@ import Sodium
 import Combine
 
 
-public enum SecretFilesError: Error {
+public enum SecretFilesError: ErrorDescribable {
     case keyError
     case encryptError
     case decryptError
@@ -20,6 +20,29 @@ public enum SecretFilesError: Error {
     case createVideoThumbnailError
     case fileTypeError
     case createPreviewError
+
+    public var displayDescription: String {
+        switch self {
+        case .keyError:
+            return "An error occurred with the encryption key."
+        case .encryptError:
+            return "Failed to encrypt the file."
+        case .decryptError:
+            return "Failed to decrypt the file."
+        case .sourceFileAccessError(let filePath):
+            return "Unable to access the source file at path: \(filePath)."
+        case .destinationFileAccessError:
+            return "Unable to access the destination file."
+        case .createThumbnailError:
+            return "Failed to create a thumbnail for the file."
+        case .createVideoThumbnailError:
+            return "Failed to create a video thumbnail."
+        case .fileTypeError:
+            return "The file type is not supported."
+        case .createPreviewError:
+            return "Failed to create a preview for the file."
+        }
+    }
 }
 
 

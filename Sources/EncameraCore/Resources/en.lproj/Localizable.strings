@@ -511,3 +511,13 @@
 "FeedbackView.Submit" = "Submit";
 
 "FooterView.MediaDetails" = "Media Details";
+"Alert.LoadingFile.Title" = "Loading File";
+"Alert.LoadingFile.Message" = "Please wait...";
+
+"ProgressView.StartingDownload" = "Starting download...";
+"ProgressView.Downloading" = "Downloading: %.0f%%";
+"ProgressView.Decrypting" = "Decrypting: %.0f%%";
+"ProgressView.FileLoadedSuccessfully" = "File loaded successfully";
+
+"Error.Alert.Title" = "Error";
+"Error.Alert.FailedToLoadFile" = "Failed to load file: %@";
