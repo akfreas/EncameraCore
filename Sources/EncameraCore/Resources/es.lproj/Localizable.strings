@@ -521,3 +521,14 @@
 "PromoPremiumUnlockTheseBenefits" = "Álbumes ilimitados y almacenamiento en iCloud\n y DOS MESES GRATIS";
 "AlbumDetailView.RenameAlbum" = "Renombrar álbum";
 "PromoFreeTrialTerms" = "60 días gratis, luego %@";
+"AskForReview.AskMeLater" = "Pregúntame más tarde";
+"MediaSelectionTray.MoveMedia" = "Mover";
+"FeedbackView.WeAppreciateIt" = "Agradecemos tus comentarios";
+"FeedbackView.Subheading" = "Tus comentarios son realmente importantes para nosotros y nos ayudan a construir un mejor producto. ¡Lo apreciamos mucho!";
+"FeedbackView.Title" = "Dejar comentarios";
+"FeedbackView.Submit" = "Enviar";
+"AlbumDetailView.deleteSelectedMedia" = "¿Quieres eliminar %@?";
+"AlbumDetailView.confirmDeletion" = "Confirmar eliminación";
+"FeedbackView.Thanks" = "¡Gracias!";
+"FeedbackView.PlaceholderText" = "¿Qué podríamos mejorar?";
+"FooterView.MediaDetails" = "Detalles de los medios";
