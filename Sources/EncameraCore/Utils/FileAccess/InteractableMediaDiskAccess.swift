@@ -78,12 +78,15 @@ public actor InteractableMediaDiskAccess: FileAccess {
     }
 
     public func loadMedia<T>(media: InteractableMedia<T>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> InteractableMedia<CleartextMedia> where T : MediaDescribing {
+
+
         var decrypted: [CleartextMedia] = []
         for mediaItem in media.underlyingMedia {
             if mediaItem.mediaType == .photo {
                 let cleartextMedia = try await fileAccess.loadMediaInMemory(media: mediaItem, progress: progress)
                 decrypted.append(cleartextMedia)
             } else if mediaItem.mediaType == .video {
+
                 let cleartextMedia = try await fileAccess.loadMediaToURL(media: mediaItem, progress: progress)
                 decrypted.append(cleartextMedia)
             }

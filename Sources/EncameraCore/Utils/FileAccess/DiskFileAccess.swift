@@ -169,7 +169,6 @@ extension DiskFileAccess {
         } else if let cleartext = media as? CleartextMedia {
             return cleartext
         }
-
         fatalError()
     }
     private func decryptMediaToData(encrypted: EncryptedMedia, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
@@ -189,34 +188,43 @@ extension DiskFileAccess {
         return decrypted
     }
 
-    private func decryptMediaToURL(encrypted: EncryptedMedia, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
+    private func decryptMediaToURL(
+        encrypted: EncryptedMedia,
+        progress: @escaping (FileLoadingStatus) -> Void
+    ) async throws -> CleartextMedia {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
         }
-
+        
         guard case .url(let sourceURL) = encrypted.source else {
             debugPrint("decryptMediaToURL: Could not load media")
             throw FileAccessError.couldNotLoadMedia
         }
 
         _ = sourceURL.startAccessingSecurityScopedResource()
+        defer { sourceURL.stopAccessingSecurityScopedResource() }
+
         let targetURL = URL.tempMediaDirectory
             .appendingPathComponent(encrypted.id)
             .appendingPathExtension(encrypted.mediaType.decryptedFileExtension)
+
         if FileManager.default.fileExists(atPath: targetURL.path) {
             return CleartextMedia(source: targetURL)
         }
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted, targetURL: targetURL
-        )
+
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted, targetURL: targetURL)
+
         fileHandler.progress
             .receive(on: DispatchQueue.main)
             .sink { percent in
                 progress(.decrypting(progress: percent))
-            }.store(in: &cancellables)
-        let decrypted: CleartextMedia = try await fileHandler.decryptToURL()
-        sourceURL.stopAccessingSecurityScopedResource()
-        return decrypted
+            }
+            .store(in: &cancellables)
+
+            return try await fileHandler.decryptToURL()
+
     }
+
 
     @discardableResult public func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
         do {

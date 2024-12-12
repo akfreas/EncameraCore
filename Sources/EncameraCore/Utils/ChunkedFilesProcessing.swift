@@ -47,7 +47,6 @@ class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Sub
                 let final = data.count < blockSize
                 byteCount += UInt64(data.count)
                 let progress = Double(byteCount) / Double(sourceFileHandle.size)
-
                 data.copyBytes(to: buffer, count: data.count)
                 let byteArray = Array(UnsafeBufferPointer(start: buffer, count: data.count))
 
