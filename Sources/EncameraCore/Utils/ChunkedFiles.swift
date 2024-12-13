@@ -21,42 +21,46 @@ class ChunkedFilesProcessor<T: MediaDescribing> {
         self.blockSize = blockSize
     }
 
-    func processFile(progressUpdate: @escaping (Double) -> Void) throws -> [[UInt8]] {
-        var result = [[UInt8]]()
-        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: blockSize)
-        defer {
-            buffer.deallocate()
-        }
+    func processFile(progressUpdate: @escaping (Double) -> Void) -> AsyncThrowingStream<[UInt8], Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                var byteCount: UInt64 = 0
 
-        var byteCount: UInt64 = 0
-        while !Task.isCancelled {
-            guard let data = try sourceFileHandle.read(upToCount: blockSize) else {
-                throw CancellationError()
+                do {
+                    while !Task.isCancelled {
+                        autoreleasepool {
+                            guard let data = try? sourceFileHandle.read(upToCount: blockSize) else {
+                                continuation.finish()
+                                return
+                            }
+
+
+                            let isFinalChunk = data.count < blockSize
+                            byteCount += UInt64(data.count)
+                            let progress = Double(byteCount) / Double(sourceFileHandle.size)
+
+                            progressUpdate(progress)
+                            continuation.yield(Array(data))
+                            if isFinalChunk {
+                                return
+                            }
+
+                        }
+
+                    }
+
+                    if Task.isCancelled {
+                        try sourceFileHandle.closeReader()
+                        continuation.finish(throwing: ChunkedFilesError.operationCancelled)
+                        return
+                    }
+
+                    try sourceFileHandle.closeReader()
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
             }
-
-            let isFinalChunk = data.count < blockSize
-            byteCount += UInt64(data.count)
-            let progress = Double(byteCount) / Double(sourceFileHandle.size)
-
-            // Provide progress update
-            progressUpdate(progress)
-
-            // Copy data to buffer
-            data.copyBytes(to: buffer, count: data.count)
-            let byteArray = Array(UnsafeBufferPointer(start: buffer, count: data.count))
-            result.append(byteArray)
-
-            if isFinalChunk {
-                break
-            }
         }
-
-        if Task.isCancelled {
-            try sourceFileHandle.closeReader()
-            throw ChunkedFilesError.operationCancelled
-        }
-
-        try sourceFileHandle.closeReader()
-        return result
     }
 }

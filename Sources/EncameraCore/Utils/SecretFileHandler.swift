@@ -97,17 +97,21 @@ extension SecretFileHandlerInt {
 
             let processor = ChunkedFilesProcessor(sourceFileHandle: fileHandler, blockSize: Int(blockSize))
 
-                return AsyncThrowingStream<Data, Error> { continuation in
+            return AsyncThrowingStream<Data, Error> { continuation in
+                Task {
                     do {
-                        try processor.processFile { progress in
+                        for try await bytes in processor.processFile(progressUpdate: { progress in
                             progressSubject.send(progress)
-                        }.forEach { bytes in
+                        }) {
                             try Task.checkCancellation() // Check for task cancellation
+
                             guard let (message, _) = streamDec.pull(cipherText: bytes) else {
                                 throw SecretFilesError.decryptError
                             }
+
                             continuation.yield(Data(message))
                         }
+
                         continuation.finish()
                     } catch is CancellationError {
                         continuation.finish(throwing: CancellationError())
@@ -115,11 +119,12 @@ extension SecretFileHandlerInt {
                         continuation.finish(throwing: error)
                     }
                 }
-
+            }
         } catch {
             throw SecretFilesError.decryptError
         }
     }
+
 
 
 }
