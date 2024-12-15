@@ -96,27 +96,36 @@ extension SecretFileHandlerInt {
             }
 
             let processor = ChunkedFilesProcessor(sourceFileHandle: fileHandler, blockSize: Int(blockSize))
-
             return AsyncThrowingStream<Data, Error> { continuation in
-                Task {
+
+                let readTask = Task {
                     do {
                         for try await bytes in processor.processFile(progressUpdate: { progress in
                             progressSubject.send(progress)
                         }) {
-                            try Task.checkCancellation() // Check for task cancellation
 
-                            guard let (message, _) = streamDec.pull(cipherText: bytes) else {
-                                throw SecretFilesError.decryptError
+                            try Task.checkCancellation()
+                            try autoreleasepool {
+
+                                guard let (message, _) = streamDec.pull(cipherText: bytes) else {
+                                    throw SecretFilesError.decryptError
+                                }
+                                continuation.yield(Data(message))
                             }
-
-                            continuation.yield(Data(message))
                         }
-
                         continuation.finish()
                     } catch is CancellationError {
                         continuation.finish(throwing: CancellationError())
                     } catch {
                         continuation.finish(throwing: error)
+                    }
+                }
+                continuation.onTermination = { termination in
+                    switch termination {
+                    case .cancelled:
+                        readTask.cancel()
+                    default:
+                        break
                     }
                 }
             }
@@ -233,16 +242,16 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
         try destinationHandler.prepareIfDoesNotExist()
 
         return try await withTaskCancellationHandler {
-
             for try await data in try await decryptFile() {
                 try Task.checkCancellation()
-                try destinationHandler.write(contentsOf: data)
+                try autoreleasepool {
+                    try destinationHandler.write(contentsOf: data)
+                }
             }
             try destinationHandler.closeReader()
 
             return CleartextMedia(source: destinationURL)
         } onCancel: {
-            debugPrint("Cancelling SecretFileHandler load")
             do {
                 try FileManager.default.removeItem(at: destinationURL)
             } catch {

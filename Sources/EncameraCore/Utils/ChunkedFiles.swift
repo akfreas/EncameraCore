@@ -23,38 +23,40 @@ class ChunkedFilesProcessor<T: MediaDescribing> {
 
     func processFile(progressUpdate: @escaping (Double) -> Void) -> AsyncThrowingStream<[UInt8], Error> {
         AsyncThrowingStream { continuation in
+            continuation.onTermination = { @Sendable task in
+                Task {
+                    do {
+                        try self.sourceFileHandle.closeReader()
+                        continuation.finish()
+                    } catch {
+                        continuation.finish(throwing: error)
+                    }
+                }
+            }
             Task {
                 var byteCount: UInt64 = 0
-
+                var isFinished = false
                 do {
-                    while !Task.isCancelled {
+                    while isFinished == false {
+                        try Task.checkCancellation()
                         autoreleasepool {
                             guard let data = try? sourceFileHandle.read(upToCount: blockSize) else {
                                 continuation.finish()
+                                isFinished = true
                                 return
                             }
-
+                            
 
                             let isFinalChunk = data.count < blockSize
                             byteCount += UInt64(data.count)
                             let progress = Double(byteCount) / Double(sourceFileHandle.size)
-
                             progressUpdate(progress)
                             continuation.yield(Array(data))
                             if isFinalChunk {
-                                return
+                                isFinished = true
                             }
-
                         }
-
                     }
-
-                    if Task.isCancelled {
-                        try sourceFileHandle.closeReader()
-                        continuation.finish(throwing: ChunkedFilesError.operationCancelled)
-                        return
-                    }
-
                     try sourceFileHandle.closeReader()
                     continuation.finish()
                 } catch {

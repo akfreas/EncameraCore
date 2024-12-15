@@ -221,7 +221,7 @@ extension DiskFileAccess {
             }
             .store(in: &cancellables)
 
-            return try await fileHandler.decryptToURL()
+        return try await fileHandler.decryptToURL()
 
     }
 
