@@ -324,10 +324,10 @@ public enum L10n {
   public static let imageSavedToAlbum = L10n.tr("Localizable", "ImageSavedToAlbum", fallback: "IMAGE SAVED TO ALBUM")
   /// Import
   public static let `import` = L10n.tr("Localizable", "Import", fallback: "Import")
-  /// Add Files
-  public static let importFiles = L10n.tr("Localizable", "Import files", fallback: "Add Files")
-  /// Add Pictures and Video
-  public static let importMedia = L10n.tr("Localizable", "Import media", fallback: "Add Pictures and Video")
+  /// Import from Files
+  public static let importFromFiles = L10n.tr("Localizable", "Import from files", fallback: "Import from Files")
+  /// Import from Photos
+  public static let importFromPhotos = L10n.tr("Localizable", "Import from photos", fallback: "Import from Photos")
   /// Importing... Please wait
   public static let importingPleaseWait = L10n.tr("Localizable", "ImportingPleaseWait", fallback: "Importing... Please wait")
   /// Import Key Phrase

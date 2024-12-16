@@ -543,3 +543,5 @@
 "Error.Alert.FailedToLoadFile" = "Datei konnte nicht geladen werden: %@";
 "ProgressView.Decrypting" = "Entschlüsseln: %.0f%%";
 "Alert.LoadingFile.Title" = "Datei wird geladen";
+"Import from files" = "Import aus Dateien";
+"Import from photos" = "Import aus Fotos";
