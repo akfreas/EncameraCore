@@ -534,3 +534,12 @@
 "FeedbackView.Thanks" = "Danke!";
 "FeedbackView.PlaceholderText" = "Was könnten wir verbessern?";
 "FooterView.MediaDetails" = "Mediendetails";
+"Error.Alert.Title" = "Fehler";
+"Import files" = "Dateien hinzufügen";
+"Alert.LoadingFile.Message" = "Bitte warten...";
+"ProgressView.FileLoadedSuccessfully" = "Datei erfolgreich geladen";
+"ProgressView.Downloading" = "Herunterladen: %.0f%%";
+"ProgressView.StartingDownload" = "Download wird gestartet...";
+"Error.Alert.FailedToLoadFile" = "Datei konnte nicht geladen werden: %@";
+"ProgressView.Decrypting" = "Entschlüsseln: %.0f%%";
+"Alert.LoadingFile.Title" = "Datei wird geladen";
