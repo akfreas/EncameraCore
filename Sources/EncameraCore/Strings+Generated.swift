@@ -324,6 +324,8 @@ public enum L10n {
   public static let imageSavedToAlbum = L10n.tr("Localizable", "ImageSavedToAlbum", fallback: "IMAGE SAVED TO ALBUM")
   /// Import
   public static let `import` = L10n.tr("Localizable", "Import", fallback: "Import")
+  /// Add Files
+  public static let importFiles = L10n.tr("Localizable", "Import files", fallback: "Add Files")
   /// Add Pictures and Video
   public static let importMedia = L10n.tr("Localizable", "Import media", fallback: "Add Pictures and Video")
   /// Importing... Please wait
@@ -818,8 +820,6 @@ public enum L10n {
       public static func failedToLoadFile(_ p1: Any) -> String {
         return L10n.tr("Localizable", "Error.Alert.FailedToLoadFile", String(describing: p1), fallback: "Failed to load file: %@")
       }
-      /// OK
-      public static let okayButton = L10n.tr("Localizable", "Error.Alert.OkayButton", fallback: "OK")
       /// Error
       public static let title = L10n.tr("Localizable", "Error.Alert.Title", fallback: "Error")
     }

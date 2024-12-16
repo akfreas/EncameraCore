@@ -179,12 +179,10 @@ extension DiskFileAccess {
             throw FileAccessError.couldNotLoadMedia
         }
 
-        _ = sourceURL.startAccessingSecurityScopedResource()
 
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted)
 
         let decrypted: CleartextMedia = try await fileHandler.decryptInMemory()
-        sourceURL.stopAccessingSecurityScopedResource()
         return decrypted
     }
 
@@ -201,7 +199,6 @@ extension DiskFileAccess {
             throw FileAccessError.couldNotLoadMedia
         }
 
-        _ = sourceURL.startAccessingSecurityScopedResource()
         defer { sourceURL.stopAccessingSecurityScopedResource() }
 
         let targetURL = URL.tempMediaDirectory

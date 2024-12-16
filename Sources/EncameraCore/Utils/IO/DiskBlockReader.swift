@@ -24,6 +24,9 @@ class DiskBlockReader: FileLikeBlockReader {
     init(source: URL, mode: BlockIOMode) throws {
         self.source = source
         self.mode = mode
+        _ = source.startAccessingSecurityScopedResource()
+
+
         switch mode {
         case .reading:
             fileHandle = try FileHandle(forReadingFrom: source)
@@ -37,6 +40,7 @@ class DiskBlockReader: FileLikeBlockReader {
     }
     
     func closeReader() throws {
+        source.stopAccessingSecurityScopedResource()
         try fileHandle?.close()
     }
     

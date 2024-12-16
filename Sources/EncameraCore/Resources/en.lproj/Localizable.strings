@@ -353,6 +353,7 @@
 "Select All" = "Select All";
 "Import" = "Import";
 "Import media" = "Add Pictures and Video";
+"Import files" = "Add Files";
 "ImportSelectedImages" = "Import the selected images to your currently active key album";
 "DeleteImported" = "Delete Images?";
 "DoYouWantToDeleteNotImported" = "Are you done importing images?";
