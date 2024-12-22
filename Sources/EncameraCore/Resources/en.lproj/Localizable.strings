@@ -415,6 +415,9 @@
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "I Understand";
 "AlbumDetailView.Select" = "Select";
 "AlbumDetailView.RenameAlbum" = "Rename Album";
+"AlbumDetailView.HideAlbumAlertTitle" = "Hide this album?";
+"AlbumDetailView.HideAlbumAlertMessage" = "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.";
+"AlbumDetailView.HideAlbumMenuItem" = "Hide Album";
 "LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";
 "SetPinCode" = "Set Pin Code";
 "SetPinCodeSubtitle" = "This pin will be used to securely login in your app. Make sure you remember it!";

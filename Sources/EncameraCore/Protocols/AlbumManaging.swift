@@ -26,6 +26,7 @@ public protocol AlbumManaging {
     func renameAlbum(album: Album, to newName: String) throws -> Album
     func validateAlbumName(name: String) throws
     func albumMediaCount(album: Album) -> Int
-
+    func isAlbumHidden(_ album: Album) -> Bool
+    func setIsAlbumHidden(_ isAlbumHidden: Bool, album: Album)
 }
 

@@ -2,6 +2,14 @@ import Foundation
 import Combine
 
 public class DemoAlbumManager: AlbumManaging {
+    public func isAlbumHidden(_ album: Album) -> Bool {
+        return false
+    }
+    
+    public func setIsAlbumHidden(_ isAlbumHidden: Bool, album: Album) {
+
+    }
+    
     public func renameAlbum(album: Album, to newName: String) throws -> Album {
         return Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())
     }

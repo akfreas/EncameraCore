@@ -71,8 +71,19 @@ public class AlbumManager: AlbumManaging, ObservableObject {
 
     private var albumSet: Set<Album> = [] {
         didSet {
-            albums = Array(albumSet).sorted(by: { $0.creationDate < $1.creationDate })
+            albums = Array(albumSet).filter({ album in
+                !UserDefaultUtils.bool(forKey: .isAlbumHidden(name: album.name))
+            }).sorted(by: { $0.creationDate < $1.creationDate })
         }
+    }
+
+    public func setIsAlbumHidden(_ isAlbumHidden: Bool, album: Album) {
+        UserDefaultUtils.set(isAlbumHidden, forKey: .isAlbumHidden(name: album.name))
+        loadAlbumsFromFilesystem()
+    }
+
+    public func isAlbumHidden(_ album: Album) -> Bool {
+        UserDefaultUtils.bool(forKey: .isAlbumHidden(name: album.name))
     }
 
     public func loadAlbumsFromFilesystem() {
@@ -148,6 +159,11 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         guard let currentKey = keyManager.currentKey else {
             throw AlbumError.noCurrentKeySet
         }
+
+        if let existingAlbum = albumSet.first(where: { $0.name == name }) {
+            return existingAlbum
+        }
+
         let album = Album(name: name, storageOption: storageOption, creationDate: Date(), key: currentKey)
         debugPrint("Starting album creation process")
 

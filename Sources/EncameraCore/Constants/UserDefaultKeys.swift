@@ -35,6 +35,7 @@ public enum UserDefaultKey {
     case livePhotosActivated
     case defaultStorageLocation
     case showPushNotificationPrompt
+    case isAlbumHidden(name: String)
 
 
     var rawValue: String {

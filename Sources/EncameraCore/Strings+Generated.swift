@@ -773,6 +773,12 @@ public enum L10n {
     public static func deleteSelectedMedia(_ p1: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.deleteSelectedMedia", String(describing: p1), fallback: "Do you want to delete %@?")
     }
+    /// Are you sure you want to hide this album? You MUST remember the name of this album to access it again.
+    public static let hideAlbumAlertMessage = L10n.tr("Localizable", "AlbumDetailView.HideAlbumAlertMessage", fallback: "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.")
+    /// Hide this album?
+    public static let hideAlbumAlertTitle = L10n.tr("Localizable", "AlbumDetailView.HideAlbumAlertTitle", fallback: "Hide this album?")
+    /// Hide Album
+    public static let hideAlbumMenuItem = L10n.tr("Localizable", "AlbumDetailView.HideAlbumMenuItem", fallback: "Hide Album")
     /// Import Pictures
     public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Pictures")
     /// Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.
