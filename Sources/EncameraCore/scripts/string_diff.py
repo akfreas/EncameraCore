@@ -78,7 +78,7 @@ def main():
 
     master_keys_and_values = load_strings_from_file(master_file)
     from_lang = "English"  # Master language assumed to be English
-    language_map = {"de.lproj": "German", "es.lproj": "Spanish"}  # Map directory names to languages
+    language_map = {"de.lproj": "German", "es.lproj": "Spanish", "ru.lproj": "Russian", "ko.lproj": "Korean"}
 
     for directory in master_dir.parent.iterdir():
         if directory.is_dir() and directory != master_dir:

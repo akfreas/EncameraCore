@@ -545,3 +545,7 @@
 "Alert.LoadingFile.Title" = "Datei wird geladen";
 "Import from files" = "Import aus Dateien";
 "Import from photos" = "Import aus Fotos";
+"AlbumDetailView.HideAlbumMenuItem" = "Album verbergen";
+"Test" = "Hier ist ein Test der Zeichenkettenübersetzung";
+"AlbumDetailView.HideAlbumAlertTitle" = "Dieses Album verbergen?";
+"AlbumDetailView.HideAlbumAlertMessage" = "Sind Sie sicher, dass Sie dieses Album verbergen möchten? Sie MÜSSEN sich den Namen dieses Albums merken, um wieder darauf zugreifen zu können.";
