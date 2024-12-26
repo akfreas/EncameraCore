@@ -2,61 +2,36 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>%@ Image(s)</key>
-	<dict>
-		<key>NSStringLocalizedFormatKey</key>
-		<string>%#@image_count@</string>
-		<key>image_count</key>
-		<dict>
-			<key>New item</key>
-			<string></string>
-			<key>NSStringFormatSpecTypeKey</key>
-			<string>NSStringPluralRuleType</string>
-			<key>NSStringFormatValueTypeKey</key>
-			<string>d</string>
-			<key>zero</key>
-			<string>Keine Elemente</string>
-			<key>one</key>
-			<string>1 Element</string>
-			<key>other</key>
-			<string>%d Elemente</string>
-		</dict>
-	</dict>
-	<key>%@ Video(s)</key>
-	<dict>
-		<key>NSStringLocalizedFormatKey</key>
-		<string>%#@video_count@</string>
-		<key>video_count</key>
-		<dict>
-			<key>NSStringFormatSpecTypeKey</key>
-			<string>NSStringPluralRuleType</string>
-			<key>NSStringFormatValueTypeKey</key>
-			<string>d</string>
-			<key>zero</key>
-			<string>Keine Videos</string>
-			<key>one</key>
-			<string>1 Video</string>
-			<key>other</key>
-			<string>%d Videos</string>
-		</dict>
-	</dict>
-	<key>%@ Photo(s) Left</key>
-	<dict>
-		<key>NSStringLocalizedFormatKey</key>
-		<string>%#@photo_count@</string>
-		<key>photo_count</key>
-		<dict>
-			<key>other</key>
-			<string>Verbleibende Fotos</string>
-			<key>NSStringFormatSpecTypeKey</key>
-			<string>NSStringPluralRuleType</string>
-			<key>NSStringFormatValueTypeKey</key>
-			<string>d</string>
-			<key>one</key>
-			<string>Verbleibendes Foto</string>
-			<key>zero</key>
-			<string>Verbleibende Fotos</string>
-		</dict>
-	</dict>
+    <key>StringKey</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@VARIABLE@</string>
+        <key>VARIABLE</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <!-- 
+                If this string is counting items, for example, use 'd' here:
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+            -->
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+
+            <!-- Plural rules in Korean often simplify to other, but you can still fill them in if needed. -->
+            <key>zero</key>
+            <string>항목이 없습니다.</string>
+            <key>one</key>
+            <string>1개의 항목</string>
+            <key>two</key>
+            <string>2개의 항목</string>
+            <key>few</key>
+            <string>몇 개의 항목</string>
+            <key>many</key>
+            <string>많은 항목</string>
+            <key>other</key>
+            <string>%d개의 항목</string>
+        </dict>
+    </dict>
 </dict>
 </plist>
