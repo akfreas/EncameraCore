@@ -114,6 +114,10 @@ public class EventTracking {
         track(category: "media", action: "media_imported", value: Float(count))
     }
 
+    public static func trackFilesImported(count: Int) {
+        track(category: "media", action: "file_imported", value: Float(count))
+    }
+
     public static func trackImageViewed() {
         track(category: "media", action: "viewed", name: "image")
     }
@@ -126,8 +130,8 @@ public class EventTracking {
         track(category: "media", action: "viewed", name: "movie")
     }
 
-    public static func trackMediaShared() {
-        track(category: "media", action: "shared")
+    public static func trackMediaShared(count: Int) {
+        track(category: "media", action: "shared", value: Float(count))
     }
 
     public static func trackOnboardingViewReached(view: OnboardingFlowScreen, new: Bool = false) {

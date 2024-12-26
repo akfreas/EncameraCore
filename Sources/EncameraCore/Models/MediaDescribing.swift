@@ -89,7 +89,7 @@ public protocol MediaDescribing: Hashable, Identifiable {
     var id: String { get }
     var timestamp: Date? { get }
 
-    init?(source: MediaSource)
+    init?(source: MediaSource, generateID: Bool)
     init(source: MediaSource, mediaType: MediaType, id: String)
 }
 

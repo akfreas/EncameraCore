@@ -44,7 +44,7 @@ public class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identif
         self.init(source: .data(source), mediaType: mediaType, id: id)
     }
 
-    public required init?(source: MediaSource) {
+    public required init?(source: MediaSource, generateID: Bool = false) {
         self.source = source
         guard case .url(let source) = source, let id = source.deletingPathExtension().lastPathComponent.split(separator: ".").first else {
             return nil
@@ -58,10 +58,10 @@ extension EncryptedMedia: Hashable {
     public static func == (lhs: EncryptedMedia, rhs: EncryptedMedia) -> Bool {
         lhs.id == rhs.id
     }
-    
+
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
-    
-    
+
+
 }

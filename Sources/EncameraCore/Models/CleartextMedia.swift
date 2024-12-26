@@ -44,14 +44,14 @@ public struct CleartextMedia: MediaDescribing, Codable {
         self.init(source: .data(source), mediaType: mediaType, id: id)
     }
 
-    public init(source: MediaSource) {
+    public init(source: MediaSource, generateID: Bool = false) {
         self.source = source
         switch source {
         case .data:
             self.id = NSUUID().uuidString
             self.timestamp = Date()
         case .url(let url):
-            self.id = url.deletingPathExtension().lastPathComponent
+            self.id = generateID ? NSUUID().uuidString : url.deletingPathExtension().lastPathComponent
         }
         mediaType = MediaType.typeFromMedia(source: self)
     }

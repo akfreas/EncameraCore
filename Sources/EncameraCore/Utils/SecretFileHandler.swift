@@ -13,7 +13,7 @@ import Combine
 public enum SecretFilesError: ErrorDescribable {
     case keyError
     case encryptError
-    case decryptError
+    case decryptError(String)
     case sourceFileAccessError(String)
     case destinationFileAccessError
     case createThumbnailError
@@ -27,8 +27,8 @@ public enum SecretFilesError: ErrorDescribable {
             return "An error occurred with the encryption key."
         case .encryptError:
             return "Failed to encrypt the file."
-        case .decryptError:
-            return "Failed to decrypt the file."
+        case .decryptError(let message):
+            return "Failed to decrypt the file. \(message)"
         case .sourceFileAccessError(let filePath):
             return "Unable to access the source file at path: \(filePath)."
         case .destinationFileAccessError:
@@ -41,6 +41,7 @@ public enum SecretFilesError: ErrorDescribable {
             return "The file type is not supported."
         case .createPreviewError:
             return "Failed to create a preview for the file."
+
         }
     }
 }
@@ -80,14 +81,14 @@ extension SecretFileHandlerInt {
             let fileHandler = try FileLikeHandler(media: sourceMedia, mode: .reading)
             let headerBytesCount = 24
             guard let headerBytes = try fileHandler.read(upToCount: headerBytesCount) else {
-                throw SecretFilesError.decryptError
+                throw SecretFilesError.decryptError("Could not read header")
             }
 
             var headerBuffer = [UInt8](repeating: 0, count: headerBytesCount)
             headerBytes.copyBytes(to: &headerBuffer, count: headerBytesCount)
 
             guard let blockSizeInfo = try fileHandler.read(upToCount: 8) else {
-                throw SecretFilesError.decryptError
+                throw SecretFilesError.decryptError("Could not read block size")
             }
             let blockSize: UInt32 = blockSizeInfo.withUnsafeBytes { $0.load(as: UInt32.self) }
 
@@ -108,7 +109,7 @@ extension SecretFileHandlerInt {
                             try autoreleasepool {
 
                                 guard let (message, _) = streamDec.pull(cipherText: bytes) else {
-                                    throw SecretFilesError.decryptError
+                                    throw SecretFilesError.decryptError("Could not decrypt message")
                                 }
                                 continuation.yield(Data(message))
                             }
@@ -130,7 +131,7 @@ extension SecretFileHandlerInt {
                 }
             }
         } catch {
-            throw SecretFilesError.decryptError
+            throw SecretFilesError.decryptError("Could not access source file")
         }
     }
 
@@ -225,7 +226,7 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
 
             return CleartextMedia(source: accumulatedData, mediaType: self.sourceMedia.mediaType, id: self.sourceMedia.id)
         } catch {
-            throw SecretFilesError.decryptError
+            throw SecretFilesError.decryptError("Could not decrypt file")
         }
 
 

@@ -27,21 +27,21 @@ public class iCloudStorageModel: DataStorageModel {
     public var storageType: StorageType {
         .icloud
     }
-    
-    
+
+
     public let album: Album
 
     required public init(album: Album) {
         self.album = album
     }
-    
+
     private var localCancellables = Set<AnyCancellable>()
     public var baseURL: URL {
-        
+
         let destURL = iCloudStorageModel.rootURL.appendingPathComponent(album.encryptedPathComponent)
         return destURL
     }
-    
+
     public func triggerDownloadOfAllFilesFromiCloud() {
         enumeratorForStorageDirectory().forEach({
             try? FileManager.default.startDownloadingUbiquitousItem(at: $0)
@@ -60,7 +60,7 @@ public class iCloudStorageModel: DataStorageModel {
             return nil
         }
         if FileManager.default.fileExists(atPath: source.path) {
-            if let downloaded = T(source: .url(source)) {
+            if let downloaded = T(source: .url(source), generateID: false) {
                 return downloaded
             } else {
                 throw DataStorageModelError.couldNotCreateMedia
@@ -69,8 +69,8 @@ public class iCloudStorageModel: DataStorageModel {
             return nil
         }
     }
-    
-    
+
+
     func downloadFileFromiCloud<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> T  {
         guard media.needsDownload == true, case .url(let source) = media.source else {
             return media

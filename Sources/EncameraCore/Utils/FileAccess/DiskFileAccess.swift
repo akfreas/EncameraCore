@@ -73,7 +73,7 @@ public actor DiskFileAccess {
 
                 return isPhoto1 && !isPhoto2
             }.compactMap { (itemUrl: URL) in
-                return T(source: .url(itemUrl))
+                return T(source: .url(itemUrl), generateID: false)
             }
         return imageItems
     }
