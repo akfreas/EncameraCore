@@ -101,7 +101,7 @@ extension SecretFileHandlerInt {
 
                 let readTask = Task {
                     do {
-                        for try await bytes in processor.processFile(progressUpdate: { progress in
+                        for try await (bytes, _) in processor.processFile(progressUpdate: { progress in
                             progressSubject.send(progress)
                         }) {
 
@@ -174,38 +174,38 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
             try destinationHandler.prepareIfDoesNotExist()
             let header = streamEnc.header()
             try destinationHandler.write(contentsOf: Data(header))
-            var writeBlockSizeOperation: (([UInt8]) -> Void)?
+
+            var writeBlockSizeOperation: (([UInt8]) throws -> Void)?
             writeBlockSizeOperation = { cipherText in
 
                 let cipherTextLength = withUnsafeBytes(of: cipherText.count) {
                     Array($0)
                 }
-                try! destinationHandler.write(contentsOf: Data(cipherTextLength))
+                try destinationHandler.write(contentsOf: Data(cipherTextLength))
                 writeBlockSizeOperation = nil
             }
-            return try await withCheckedThrowingContinuation { continuation in
 
-                ChunkedFileProcessingPublisher(sourceFileHandle: sourceHandler, blockSize: defaultBlockSize)
-                    .map({ (bytes, progress, isFinal)  -> Data in
+            let processor = ChunkedFilesProcessor(sourceFileHandle: sourceHandler, blockSize: defaultBlockSize)
+
+            return try await withTaskCancellationHandler {
+                for try await (bytes, isFinal) in processor.processFile(progressUpdate: { progress in
+                    self.progressSubject.send(progress)
+                }) {
+
+                    try Task.checkCancellation()
+                    try autoreleasepool {
                         let message = streamEnc.push(message: bytes, tag: isFinal ? .FINAL : .MESSAGE)!
-                        writeBlockSizeOperation?(message)
-                        self.progressSubject.send(progress)
-                        return Data(message)
-                    }).sink { signal in
-                        switch signal {
+                        try writeBlockSizeOperation?(message)
+                        try destinationHandler.write(contentsOf: Data(message))
+                    }
+                }
 
-                        case .finished:
-                            guard let media = EncryptedMedia(source: destinationURL) else {
-                                continuation.resume(throwing: SecretFilesError.sourceFileAccessError("Could not create media"))
-                                return
-                            }
-                            continuation.resume(returning: media)
-                        case .failure(_):
-                            continuation.resume(throwing: SecretFilesError.encryptError)
-                        }
-                    } receiveValue: { data in
-                        try? destinationHandler.write(contentsOf: data)
-                    }.store(in: &self.cancellables)
+                guard let media = EncryptedMedia(source: destinationURL) else {
+                    throw SecretFilesError.sourceFileAccessError("Could not create media")
+                }
+                return media
+            } onCancel: {
+                try? FileManager.default.removeItem(at: destinationURL)
             }
 
         } catch {

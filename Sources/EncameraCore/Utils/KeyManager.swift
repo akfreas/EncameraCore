@@ -97,19 +97,14 @@ public protocol KeyManager {
     var areKeysStoredIniCloud: Bool { get }
     func clearKeychainData()
     func keyWith(name: String) -> PrivateKey?
-    func deleteKey(_ key: PrivateKey) throws
     func storedKeys() throws -> [PrivateKey]
     func getPasswordHash() throws -> Data
     func setPasswordHash(hash: Data) throws
     func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws
-    func update(key: PrivateKey, backupToiCloud: Bool) throws
-    func generateNewKey(name: String, backupToiCloud: Bool) throws -> PrivateKey
     func generateKeyUsingRandomWords(name: String) throws -> PrivateKey
     @discardableResult func generateKeyFromPasswordComponents(_ components: [String], name: String) throws -> PrivateKey
     @discardableResult func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey
     func retrieveKeyPassphrase() throws -> KeyPassphrase
-    func validateKeyName(name: String) throws
-    func createBackupDocument() throws -> String
     func checkPassword(_ password: String) throws -> Bool
     func setPassword(_ password: String) throws
     func setOrUpdatePassword(_ password: String) throws

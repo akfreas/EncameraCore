@@ -82,46 +82,36 @@ public class KeychainManager: ObservableObject, KeyManager {
 
     }
     
+
     public func clearKeychainData() {
-        
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassKey,
+        let keychainClasses: [CFString] = [
+            kSecClassGenericPassword,
+            kSecClassInternetPassword,
+            kSecClassCertificate,
+            kSecClassKey,
+            kSecClassIdentity
         ]
-        
-        let _ = SecItemDelete(query as CFDictionary)
-        
-        
-        let passwordQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword
-        ]
-        
-        let _ = SecItemDelete(passwordQuery as CFDictionary)
-        
+
+        for keychainClass in keychainClasses {
+            let query: [String: Any] = [
+                kSecClass as String: keychainClass
+            ]
+
+            let status = SecItemDelete(query as CFDictionary)
+            if status != errSecSuccess && status != errSecItemNotFound {
+                print("Failed to delete items for class \(keychainClass): \(status)")
+            }
+        }
+
+        let passphraseStatus = SecItemDelete(queryForPassphrase() as CFDictionary)
+        if passphraseStatus != errSecSuccess && passphraseStatus != errSecItemNotFound {
+            print("Failed to delete passphrase item: \(passphraseStatus)")
+        }
+
         try? setActiveKey(nil)
         print("Keychain data cleared")
     }
-    
-    @discardableResult public func generateNewKey(name: String, backupToiCloud: Bool = false) throws -> PrivateKey {
-        
-        try checkAuthenticated()
-        
-        try validateKeyName(name: name)
-        
-        let bytes = Sodium().secretStream.xchacha20poly1305.key()
-        
-        let key = PrivateKey(name: name, keyBytes: bytes, creationDate: Date())
-        var setNewKeyToCurrent: Bool
-        do {
-            let storedKeys = try storedKeys()
-            setNewKeyToCurrent = storedKeys.count == 0
-        } catch {
-            setNewKeyToCurrent = true
-        }
-        try save(key: key,
-                 setNewKeyToCurrent: setNewKeyToCurrent,
-                 backupToiCloud: backupToiCloud)
-        return key
-    }
+
 
     @discardableResult public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
         try checkAuthenticated()
@@ -156,7 +146,6 @@ public class KeychainManager: ObservableObject, KeyManager {
             throw KeyManagerError.invalidInput
         }
 
-        try checkAuthenticated()
         try validateKeyName(name: name)
         let splitIndex = 4
         let fullPassword = components.joined(separator: "-")
@@ -182,7 +171,7 @@ public class KeychainManager: ObservableObject, KeyManager {
 
         let key = PrivateKey(name: name, keyBytes: keyBytes, creationDate: Date())
         
-        try save(key: key, setNewKeyToCurrent: true, backupToiCloud: false)
+        try save(key: key, setNewKeyToCurrent: true, backupToiCloud: areKeysStoredIniCloud)
 
         // Save or update the passphrase in the keychain
         let passphraseData = fullPassword.data(using: .utf8)!
@@ -253,14 +242,6 @@ public class KeychainManager: ObservableObject, KeyManager {
         }
     }
     
-    public func createBackupDocument() throws -> String {
-        let keys = try storedKeys()
-        
-        return keys.map { key in
-            return "Name: \(key.name)\nCode:\n\(key.base64String ?? "invalid")"
-        }.joined(separator: "\n").appending("\n\nCopy the code into the \"Key Entry\" form in the app to use it again.")
-    }
-    
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
         if let existingKey = try? getKey(by: key.name) {
             let updateQuery: [String: Any] = [kSecValueData as String: Data(key.keyBytes)]
@@ -305,6 +286,7 @@ public class KeychainManager: ObservableObject, KeyManager {
         
         let status = SecItemUpdate(query, updateDict as CFDictionary)
         try checkStatus(status: status)
+        debugPrint("Key updated: \(key.name), iCloud: \(backupToiCloud)")
     }
 
     public func keyWith(name: String) -> PrivateKey? {
@@ -345,17 +327,6 @@ public class KeychainManager: ObservableObject, KeyManager {
             $1.creationDate.compare($0.creationDate) == .orderedDescending
         })
         return keys
-    }
-
-    public func deleteKey(_ key: PrivateKey) throws {
-        try checkAuthenticated()
-        let key = try getKey(by: key.name)
-        let query = key.keychainQueryDictForKeychain
-        let status = SecItemDelete(query as CFDictionary)
-        try checkStatus(status: status, defaultError: .deleteKeychainItemsFailed)
-        if currentKey?.name == key.name {
-            try setActiveKey(nil)
-        }
     }
     
     public func setActiveKey(_ name: KeyName?) throws {

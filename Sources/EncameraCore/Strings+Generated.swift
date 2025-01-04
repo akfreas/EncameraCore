@@ -684,6 +684,8 @@ public enum L10n {
   public static let telegramGroupJoinTitle = L10n.tr("Localizable", "TelegramGroupJoinTitle", fallback: "Join Telegram Group")
   /// Terms of Use
   public static let termsOfUse = L10n.tr("Localizable", "Terms of Use", fallback: "Terms of Use")
+  /// Here is a test of the string translation
+  public static let test = L10n.tr("Localizable", "Test", fallback: "Here is a test of the string translation")
   /// Thank you for your support!
   public static let thankYouForYourSupport = L10n.tr("Localizable", "Thank you for your support!", fallback: "Thank you for your support!")
   /// Thanks for purchasing a lifetime license!
@@ -989,6 +991,8 @@ public enum L10n {
   public enum Settings {
     /// Backup Key Phrase
     public static let backupKeyPhrase = L10n.tr("Localizable", "Settings.BackupKeyPhrase", fallback: "Backup Key Phrase")
+    /// Sync key with iCloud
+    public static let backupKeyToiCloud = L10n.tr("Localizable", "Settings.BackupKeyToiCloud", fallback: "Sync key with iCloud")
     /// Contact Support
     public static let contact = L10n.tr("Localizable", "Settings.Contact", fallback: "Contact Support")
     /// Default Storage Option

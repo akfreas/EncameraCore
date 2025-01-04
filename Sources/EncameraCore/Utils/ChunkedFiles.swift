@@ -21,7 +21,7 @@ class ChunkedFilesProcessor<T: MediaDescribing> {
         self.blockSize = blockSize
     }
 
-    func processFile(progressUpdate: @escaping (Double) -> Void) -> AsyncThrowingStream<[UInt8], Error> {
+    func processFile(progressUpdate: @escaping (Double) -> Void) -> AsyncThrowingStream<([UInt8], Bool), Error> {
         AsyncThrowingStream { continuation in
             continuation.onTermination = { @Sendable task in
                 Task {
@@ -51,7 +51,7 @@ class ChunkedFilesProcessor<T: MediaDescribing> {
                             byteCount += UInt64(data.count)
                             let progress = Double(byteCount) / Double(sourceFileHandle.size)
                             progressUpdate(progress)
-                            continuation.yield(Array(data))
+                            continuation.yield((Array(data), isFinalChunk))
                             if isFinalChunk {
                                 isFinished = true
                             }
