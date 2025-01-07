@@ -13,9 +13,26 @@ public class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identif
         guard case .url(let source) = source else {
             return false
         }
-        return source != downloadedSource
+
+        do {
+            let resourceValues = try source.resourceValues(forKeys: [
+                .isUbiquitousItemKey,
+                .ubiquitousItemDownloadingStatusKey
+            ])
+
+            if resourceValues.isUbiquitousItem == true {
+                if let downloadingStatus = resourceValues.ubiquitousItemDownloadingStatus {
+                    return downloadingStatus != .current
+                }
+            }
+
+            return false
+        } catch {
+            print("Error accessing file resource values: \(error)")
+            return false
+        }
     }
-    
+
     public var mediaType: MediaType = .unknown
     public var id: String
     public var source: MediaSource
