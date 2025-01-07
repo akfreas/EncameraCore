@@ -387,6 +387,8 @@ public enum L10n {
   /// Let's give your
   /// album a name
   public static let letsGiveYourAlbumAName = L10n.tr("Localizable", "LetsGiveYourAlbumAName", fallback: "Let's give your\nalbum a name")
+  /// Let's go!
+  public static let letsGo = L10n.tr("Localizable", "LetsGo", fallback: "Let's go!")
   /// Local
   public static let local = L10n.tr("Localizable", "Local", fallback: "Local")
   /// Choose how you want to access your private albums.
@@ -991,8 +993,8 @@ public enum L10n {
   public enum Settings {
     /// Backup Key Phrase
     public static let backupKeyPhrase = L10n.tr("Localizable", "Settings.BackupKeyPhrase", fallback: "Backup Key Phrase")
-    /// Sync key with iCloud
-    public static let backupKeyToiCloud = L10n.tr("Localizable", "Settings.BackupKeyToiCloud", fallback: "Sync key with iCloud")
+    /// Sync Key to iCloud
+    public static let backupKeyToiCloud = L10n.tr("Localizable", "Settings.BackupKeyToiCloud", fallback: "Sync Key to iCloud")
     /// Contact Support
     public static let contact = L10n.tr("Localizable", "Settings.Contact", fallback: "Contact Support")
     /// Default Storage Option

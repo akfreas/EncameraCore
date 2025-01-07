@@ -527,3 +527,4 @@
 "Error.Alert.Title" = "Error";
 "Error.Alert.FailedToLoadFile" = "Failed to load file: %@";
 "Test" = "Here is a test of the string translation";
+"LetsGo" = "Let's go!";

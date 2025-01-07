@@ -39,7 +39,7 @@ public class KeychainManager: ObservableObject, KeyManager {
     private var sodium = Sodium()
 
     private var passwordValidator = PasswordValidator()
-    private (set) public var currentKey: PrivateKey?  {
+    private(set) public var currentKey: PrivateKey? {
         didSet {
             keySubject.send(currentKey)
         }
