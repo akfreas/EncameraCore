@@ -12,6 +12,7 @@ public enum iCloudDownloadStatus {
     case notDownloaded
     case downloading(progress: Double)
     case downloaded
+    case cancelled
 }
 
 public class iCloudStorageModel: DataStorageModel {
@@ -35,6 +36,7 @@ public class iCloudStorageModel: DataStorageModel {
 
     private var localCancellables = Set<AnyCancellable>()
     private var downloadStatusSubjects = [URL: PassthroughSubject<iCloudDownloadStatus, Never>]()
+    private var downloadTasks = [URL: AnyCancellable]()
 
     public var baseURL: URL {
         return iCloudStorageModel.rootURL.appendingPathComponent(album.encryptedPathComponent)
@@ -137,27 +139,43 @@ public class iCloudStorageModel: DataStorageModel {
 
         try FileManager.default.startDownloadingUbiquitousItem(at: source)
 
-        return try await withCheckedThrowingContinuation { continuation in
-            self.checkDownloadStatus(ofFile: media)
-                .sink { status in
-                    switch status {
-                    case .notDownloaded:
-                        progress(0)
-                    case .downloading(let progressValue):
-                        progress(progressValue)
-                    case .downloaded:
-                        progress(1)
-                        do {
-                            if let resolved = try self.resolveDownloadedMedia(media: media) {
-                                continuation.resume(returning: resolved)
-                                self.localCancellables.forEach({ $0.cancel() })
-                                self.localCancellables.removeAll()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                self.checkDownloadStatus(ofFile: media)
+                    .sink { status in
+                        switch status {
+                        case .notDownloaded:
+                            progress(0)
+                        case .downloading(let progressValue):
+                            progress(progressValue)
+                        case .downloaded:
+                            progress(1)
+                            do {
+                                if let resolved = try self.resolveDownloadedMedia(media: media) {
+                                    continuation.resume(returning: resolved)
+                                    self.localCancellables.forEach({ $0.cancel() })
+                                    self.localCancellables.removeAll()
+                                }
+                            } catch {
+                                continuation.resume(throwing: error)
                             }
-                        } catch {
-                            continuation.resume(throwing: error)
+                        case .cancelled:
+                            break
                         }
                     }
-                }.store(in: &localCancellables)
+                    .store(in: &self.localCancellables)
+            }
+        } onCancel: {
+            self.localCancellables.forEach({ $0.cancel() })
+            self.localCancellables.removeAll()
         }
+    }
+
+
+    public func cancelDownload(for url: URL) {
+        downloadTasks[url]?.cancel()
+        downloadTasks.removeValue(forKey: url)
+        downloadStatusSubjects[url]?.send(.cancelled)
+        downloadStatusSubjects[url]?.send(completion: .finished)
     }
 }
