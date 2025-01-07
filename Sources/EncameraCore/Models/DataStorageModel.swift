@@ -102,19 +102,20 @@ extension DataStorageModel {
     }
     
     public func initializeDirectories() throws {
-        if FileManager.default.fileExists(atPath: Self.thumbnailDirectory.path) == false {
-            try FileManager.default.createDirectory(atPath: Self.thumbnailDirectory.path, withIntermediateDirectories: true)
-        }
-        
-        if FileManager.default.fileExists(atPath: URL.tempMediaDirectory.path) == false {
-            try FileManager.default.createDirectory(atPath: URL.tempMediaDirectory.path, withIntermediateDirectories: true)
-        }
-        
-        if FileManager.default.fileExists(atPath: baseURL.path) == false {
-            try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true, attributes: nil)
+        let directories = [
+            Self.thumbnailDirectory.path,
+            URL.tempMediaDirectory.path,
+            URL.tempRecordingDirectory.path,
+            baseURL.path
+        ]
+
+        for directory in directories {
+            if FileManager.default.fileExists(atPath: directory) == false {
+                try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+            }
         }
     }
-    
+
     func driveURLForNewMedia<T: MediaDescribing>(_ media: T) -> URL {
         let filename = "\(media.id).\(media.mediaType.encryptedFileExtension)"
         return baseURL.appendingPathComponent(filename)

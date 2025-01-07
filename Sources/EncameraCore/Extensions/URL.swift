@@ -13,6 +13,11 @@ extension URL {
         URL(fileURLWithPath: NSTemporaryDirectory().appending("decrypted"),
                                     isDirectory: true)
     }
-    
-    
+
+
+    public static var tempRecordingDirectory: URL {
+        URL(fileURLWithPath: NSTemporaryDirectory().appending("recordings"),
+                                    isDirectory: true)
+    }
+
 }

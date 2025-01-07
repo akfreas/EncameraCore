@@ -20,7 +20,7 @@ public class AsyncVideoCaptureProcessor: NSObject {
 
     let videoId = NSUUID().uuidString
     var tempFileUrl: URL {
-        URL.tempMediaDirectory
+        URL.tempRecordingDirectory
             .appendingPathComponent(videoId)
             .appendingPathExtension("mov")
     }
@@ -34,6 +34,12 @@ public class AsyncVideoCaptureProcessor: NSObject {
     }
     
     public func takeVideo() async throws -> InteractableMedia<CleartextMedia> {
+        NotificationUtils.didEnterBackgroundPublisher.sink { _ in
+            self.stop()
+        }.store(in: &cancellables)
+        NotificationUtils.willResignActivePublisher.sink { _ in
+            self.stop()
+        }.store(in: &cancellables)
         return try await withCheckedThrowingContinuation({ (continuation: VideoCaptureProcessorContinuation) in
             Task { @MainActor in
                 self.durationSubject.send(self.captureOutput.recordedDuration)
