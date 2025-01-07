@@ -67,6 +67,7 @@ public protocol PurchasedPermissionManaging {
     func hasEntitlement() -> Bool
 }
 
+@MainActor
 public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, ObservableObject {
     
     let subscriptionController = StoreActor.shared.subscriptionController
@@ -74,7 +75,6 @@ public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, Observabl
     public init() {
     }
     
-    @MainActor
     public func isAllowedAccess(feature: AppFeature) -> Bool {
         switch feature {
         case .accessPhoto(let count) where count <= AppConstants.maxPhotoCountBeforePurchase && count >= 0,
@@ -85,7 +85,6 @@ public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, Observabl
         }
     }
     
-    @MainActor
     public func hasEntitlement() -> Bool {
         return subscriptionController.entitledSubscriptionID != nil || purchaseController.isEntitled
 

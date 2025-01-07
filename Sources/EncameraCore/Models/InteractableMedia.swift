@@ -148,6 +148,6 @@ extension InteractableMedia {
 
 extension InteractableMedia where T == EncryptedMedia {
     public var needsDownload: Bool {
-        return underlyingMedia.first?.needsDownload ?? false
+        return underlyingMedia.map({$0.needsDownload}).contains(true)
     }
 }

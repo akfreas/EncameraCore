@@ -121,66 +121,66 @@ public class iCloudStorageModel: DataStorageModel {
         } else {
             // Create a new subject for this file.
             let subject = PassthroughSubject<iCloudDownloadStatus, Never>()
-              downloadStatusSubjects[source] = subject
+            downloadStatusSubjects[source] = subject
 
-              // Set up and start the query
-              setupMetadataQuery(forFile: source)
+            // Set up and start the query
+            setupMetadataQuery(forFile: source)
 
-              return subject.eraseToAnyPublisher()
-          }
-      }
+            return subject.eraseToAnyPublisher()
+        }
+    }
 
-      private func setupMetadataQuery(forFile fileURL: URL) {
-          query.stop()
-          query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
-          query.predicate = NSPredicate(format: "%K == %@", NSMetadataItemURLKey, fileURL as CVarArg)
-          NotificationCenter.default.addObserver(self, selector: #selector(queryDidUpdate), name: .NSMetadataQueryDidUpdate, object: query)
-          NotificationCenter.default.addObserver(self, selector: #selector(queryDidUpdate), name: .NSMetadataQueryGatheringProgress, object: query)
-          NotificationCenter.default.addObserver(self, selector: #selector(queryDidUpdate), name: .NSMetadataQueryDidStartGathering, object: query)
-          NotificationCenter.default.addObserver(self, selector: #selector(queryDidFinishGathering), name: .NSMetadataQueryDidFinishGathering, object: query)
-          query.start()
-      }
+    private func setupMetadataQuery(forFile fileURL: URL) {
+        query.stop()
+        query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
+        query.predicate = NSPredicate(format: "%K == %@", NSMetadataItemURLKey, fileURL as CVarArg)
+        NotificationCenter.default.addObserver(self, selector: #selector(queryDidUpdate), name: .NSMetadataQueryDidUpdate, object: query)
+        NotificationCenter.default.addObserver(self, selector: #selector(queryDidUpdate), name: .NSMetadataQueryGatheringProgress, object: query)
+        NotificationCenter.default.addObserver(self, selector: #selector(queryDidUpdate), name: .NSMetadataQueryDidStartGathering, object: query)
+        NotificationCenter.default.addObserver(self, selector: #selector(queryDidFinishGathering), name: .NSMetadataQueryDidFinishGathering, object: query)
+        query.start()
+    }
 
-      @objc private func queryDidUpdate(notification: Notification) {
-          processQueryResults()
-      }
+    @objc private func queryDidUpdate(notification: Notification) {
+        processQueryResults()
+    }
 
-      @objc private func queryDidFinishGathering(notification: Notification) {
-          processQueryResults()
-          query.stop()
-      }
+    @objc private func queryDidFinishGathering(notification: Notification) {
+        processQueryResults()
+        query.stop()
+    }
 
-      private func processQueryResults() {
-          for item in query.results as! [NSMetadataItem] {
-              if let fileURL = item.value(forAttribute: NSMetadataItemURLKey) as? URL,
-                 let subject = downloadStatusSubjects[fileURL] {
+    private func processQueryResults() {
+        for item in query.results as! [NSMetadataItem] {
+            if let fileURL = item.value(forAttribute: NSMetadataItemURLKey) as? URL,
+               let subject = downloadStatusSubjects[fileURL] {
+                
+                let downloadStatus = iCloudDownloadStatus(fromMetadataItem: item)
+                subject.send(downloadStatus)
 
-                  let downloadStatus = iCloudDownloadStatus(fromMetadataItem: item)
-                  subject.send(downloadStatus)
+                if case .downloaded = downloadStatus {
+                    subject.send(completion: .finished)
+                    downloadStatusSubjects.removeValue(forKey: fileURL)
+                }
+            }
+        }
+    }
 
-                  if case .downloaded = downloadStatus {
-                      subject.send(completion: .finished)
-                      downloadStatusSubjects.removeValue(forKey: fileURL)
-                  }
-              }
-          }
-      }
+    private func iCloudDownloadStatus(fromMetadataItem item: NSMetadataItem) -> iCloudDownloadStatus {
+        guard let downloadingStatus = item.value(forAttribute: NSMetadataUbiquitousItemDownloadingStatusKey) as? String else {
+            return .notDownloaded
+        }
 
-      private func iCloudDownloadStatus(fromMetadataItem item: NSMetadataItem) -> iCloudDownloadStatus {
-          guard let downloadingStatus = item.value(forAttribute: NSMetadataUbiquitousItemDownloadingStatusKey) as? String else {
-              return .notDownloaded
-          }
-
-          switch downloadingStatus {
-          case NSMetadataUbiquitousItemDownloadingStatusDownloaded:
-              return .downloaded
-          case NSMetadataUbiquitousItemIsDownloadingKey:
-              let progress = (item.value(forAttribute: NSMetadataUbiquitousItemPercentDownloadedKey) as? Double) ?? 0.0
-              return .downloading(progress: progress / 100.0)
-          default:
-              return .notDownloaded
-          }
-      }
+        switch downloadingStatus {
+        case NSMetadataUbiquitousItemDownloadingStatusDownloaded:
+            return .downloaded
+        case NSMetadataUbiquitousItemIsDownloadingKey:
+            let progress = (item.value(forAttribute: NSMetadataUbiquitousItemPercentDownloadedKey) as? Double) ?? 0.0
+            return .downloading(progress: progress / 100.0)
+        default:
+            return .notDownloaded
+        }
+    }
 
 }
 
