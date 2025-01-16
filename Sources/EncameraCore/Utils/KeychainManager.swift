@@ -34,7 +34,6 @@ public class KeychainManager: ObservableObject, KeyManager {
     
 
     public var isAuthenticated: AnyPublisher<Bool, Never>
-    private var authenticated: Bool = false
     private var cancellables = Set<AnyCancellable>()
     private var sodium = Sodium()
 
@@ -69,19 +68,13 @@ public class KeychainManager: ObservableObject, KeyManager {
     required public init(isAuthenticated: AnyPublisher<Bool, Never>) {
         self.isAuthenticated = isAuthenticated
         self.isAuthenticated.sink { newValue in
-            self.authenticated = newValue
             do {
-                try self.checkAuthenticated {
-                    try self.setActiveKey(nil)
-                }
                 try self.getActiveKeyAndSet()
             } catch {
                 debugPrint("Error getting/setting active key", error)
             }
         }.store(in: &cancellables)
-
     }
-    
 
     public func clearKeychainData() {
         let keychainClasses: [CFString] = [
@@ -114,9 +107,7 @@ public class KeychainManager: ObservableObject, KeyManager {
 
 
     @discardableResult public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
-        try checkAuthenticated()
-
-        // Load the dictionary file from the main bundle
+        
         guard let dictionaryPath = Bundle.main.path(forResource: "dictionary", ofType: "txt"),
               let dictionaryContent = try? String(contentsOfFile: dictionaryPath) else {
             throw KeyManagerError.dictionaryLoadError
@@ -124,15 +115,12 @@ public class KeychainManager: ObservableObject, KeyManager {
 
         let words = dictionaryContent.components(separatedBy: .newlines).filter { !$0.isEmpty && $0.lengthOfBytes(using: .utf8) > 4 }
 
-        // Ensure the dictionary has enough words
         guard words.count >= 10 else {
             throw KeyManagerError.dictionaryTooSmall
         }
 
-        // Select 10 random words
         let selectedWords = (0..<10).compactMap { _ in words.randomElement()?.lowercased() }
 
-        // Use the first word as the salt and the rest as parts of the password
         return try generateKeyFromPasswordComponents(selectedWords, name: name)
     }
 
@@ -261,7 +249,7 @@ public class KeychainManager: ObservableObject, KeyManager {
     }
 
     public func backupKeychainToiCloud(backupEnabled: Bool) throws {
-        try checkAuthenticated()
+        
 
         let keys = try storedKeys()
         for key in keys {
@@ -275,7 +263,7 @@ public class KeychainManager: ObservableObject, KeyManager {
     }
 
     public func update(key: PrivateKey, backupToiCloud: Bool) throws {
-        try checkAuthenticated()
+        
         var updateDict: [String: Any] = [:]
         if backupToiCloud {
             updateDict[kSecAttrSynchronizable as String] = kCFBooleanTrue
@@ -296,7 +284,7 @@ public class KeychainManager: ObservableObject, KeyManager {
     }
 
     public func storedKeys() throws -> [PrivateKey] {
-        try checkAuthenticated()
+        
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecReturnData as String: true,
@@ -330,9 +318,7 @@ public class KeychainManager: ObservableObject, KeyManager {
     }
     
     public func setActiveKey(_ name: KeyName?) throws {
-        try checkAuthenticated {
-            self.currentKey = nil
-        }
+
         guard let name = name else {
             currentKey = nil
             UserDefaultUtils.removeObject(forKey: UserDefaultKey.currentKey)
@@ -358,7 +344,7 @@ public class KeychainManager: ObservableObject, KeyManager {
     
     func getKey(by keyName: KeyName) throws -> PrivateKey {
 
-        try checkAuthenticated()
+        
         
         let query = try getKeyQuery(for: keyName)
         
@@ -605,13 +591,6 @@ private extension KeychainManager {
             query[kSecAttrSynchronizable as String] = kCFBooleanFalse
         }
         return query as CFDictionary
-    }
-    
-    private func checkAuthenticated(_ nonAuthenticatedAction: (() throws -> Void)? = nil) throws {
-        guard authenticated == true else {
-            try nonAuthenticatedAction?()
-            throw KeyManagerError.notAuthenticatedError
-        }
     }
 }
 
