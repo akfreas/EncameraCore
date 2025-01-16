@@ -1,7 +1,7 @@
 import Foundation
 
-public class TempFileAccess {
-    
+public class TempFileAccess: DebugPrintable {
+
     public static func cleanupTemporaryFiles() {
         deleteDirectory(at: URL.tempMediaDirectory)
     }
@@ -14,12 +14,12 @@ public class TempFileAccess {
         do {
             if FileManager.default.fileExists(atPath: url.path) {
                 try FileManager.default.removeItem(at: url)
-                debugPrint("Deleted files at \(url)")
+                printDebug("Deleted files at \(url)")
             } else {
-                debugPrint("No temporary media directory, not deleting")
+                printDebug("No temporary media directory, not deleting")
             }
         } catch let error {
-            debugPrint("Could not delete files: \(error)")
+            printDebug("Could not delete files: \(error)")
         }
     }
 
