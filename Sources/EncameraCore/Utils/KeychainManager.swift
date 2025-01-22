@@ -29,7 +29,7 @@ public struct KeyPassphrase: Codable {
 }
 
 
-public class KeychainManager: ObservableObject, KeyManager {
+public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     
 
@@ -67,11 +67,11 @@ public class KeychainManager: ObservableObject, KeyManager {
     
     required public init(isAuthenticated: AnyPublisher<Bool, Never>) {
         self.isAuthenticated = isAuthenticated
-        self.isAuthenticated.sink { newValue in
+        self.isAuthenticated.sink { [weak self] newValue in
             do {
-                try self.getActiveKeyAndSet()
+                try self?.getActiveKeyAndSet()
             } catch {
-                debugPrint("Error getting/setting active key", error)
+                self?.printDebug("Error getting/setting active key", error)
             }
         }.store(in: &cancellables)
     }
@@ -274,7 +274,7 @@ public class KeychainManager: ObservableObject, KeyManager {
         
         let status = SecItemUpdate(query, updateDict as CFDictionary)
         try checkStatus(status: status)
-        debugPrint("Key updated: \(key.name), iCloud: \(backupToiCloud)")
+        printDebug("Key updated: \(key.name), iCloud: \(backupToiCloud)")
     }
 
     public func keyWith(name: String) -> PrivateKey? {
@@ -374,7 +374,7 @@ public class KeychainManager: ObservableObject, KeyManager {
         } catch is KeyManagerError {
             
         } catch {
-            debugPrint("Key error", error)
+            printDebug("Key error", error)
         }
         return item != nil
     }
@@ -415,7 +415,7 @@ public class KeychainManager: ObservableObject, KeyManager {
         do {
             try checkStatus(status: deletePasswordStatus)
         } catch {
-            debugPrint("Clearing password failed", error)
+            printDebug("Clearing password failed", error)
         }
         try setPassword(newPassword)
     }
@@ -485,7 +485,7 @@ public class KeychainManager: ObservableObject, KeyManager {
             }
         }
         catch {
-            debugPrint("error checking password", error)
+            printDebug("error checking password", error)
         }
         return false
     }

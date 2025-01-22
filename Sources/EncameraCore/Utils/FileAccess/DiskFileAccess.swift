@@ -12,7 +12,7 @@ import AVFoundation
 
 
 
-public actor DiskFileAccess {
+public actor DiskFileAccess: DebugPrintable {
 
     enum iCloudError: Error {
         case invalidURL
@@ -91,20 +91,20 @@ extension DiskFileAccess {
 
     public func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel  {
         guard let thumbnailPath = directoryModel?.previewURLForMedia(media) else {
-            debugPrint("loadMediaPreview: No thumbnail path found")
+            printDebug("loadMediaPreview: No thumbnail path found")
             throw FileAccessError.missingDirectoryModel
         }
         let preview = T(source: .url(thumbnailPath), mediaType: .preview, id: media.id)
 
         do {
-            debugPrint("loadMediaPreview: Trying to load thumbnail", media.id)
+            printDebug("loadMediaPreview: Trying to load thumbnail", media.id)
             let existingPreview = try await loadMediaInMemory(media: preview) { _ in }
-            debugPrint("loadMediaPreview: Found existing thumbnail", media.id)
+            printDebug("loadMediaPreview: Found existing thumbnail", media.id)
             return try PreviewModel(source: existingPreview)
         } catch {
             switch media.mediaType {
             case .photo:
-                debugPrint("loadMediaPreview: No thumbnail found for photo with id: \(media.id)")
+                printDebug("loadMediaPreview: No thumbnail found for photo with id: \(media.id)")
                 return try await createPreview(for: media)
             case .video:
                 // We are signaling here that there is no thumbnail for the
@@ -112,10 +112,10 @@ extension DiskFileAccess {
                 // so that an encrypted preview is stored in a certain region
                 // of the file, so we can load the preview without decrypting
                 // the entire file
-                debugPrint("loadMediaPreview: No thumbnail found for video with id: \(media.id)")
+                printDebug("loadMediaPreview: No thumbnail found for video with id: \(media.id)")
                 return try await createPreview(for: media)
             default:
-                debugPrint("loadMediaPreview: No thumbnail found for unknown media type")
+                printDebug("loadMediaPreview: No thumbnail found for unknown media type")
                 throw SecretFilesError.createThumbnailError
             }
         }
@@ -144,9 +144,9 @@ extension DiskFileAccess {
         if var encrypted = media as? EncryptedMedia {
             if encrypted.needsDownload,
                 let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
-                debugPrint("Downloading file from iCloud", encrypted.id)
-                encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { prog in
-                    debugPrint("Downloading file from iCloud", encrypted.id, prog)
+                printDebug("Downloading file from iCloud", encrypted.id)
+                encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { [weak self] prog in
+                    self?.printDebug("Downloading file from iCloud", encrypted.id, prog)
                     progress(.downloading(progress: prog))
                 }
             }
@@ -195,7 +195,7 @@ extension DiskFileAccess {
         }
         
         guard case .url(let sourceURL) = encrypted.source else {
-            debugPrint("decryptMediaToURL: Could not load media")
+            printDebug("decryptMediaToURL: Could not load media")
             throw FileAccessError.couldNotLoadMedia
         }
 
@@ -226,7 +226,7 @@ extension DiskFileAccess {
     @discardableResult public func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
         do {
             let thumbnail = try await createThumbnail(for: media)
-            debugPrint("createPreview: Created thumbnail for \(media.id)")
+            printDebug("createPreview: Created thumbnail for \(media.id)")
             var preview = PreviewModel(thumbnailMedia: thumbnail)
             if let encrypted = media as? EncryptedMedia {
                 switch encrypted.mediaType {
@@ -235,13 +235,13 @@ extension DiskFileAccess {
                 case .video:
                     let video: CleartextMedia = try await decryptMediaToURL(encrypted: encrypted, progress: {_ in })
                     guard let url = video.url else {
-                        debugPrint("createPreview: Could not get video URL")
+                        printDebug("createPreview: Could not get video URL")
                         throw SecretFilesError.createPreviewError
                     }
                     let asset = AVURLAsset(url: url, options: nil)
                     preview.videoDuration = asset.duration.durationText
                 default:
-                    debugPrint("createPreview: Unknown media type")
+                    printDebug("createPreview: Unknown media type")
                     throw SecretFilesError.createPreviewError
                 }
             } else if let decrypted = media as? CleartextMedia, decrypted.mediaType == .video, case .url(let source) = decrypted.source {
@@ -252,7 +252,7 @@ extension DiskFileAccess {
             return preview
 
         } catch {
-            debugPrint("createPreview: Error creating preview for \(media.id)")
+            printDebug("createPreview: Error creating preview for \(media.id)")
             throw error
         }
 
@@ -302,7 +302,7 @@ extension DiskFileAccess {
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, targetURL: destinationURL)
 
         try await fileHandler.encrypt()
-        debugPrint("Saved preview for \(sourceMedia.id)")
+        printDebug("Saved preview for \(sourceMedia.id)")
         return cleartextPreview
     }
 
@@ -347,7 +347,7 @@ extension DiskFileAccess {
 
     public func delete(media: EncryptedMedia) async throws {
         guard case .url(let source) = media.source else {
-            debugPrint("Error deleting media: \(media)")
+            printDebug("Error deleting media: \(media)")
             throw FileAccessError.missingDirectoryModel
         }
         

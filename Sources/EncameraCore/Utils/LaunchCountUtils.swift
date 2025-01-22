@@ -4,7 +4,7 @@
 import Foundation
 import Foundation
 
-public class LaunchCountUtils {
+public class LaunchCountUtils: DebugPrintable {
 
     private static var currentVersion: String {
         return Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
@@ -22,7 +22,7 @@ public class LaunchCountUtils {
     public static func fetchCurrentVersionLaunchCount() -> Int {
 
         let launchCount = UserDefaultUtils.dictionary(forKey: .launchCountKey) as? [String: Int] ?? [String: Int]()
-        debugPrint("Launch count: \(launchCount)")
+        printDebug("Launch count: \(launchCount)")
         return launchCount[currentVersion] ?? 0
     }
 
