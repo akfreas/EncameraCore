@@ -501,6 +501,7 @@
 "Settings.ImportKeyPhrase" = "Import Key Phrase";
 "Settings.DefaultStorageOption" = "Default Storage Option";
 "Settings.BackupKeyToiCloud" = "Sync Key to iCloud";
+"Settings.GiveInstantFeedback" = "Give Instant Feedback";
 
 "MediaSelectionTray.SelectMedia" = "Select Media";
 "MediaSelectionTray.ItemSelected" = "Selected";

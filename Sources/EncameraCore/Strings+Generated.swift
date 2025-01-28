@@ -999,6 +999,8 @@ public enum L10n {
     public static let contact = L10n.tr("Localizable", "Settings.Contact", fallback: "Contact Support")
     /// Default Storage Option
     public static let defaultStorageOption = L10n.tr("Localizable", "Settings.DefaultStorageOption", fallback: "Default Storage Option")
+    /// Give Instant Feedback
+    public static let giveInstantFeedback = L10n.tr("Localizable", "Settings.GiveInstantFeedback", fallback: "Give Instant Feedback")
     /// Import Key Phrase
     public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
     /// Version
