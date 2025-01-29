@@ -990,6 +990,28 @@ public enum L10n {
     /// Starting download...
     public static let startingDownload = L10n.tr("Localizable", "ProgressView.StartingDownload", fallback: "Starting download...")
   }
+  public enum PurchaseView {
+    /// Unlock all of these benefits:
+    public static let unlockBenefits = L10n.tr("Localizable", "PurchaseView.UnlockBenefits", fallback: "Unlock all of these benefits:")
+    /// Your Premium benefits:
+    public static let yourBenefits = L10n.tr("Localizable", "PurchaseView.YourBenefits", fallback: "Your Premium benefits:")
+    public enum BenefitModel {
+      /// Backup keychain to iCloud
+      public static let backupKeychain = L10n.tr("Localizable", "PurchaseView.BenefitModel.BackupKeychain", fallback: "Backup keychain to iCloud")
+      /// Change app icon
+      public static let changeAppIcon = L10n.tr("Localizable", "PurchaseView.BenefitModel.ChangeAppIcon", fallback: "Change app icon")
+      /// Coming Soon
+      public static let comingSoon = L10n.tr("Localizable", "PurchaseView.BenefitModel.ComingSoon", fallback: "Coming Soon")
+      /// Hidden albums
+      public static let hiddenAlbums = L10n.tr("Localizable", "PurchaseView.BenefitModel.HiddenAlbums", fallback: "Hidden albums")
+      /// iCloud storage & backup
+      public static let iCloudStorage = L10n.tr("Localizable", "PurchaseView.BenefitModel.iCloudStorage", fallback: "iCloud storage & backup")
+      /// Unlimited albums for your memories
+      public static let unlimitedAlbums = L10n.tr("Localizable", "PurchaseView.BenefitModel.UnlimitedAlbums", fallback: "Unlimited albums for your memories")
+      /// Unlimited storage for photos & videos
+      public static let unlimitedStorage = L10n.tr("Localizable", "PurchaseView.BenefitModel.UnlimitedStorage", fallback: "Unlimited storage for photos & videos")
+    }
+  }
   public enum Settings {
     /// Backup Key Phrase
     public static let backupKeyPhrase = L10n.tr("Localizable", "Settings.BackupKeyPhrase", fallback: "Backup Key Phrase")

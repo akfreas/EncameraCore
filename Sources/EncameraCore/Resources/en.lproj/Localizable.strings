@@ -455,6 +455,15 @@
 "PurchaseProduct" = "Purchase";
 "SelectProduct" = "Select a Product";
 "BuyOnceUseForever" = "Buy once. Use forever.";
+"PurchaseView.UnlockBenefits" = "Unlock all of these benefits:";
+"PurchaseView.YourBenefits" = "Your Premium benefits:";
+"PurchaseView.BenefitModel.UnlimitedStorage" = "Unlimited storage for photos & videos";
+"PurchaseView.BenefitModel.UnlimitedAlbums" = "Unlimited albums for your memories";
+"PurchaseView.BenefitModel.iCloudStorage" = "iCloud storage & backup";
+"PurchaseView.BenefitModel.ChangeAppIcon" = "Change app icon";
+"PurchaseView.BenefitModel.BackupKeychain" = "Backup keychain to iCloud";
+"PurchaseView.BenefitModel.HiddenAlbums" = "Hidden albums";
+"PurchaseView.BenefitModel.ComingSoon" = "Coming Soon";
 "ThanksForPurchasingLifetime" = "Thanks for purchasing a lifetime license!";
 "ThanksForPurchasingLifetimeSubtitle" = "You rock and you will unlock new benefits soon.";
 "ImportKeyPhrase" = "Import Key Phrase";
