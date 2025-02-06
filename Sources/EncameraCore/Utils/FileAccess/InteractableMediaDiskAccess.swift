@@ -91,7 +91,7 @@ public actor InteractableMediaDiskAccess: FileAccess {
                 decrypted.append(cleartextMedia)
             }
         }
-
+        progress(.loaded)
         return try InteractableMedia(underlyingMedia: decrypted)
 
     }

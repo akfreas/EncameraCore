@@ -200,7 +200,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         return album
     }
 
-
+    
     public func moveAlbum(album: Album, toStorage: StorageType) throws -> Album {
         let fileManager = FileManager.default
         let currentStorage = album.storageOption.modelForType.init(album: album)

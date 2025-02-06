@@ -413,7 +413,7 @@
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Important ⚠️";
 "AlbumDetailView.NoLicenseDeletionWarningMessage" = "Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "I Understand";
-"AlbumDetailView.Select" = "Select";
+"AlbumDetailView.Select" = "Select Media";
 "AlbumDetailView.RenameAlbum" = "Rename Album";
 "AlbumDetailView.HideAlbumAlertTitle" = "Hide this album?";
 "AlbumDetailView.HideAlbumAlertMessage" = "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.";

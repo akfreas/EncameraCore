@@ -518,7 +518,6 @@
 "Yes" = "Ja";
 "AskForReview.EnjoyingTheApp" = "Genießen Sie die App?";
 "No" = "Nein";
-"AlbumDetailView.Select" = "Auswählen";
 "GetPremiumPromoText" = "Halloween-Verkauf!";
 "PromoPremiumUnlockTheseBenefits" = "Unbegrenzte Alben und iCloud-Speicher\n und ZWEI MONATE GRATIS";
 "AlbumDetailView.RenameAlbum" = "Album umbenennen";
@@ -549,3 +548,17 @@
 "Test" = "Hier ist ein Test der Zeichenkettenübersetzung";
 "AlbumDetailView.HideAlbumAlertTitle" = "Dieses Album verbergen?";
 "AlbumDetailView.HideAlbumAlertMessage" = "Sind Sie sicher, dass Sie dieses Album verbergen möchten? Sie MÜSSEN sich den Namen dieses Albums merken, um wieder darauf zugreifen zu können.";
+
+"LetsGo" = "Los geht's!";
+"PurchaseView.BenefitModel.BackupKeychain" = "Schlüsselbund in iCloud sichern";
+"PurchaseView.BenefitModel.ComingSoon" = "Demnächst verfügbar";
+"PurchaseView.BenefitModel.UnlimitedStorage" = "Unbegrenzter Speicher für Fotos & Videos";
+"PurchaseView.BenefitModel.UnlimitedAlbums" = "Unbegrenzte Alben für Ihre Erinnerungen";
+"PurchaseView.BenefitModel.HiddenAlbums" = "Versteckte Alben";
+"PurchaseView.BenefitModel.ChangeAppIcon" = "App-Symbol ändern";
+"PurchaseView.BenefitModel.iCloudStorage" = "iCloud-Speicher & Backup";
+"Settings.BackupKeyToiCloud" = "Schlüssel mit iCloud synchronisieren";
+"PurchaseView.UnlockBenefits" = "Schalte alle diese Vorteile frei:";
+"PurchaseView.YourBenefits" = "Ihre Premium-Vorteile:";
+"Settings.GiveInstantFeedback" = "Geben Sie sofortiges Feedback";
+"AlbumDetailView.Select" = "Medien auswählen";

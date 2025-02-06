@@ -803,8 +803,8 @@ public enum L10n {
     public static let photoAccessAlertTitle = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertTitle", fallback: "Delete After Import?")
     /// Rename Album
     public static let renameAlbum = L10n.tr("Localizable", "AlbumDetailView.RenameAlbum", fallback: "Rename Album")
-    /// Select
-    public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select")
+    /// Select Media
+    public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select Media")
   }
   public enum Alert {
     public enum LoadingFile {

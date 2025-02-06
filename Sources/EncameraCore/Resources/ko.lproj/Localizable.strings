@@ -103,7 +103,6 @@
 "PinCodeDoesNotMatch" = "PIN이 일치하지 않습니다. 다시 시도해 주세요.";
 "WelcomeBack" = "다시 오신 것을 환영합니다!";
 "No private key or media found." = "개인 키나 미디어를 찾을 수 없습니다.";
-"AlbumDetailView.Select" = "선택";
 "allDataExplanation" = "정말로 모든 ENCAMERA 데이터를 지우시겠습니까?\n\n지워질 항목:\n\n• 저장된 모든 키 \\ud83d\\udd11\n• 비밀번호 \\ud83d\\udd10\n• 앱 설정 \\ud83c\\udf9b\n• 로컬 또는 iCLOUD에 저장된 미디어\n\n키 관리 화면에서 키의 백업을 생성할 수 있습니다.\n\n삭제가 완료되면 앱이 종료됩니다.";
 "Creation Date: %@" = "생성 날짜: %@";
 "DoneOnboarding" = "완료!";
@@ -415,3 +414,17 @@
 "Settings.DefaultStorageOption" = "기본 저장 옵션";
 "Add Key" = "키 추가";
 "AskForReview.AskMeLater" = "나중에 물어보기";
+
+"LetsGo" = "가자!";
+"PurchaseView.BenefitModel.BackupKeychain" = "iCloud에 키체인 백업";
+"PurchaseView.BenefitModel.ComingSoon" = "곧 출시 예정";
+"PurchaseView.BenefitModel.UnlimitedStorage" = "사진 및 비디오 무제한 저장";
+"PurchaseView.BenefitModel.UnlimitedAlbums" = "추억을 위한 무제한 앨범";
+"PurchaseView.BenefitModel.HiddenAlbums" = "숨겨진 앨범";
+"PurchaseView.BenefitModel.ChangeAppIcon" = "앱 아이콘 변경";
+"PurchaseView.BenefitModel.iCloudStorage" = "iCloud 저장공간 및 백업";
+"Settings.BackupKeyToiCloud" = "iCloud에 키 동기화";
+"PurchaseView.UnlockBenefits" = "이 모든 혜택 잠금 해제:";
+"PurchaseView.YourBenefits" = "귀하의 프리미엄 혜택:";
+"Settings.GiveInstantFeedback" = "즉각적인 피드백 제공";
+"AlbumDetailView.Select" = "미디어 선택";

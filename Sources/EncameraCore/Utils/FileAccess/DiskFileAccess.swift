@@ -217,8 +217,8 @@ extension DiskFileAccess {
                 progress(.decrypting(progress: percent))
             }
             .store(in: &cancellables)
-
-        return try await fileHandler.decryptToURL()
+        let decrypted = try await fileHandler.decryptToURL()
+        return decrypted
 
     }
 
