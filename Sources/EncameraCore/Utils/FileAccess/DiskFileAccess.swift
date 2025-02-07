@@ -175,7 +175,7 @@ extension DiskFileAccess {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
         }
-        guard case .url(let sourceURL) = encrypted.source else {
+        guard case .url(_) = encrypted.source else {
             throw FileAccessError.couldNotLoadMedia
         }
 
