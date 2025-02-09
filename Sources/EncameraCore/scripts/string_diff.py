@@ -56,7 +56,7 @@ def compare_and_translate(master_keys_and_values, directory, master_dir, from_la
             print(f"Missing translations in {directory.name}:")
             for key in sorted(missing_keys):
                 print(f"  {key}")
-            if input("Do you want to translate these missing keys? (yes/no) ").lower() == "yes":
+            if input("Do you want to translate these missing keys? (y/n) ").lower() == "y":
                 missing_keys_and_values = {key: master_keys_and_values[key] for key in missing_keys}
                 translations = get_translations(missing_keys_and_values, from_lang, to_lang)
                 append_translations_to_file(loc_path, translations)

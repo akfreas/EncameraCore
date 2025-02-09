@@ -1025,6 +1025,10 @@ public enum L10n {
     public static let giveInstantFeedback = L10n.tr("Localizable", "Settings.GiveInstantFeedback", fallback: "Give Instant Feedback")
     /// Import Key Phrase
     public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
+    /// Purchases restored!
+    public static let purchasesRestored = L10n.tr("Localizable", "Settings.PurchasesRestored", fallback: "Purchases restored!")
+    /// Any valid purchases you made have been restored.
+    public static let purchasesRestoredMessage = L10n.tr("Localizable", "Settings.PurchasesRestoredMessage", fallback: "Any valid purchases you made have been restored.")
     /// Version
     public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
   }

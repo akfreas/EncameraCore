@@ -428,3 +428,5 @@
 "PurchaseView.YourBenefits" = "귀하의 프리미엄 혜택:";
 "Settings.GiveInstantFeedback" = "즉각적인 피드백 제공";
 "AlbumDetailView.Select" = "미디어 선택";
+"Settings.PurchasesRestoredMessage" = "유효한 구매가 복원되었습니다.";
+"Settings.PurchasesRestored" = "구매가 복원되었습니다!";

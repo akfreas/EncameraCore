@@ -511,7 +511,8 @@
 "Settings.DefaultStorageOption" = "Default Storage Option";
 "Settings.BackupKeyToiCloud" = "Sync Key to iCloud";
 "Settings.GiveInstantFeedback" = "Give Instant Feedback";
-
+"Settings.PurchasesRestored" = "Purchases restored!";
+"Settings.PurchasesRestoredMessage" = "Any valid purchases you made have been restored.";
 "MediaSelectionTray.SelectMedia" = "Select Media";
 "MediaSelectionTray.ItemSelected" = "Selected";
 "MediaSelectionTray.MoveMedia" = "Move";

@@ -560,3 +560,5 @@
 "PurchaseView.YourBenefits" = "Tus beneficios Premium:";
 "Settings.GiveInstantFeedback" = "Dar retroalimentación instantánea";
 "AlbumDetailView.Select" = "Seleccionar medios";
+"Settings.PurchasesRestoredMessage" = "Cualquier compra válida que hayas realizado ha sido restaurada.";
+"Settings.PurchasesRestored" = "¡Compras restauradas!";
