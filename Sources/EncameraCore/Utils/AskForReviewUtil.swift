@@ -66,7 +66,7 @@ public class AskForReviewUtil {
     @MainActor
     private static func presentReviewAlert(completion: @escaping (ReviewSelection) -> Void) {
         guard let currentScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootViewController = currentScene.windows.first?.rootViewController else {
+              let _ = currentScene.windows.first?.rootViewController else {
             return
         }
 

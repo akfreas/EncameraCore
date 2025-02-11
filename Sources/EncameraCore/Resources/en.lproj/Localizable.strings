@@ -413,7 +413,7 @@
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Important ⚠️";
 "AlbumDetailView.NoLicenseDeletionWarningMessage" = "Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "I Understand";
-"AlbumDetailView.Select" = "Select";
+"AlbumDetailView.Select" = "Select Media";
 "AlbumDetailView.RenameAlbum" = "Rename Album";
 "AlbumDetailView.HideAlbumAlertTitle" = "Hide this album?";
 "AlbumDetailView.HideAlbumAlertMessage" = "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.";
@@ -455,6 +455,15 @@
 "PurchaseProduct" = "Purchase";
 "SelectProduct" = "Select a Product";
 "BuyOnceUseForever" = "Buy once. Use forever.";
+"PurchaseView.UnlockBenefits" = "Unlock all of these benefits:";
+"PurchaseView.YourBenefits" = "Your Premium benefits:";
+"PurchaseView.BenefitModel.UnlimitedStorage" = "Unlimited storage for photos & videos";
+"PurchaseView.BenefitModel.UnlimitedAlbums" = "Unlimited albums for your memories";
+"PurchaseView.BenefitModel.iCloudStorage" = "iCloud storage & backup";
+"PurchaseView.BenefitModel.ChangeAppIcon" = "Change app icon";
+"PurchaseView.BenefitModel.BackupKeychain" = "Backup keychain to iCloud";
+"PurchaseView.BenefitModel.HiddenAlbums" = "Hidden albums";
+"PurchaseView.BenefitModel.ComingSoon" = "Coming Soon";
 "ThanksForPurchasingLifetime" = "Thanks for purchasing a lifetime license!";
 "ThanksForPurchasingLifetimeSubtitle" = "You rock and you will unlock new benefits soon.";
 "ImportKeyPhrase" = "Import Key Phrase";
@@ -501,7 +510,9 @@
 "Settings.ImportKeyPhrase" = "Import Key Phrase";
 "Settings.DefaultStorageOption" = "Default Storage Option";
 "Settings.BackupKeyToiCloud" = "Sync Key to iCloud";
-
+"Settings.GiveInstantFeedback" = "Give Instant Feedback";
+"Settings.PurchasesRestored" = "Purchases restored!";
+"Settings.PurchasesRestoredMessage" = "Any valid purchases you made have been restored.";
 "MediaSelectionTray.SelectMedia" = "Select Media";
 "MediaSelectionTray.ItemSelected" = "Selected";
 "MediaSelectionTray.MoveMedia" = "Move";

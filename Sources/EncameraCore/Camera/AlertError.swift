@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import EncameraCore
 
 public struct AlertError {
     public var title: String = ""

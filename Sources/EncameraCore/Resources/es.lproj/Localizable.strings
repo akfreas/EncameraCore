@@ -516,7 +516,6 @@
 "Yes" = "Sí";
 "AskForReview.EnjoyingTheApp" = "¿Estás disfrutando de la aplicación?";
 "No" = "No";
-"AlbumDetailView.Select" = "Seleccionar";
 "GetPremiumPromoText" = "¡Venta de Halloween!";
 "PromoPremiumUnlockTheseBenefits" = "Álbumes ilimitados y almacenamiento en iCloud\n y DOS MESES GRATIS";
 "AlbumDetailView.RenameAlbum" = "Renombrar álbum";
@@ -547,3 +546,19 @@
 "Test" = "Aquí hay una prueba de la traducción de la cadena";
 "AlbumDetailView.HideAlbumAlertTitle" = "¿Ocultar este álbum?";
 "AlbumDetailView.HideAlbumAlertMessage" = "¿Estás seguro de que deseas ocultar este álbum? DEBES recordar el nombre de este álbum para acceder a él nuevamente.";
+
+"LetsGo" = "¡Vamos!";
+"PurchaseView.BenefitModel.BackupKeychain" = "Copia de seguridad del llavero en iCloud";
+"PurchaseView.BenefitModel.ComingSoon" = "Próximamente";
+"PurchaseView.BenefitModel.UnlimitedStorage" = "Almacenamiento ilimitado para fotos y videos";
+"PurchaseView.BenefitModel.UnlimitedAlbums" = "Álbumes ilimitados para tus recuerdos";
+"PurchaseView.BenefitModel.HiddenAlbums" = "Álbumes ocultos";
+"PurchaseView.BenefitModel.ChangeAppIcon" = "Cambiar el ícono de la aplicación";
+"PurchaseView.BenefitModel.iCloudStorage" = "Almacenamiento y copia de seguridad de iCloud";
+"Settings.BackupKeyToiCloud" = "Sincronizar Key con iCloud";
+"PurchaseView.UnlockBenefits" = "Desbloquea todos estos beneficios:";
+"PurchaseView.YourBenefits" = "Tus beneficios Premium:";
+"Settings.GiveInstantFeedback" = "Dar retroalimentación instantánea";
+"AlbumDetailView.Select" = "Seleccionar medios";
+"Settings.PurchasesRestoredMessage" = "Cualquier compra válida que hayas realizado ha sido restaurada.";
+"Settings.PurchasesRestored" = "¡Compras restauradas!";

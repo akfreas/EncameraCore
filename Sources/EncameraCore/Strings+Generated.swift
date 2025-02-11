@@ -803,8 +803,8 @@ public enum L10n {
     public static let photoAccessAlertTitle = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertTitle", fallback: "Delete After Import?")
     /// Rename Album
     public static let renameAlbum = L10n.tr("Localizable", "AlbumDetailView.RenameAlbum", fallback: "Rename Album")
-    /// Select
-    public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select")
+    /// Select Media
+    public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select Media")
   }
   public enum Alert {
     public enum LoadingFile {
@@ -990,6 +990,28 @@ public enum L10n {
     /// Starting download...
     public static let startingDownload = L10n.tr("Localizable", "ProgressView.StartingDownload", fallback: "Starting download...")
   }
+  public enum PurchaseView {
+    /// Unlock all of these benefits:
+    public static let unlockBenefits = L10n.tr("Localizable", "PurchaseView.UnlockBenefits", fallback: "Unlock all of these benefits:")
+    /// Your Premium benefits:
+    public static let yourBenefits = L10n.tr("Localizable", "PurchaseView.YourBenefits", fallback: "Your Premium benefits:")
+    public enum BenefitModel {
+      /// Backup keychain to iCloud
+      public static let backupKeychain = L10n.tr("Localizable", "PurchaseView.BenefitModel.BackupKeychain", fallback: "Backup keychain to iCloud")
+      /// Change app icon
+      public static let changeAppIcon = L10n.tr("Localizable", "PurchaseView.BenefitModel.ChangeAppIcon", fallback: "Change app icon")
+      /// Coming Soon
+      public static let comingSoon = L10n.tr("Localizable", "PurchaseView.BenefitModel.ComingSoon", fallback: "Coming Soon")
+      /// Hidden albums
+      public static let hiddenAlbums = L10n.tr("Localizable", "PurchaseView.BenefitModel.HiddenAlbums", fallback: "Hidden albums")
+      /// iCloud storage & backup
+      public static let iCloudStorage = L10n.tr("Localizable", "PurchaseView.BenefitModel.iCloudStorage", fallback: "iCloud storage & backup")
+      /// Unlimited albums for your memories
+      public static let unlimitedAlbums = L10n.tr("Localizable", "PurchaseView.BenefitModel.UnlimitedAlbums", fallback: "Unlimited albums for your memories")
+      /// Unlimited storage for photos & videos
+      public static let unlimitedStorage = L10n.tr("Localizable", "PurchaseView.BenefitModel.UnlimitedStorage", fallback: "Unlimited storage for photos & videos")
+    }
+  }
   public enum Settings {
     /// Backup Key Phrase
     public static let backupKeyPhrase = L10n.tr("Localizable", "Settings.BackupKeyPhrase", fallback: "Backup Key Phrase")
@@ -999,8 +1021,14 @@ public enum L10n {
     public static let contact = L10n.tr("Localizable", "Settings.Contact", fallback: "Contact Support")
     /// Default Storage Option
     public static let defaultStorageOption = L10n.tr("Localizable", "Settings.DefaultStorageOption", fallback: "Default Storage Option")
+    /// Give Instant Feedback
+    public static let giveInstantFeedback = L10n.tr("Localizable", "Settings.GiveInstantFeedback", fallback: "Give Instant Feedback")
     /// Import Key Phrase
     public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
+    /// Purchases restored!
+    public static let purchasesRestored = L10n.tr("Localizable", "Settings.PurchasesRestored", fallback: "Purchases restored!")
+    /// Any valid purchases you made have been restored.
+    public static let purchasesRestoredMessage = L10n.tr("Localizable", "Settings.PurchasesRestoredMessage", fallback: "Any valid purchases you made have been restored.")
     /// Version
     public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
   }

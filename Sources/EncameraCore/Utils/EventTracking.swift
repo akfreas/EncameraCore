@@ -114,6 +114,10 @@ public class EventTracking {
         track(category: "media", action: "media_imported", value: Float(count))
     }
 
+    public static func trackMediaDeleted(count: Int) {
+        track(category: "media", action: "media_deleted", value: Float(count))
+    }
+
     public static func trackFilesImported(count: Int) {
         track(category: "media", action: "file_imported", value: Float(count))
     }
