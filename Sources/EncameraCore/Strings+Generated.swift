@@ -772,10 +772,10 @@ public enum L10n {
     /// Import an image from your album or open the camera and take a new picture for this album
     public static let addFirstImageSubtitle = L10n.tr("Localizable", "AlbumDetailView.AddFirstImageSubtitle", fallback: "Import an image from your album or open the camera and take a new picture for this album")
     /// Confirm Delete
-    public static let confirmDeletion = L10n.tr("Localizable", "AlbumDetailView.confirmDeletion", fallback: "Confirm Delete")
+    public static let confirmDeletion = L10n.tr("Localizable", "AlbumDetailView.ConfirmDeletion", fallback: "Confirm Delete")
     /// Do you want to delete %@?
     public static func deleteSelectedMedia(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.deleteSelectedMedia", String(describing: p1), fallback: "Do you want to delete %@?")
+      return L10n.tr("Localizable", "AlbumDetailView.DeleteSelectedMedia", String(describing: p1), fallback: "Do you want to delete %@?")
     }
     /// Are you sure you want to hide this album? You MUST remember the name of this album to access it again.
     public static let hideAlbumAlertMessage = L10n.tr("Localizable", "AlbumDetailView.HideAlbumAlertMessage", fallback: "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.")
@@ -801,8 +801,12 @@ public enum L10n {
     public static let photoAccessAlertSecondaryButton = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertSecondaryButton", fallback: "Not Now")
     /// Delete After Import?
     public static let photoAccessAlertTitle = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertTitle", fallback: "Delete After Import?")
+    /// Remove Album Cover
+    public static let removeCoverImage = L10n.tr("Localizable", "AlbumDetailView.RemoveCoverImage", fallback: "Remove Album Cover")
     /// Rename Album
     public static let renameAlbum = L10n.tr("Localizable", "AlbumDetailView.RenameAlbum", fallback: "Rename Album")
+    /// Reset Cover Image
+    public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Reset Cover Image")
     /// Select Media
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select Media")
   }
@@ -861,6 +865,8 @@ public enum L10n {
     public static let mediaDetails = L10n.tr("Localizable", "FooterView.MediaDetails", fallback: "Media Details")
   }
   public enum GalleryView {
+    /// Make Album Cover
+    public static let makeAlbumCover = L10n.tr("Localizable", "GalleryView.MakeAlbumCover", fallback: "Make Album Cover")
     /// Live Photo - Hold to View
     public static let playLivePhoto = L10n.tr("Localizable", "GalleryView.PlayLivePhoto", fallback: "Live Photo - Hold to View")
   }
