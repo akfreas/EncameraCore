@@ -155,6 +155,11 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         }
     }
 
+
+    public func setAlbumCoverImage(album: Album, image: InteractableMedia<EncryptedMedia>) {
+        UserDefaultUtils.set(image.id, forKey: .albumCoverImage(albumName: album.name))
+    }
+
     @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album  {
         guard let currentKey = keyManager.currentKey else {
             throw AlbumError.noCurrentKeySet

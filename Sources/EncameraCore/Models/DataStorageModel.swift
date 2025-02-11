@@ -116,17 +116,26 @@ extension DataStorageModel {
         }
     }
 
-    func driveURLForNewMedia<T: MediaDescribing>(_ media: T) -> URL {
-        let filename = "\(media.id).\(media.mediaType.encryptedFileExtension)"
+    func driveURLForMedia<T: MediaDescribing>(_ media: T) -> URL {
+        return driveURLForMedia(withID: media.id, type: media.mediaType)
+    }
+
+    func driveURLForMedia(withID id: String, type: MediaType) -> URL {
+        let filename = "\(id).\(type.encryptedFileExtension)"
         return baseURL.appendingPathComponent(filename)
     }
-    
+
     
     func previewURLForMedia<T: MediaDescribing>(_ media: T) -> URL {
         let thumbnailPath = Self.thumbnailDirectory.appendingPathComponent("\(media.id).\(MediaType.preview.encryptedFileExtension)")
         return thumbnailPath
     }
-    
+
+    func previewURLForMedia(withID id: String) -> URL {
+        let thumbnailPath = Self.thumbnailDirectory.appendingPathComponent("\(id).\(MediaType.preview.encryptedFileExtension)")
+        return thumbnailPath
+    }
+
     func enumeratorForStorageDirectory(resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil) -> [URL] {
         return Self.enumeratorForStorageDirectory(at: baseURL, resourceKeys: resourceKeys, fileExtensionFilter: fileExtensionFilter)
     }

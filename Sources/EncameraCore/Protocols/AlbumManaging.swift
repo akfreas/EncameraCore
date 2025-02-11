@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import UIKit
 
 public protocol AlbumManaging {
 
@@ -17,8 +18,8 @@ public protocol AlbumManaging {
     var defaultStorageForAlbum: StorageType { get set }
     var currentAlbum: Album? { get set }
     var currentAlbumMediaCount: Int? { get }
-
     func delete(album: Album)
+    func setAlbumCoverImage(album: Album, image: InteractableMedia<EncryptedMedia>)
     func loadAlbumsFromFilesystem()
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album
     func storageModel(for album: Album) -> DataStorageModel?

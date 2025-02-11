@@ -36,6 +36,7 @@ public enum UserDefaultKey {
     case defaultStorageLocation
     case showPushNotificationPrompt
     case isAlbumHidden(name: String)
+    case albumCoverImage(albumName: String)
 
 
     var rawValue: String {

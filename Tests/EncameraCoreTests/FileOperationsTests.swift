@@ -26,7 +26,7 @@ class FileOperationsTests: XCTestCase {
     
     func testEncryptInMemory() async throws {
         let sourceMedia = try FileUtils.createNewDataImageMedia()
-        let handler = SecretFileHandler(keyBytes: key, source: sourceMedia, targetURL: directoryModel.driveURLForNewMedia(sourceMedia))
+        let handler = SecretFileHandler(keyBytes: key, source: sourceMedia, targetURL: directoryModel.driveURLForMedia(sourceMedia))
 
         let encrypted = try await handler.encrypt()
         XCTAssertTrue(FileManager.default.fileExists(atPath: encrypted.source.path))
@@ -38,7 +38,7 @@ class FileOperationsTests: XCTestCase {
         
         let sourceMedia = try FileUtils.createNewMovieFile()
 
-        let handler = SecretFileHandler(keyBytes: key, source: sourceMedia, targetURL: directoryModel.driveURLForNewMedia(sourceMedia))
+        let handler = SecretFileHandler(keyBytes: key, source: sourceMedia, targetURL: directoryModel.driveURLForMedia(sourceMedia))
         let encrypted = try await handler.encrypt()
         XCTAssertTrue(FileManager.default.fileExists(atPath: encrypted.source.path))
     }
@@ -47,7 +47,7 @@ class FileOperationsTests: XCTestCase {
         
         let sourceMedia = try FileUtils.createNewMovieFile()
 
-        let handler = SecretFileHandler(keyBytes: key, source: sourceMedia, targetURL: directoryModel.driveURLForNewMedia(sourceMedia))
+        let handler = SecretFileHandler(keyBytes: key, source: sourceMedia, targetURL: directoryModel.driveURLForMedia(sourceMedia))
         let encrypted = try await handler.encrypt()
         let target = TempFilesManager(subdirectory: "testing_1").createTempURL(for: .video, id: sourceMedia.id)
         XCTAssertTrue(FileManager.default.fileExists(atPath: encrypted.source.path))

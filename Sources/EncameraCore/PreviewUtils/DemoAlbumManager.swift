@@ -2,6 +2,10 @@ import Foundation
 import Combine
 
 public class DemoAlbumManager: AlbumManaging {
+    public func setAlbumCoverImage(album: Album, image: InteractableMedia<EncryptedMedia>) {
+        
+    }
+    
     public func isAlbumHidden(_ album: Album) -> Bool {
         return false
     }
