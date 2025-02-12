@@ -8,22 +8,6 @@
 import Foundation
 import PiwikPROSDK
 
-enum PurchaseGoal: Int {
-    case yearlyUnlimitedKeysAndPhotos
-    case monthlyUnlimitedKeysAndPhotos
-
-    init?(id: String) {
-        switch id {
-        case "subscription.yearly.unlimitedkeysandphotos":
-            self = .yearlyUnlimitedKeysAndPhotos
-        case "subscription.monthly.unlimitedkeysandphotos":
-            self = .monthlyUnlimitedKeysAndPhotos
-        default:
-            return nil
-        }
-    }
-}
-
 @MainActor
 public class EventTracking {
     public let piwikTracker: PiwikTracker = PiwikTracker.sharedInstance(siteID: "5ed9378f-f689-439c-ba90-694075efc81a", baseURL: URL(string: "https://encamera.piwik.pro/piwik.php")!)!
@@ -164,11 +148,6 @@ public class EventTracking {
 
     public static func trackPurchaseCompleted(from screen: String, currency: String, amount: Decimal, product: String) {
         track(category: "purchase_completed", action: product.lowercased(), name: screen)
-
-        guard let goalId = PurchaseGoal(id: product) else {
-            return
-        }
-        Self.shared.piwikTracker.sendGoal(ID: "\(goalId.rawValue)", revenue: amount as NSNumber)
     }
 
     public static func trackPurchaseScreenDismissed(from screen: String) {
