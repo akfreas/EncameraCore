@@ -156,8 +156,11 @@
 "Deletion Error" = "Deletion Error";
 "AlbumDetailView.ConfirmDeletion" = "Confirm Delete";
 "AlbumDetailView.DeleteSelectedMedia" = "Do you want to delete %@?";
-"AlbumDetailView.RemoveCoverImage" = "Remove Album Cover";
-"AlbumDetailView.ResetCoverImage" = "Reset Cover Image";
+"AlbumDetailView.AlbumCoverMenuTitle" = "Album Cover";
+"AlbumDetailView.RemoveCoverImage" = "Disable Album Cover";
+"AlbumDetailView.ResetCoverImage" = "Default to First Image";
+"AlbumDetailView.CoverImageRemovedToast" = "Cover image disabled";
+"AlbumDetailView.CoverImageResetToast" = "Cover image defaults to first image";
 "OK" = "OK";
 /* ./Encamera/KeyManagement/AlbumCell.swift */
 "Active" = "Active";
@@ -240,6 +243,7 @@
 "Share Decrypted" = "Share Decrypted";
 "GalleryView.PlayLivePhoto" = "Live Photo - Hold to View";
 "GalleryView.MakeAlbumCover" = "Make Album Cover";
+"GalleryView.AlbumCoverSetToast" = "Album cover set";
 "ImportingPleaseWait" = "Importing... Please wait";
 /* ./Encamera/ImageViewing/DecryptErrorExplanation.swift */
 "The media you tried to open could not be decrypted." = "The media you tried to open could not be decrypted.";
