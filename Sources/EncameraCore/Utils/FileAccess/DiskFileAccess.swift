@@ -80,7 +80,12 @@ public actor DiskFileAccess: DebugPrintable {
                 let isPhoto1 = url1.pathExtension == MediaType.photo.encryptedFileExtension
                 let isPhoto2 = url2.pathExtension == MediaType.photo.encryptedFileExtension
 
-                return isPhoto1 && !isPhoto2
+                if isPhoto1 != isPhoto2 {
+                    return isPhoto1 && !isPhoto2
+                }
+
+                // If media types are the same, sort by filename
+                return url1.lastPathComponent < url2.lastPathComponent
             }.compactMap { (itemUrl: URL) in
                 return T(source: .url(itemUrl), generateID: false)
             }
