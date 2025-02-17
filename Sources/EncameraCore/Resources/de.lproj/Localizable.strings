@@ -564,7 +564,6 @@
 "AlbumDetailView.Select" = "Medien auswählen";
 "Settings.PurchasesRestoredMessage" = "Alle gültigen Käufe, die Sie getätigt haben, wurden wiederhergestellt.";
 "Settings.PurchasesRestored" = "Käufe wiederhergestellt!";
-"AlbumDetailView.ResetCoverImage" = "Standardmäßig auf letztes Bild";
 "AlbumDetailView.CoverImageRemovedToast" = "Titelbild deaktiviert";
 "AlbumDetailView.ConfirmDeletion" = "Löschen bestätigen";
 "GalleryView.AlbumCoverSetToast" = "Albumcover festgelegt";
@@ -573,3 +572,5 @@
 "AlbumDetailView.AlbumCoverMenuTitle" = "Albumcover";
 "AlbumDetailView.DeleteSelectedMedia" = "Möchten Sie %@ löschen?";
 "AlbumDetailView.CoverImageResetToast" = "Das Titelbild wird standardmäßig auf das zuletzt aufgenommene Bild gesetzt";
+
+"AlbumDetailView.ResetCoverImage" = "Standardmäßig auf das neueste Bild";

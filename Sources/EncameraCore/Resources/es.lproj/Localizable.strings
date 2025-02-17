@@ -562,7 +562,6 @@
 "AlbumDetailView.Select" = "Seleccionar medios";
 "Settings.PurchasesRestoredMessage" = "Cualquier compra válida que hayas realizado ha sido restaurada.";
 "Settings.PurchasesRestored" = "¡Compras restauradas!";
-"AlbumDetailView.ResetCoverImage" = "Predeterminar a la última imagen";
 "AlbumDetailView.CoverImageRemovedToast" = "Imagen de portada desactivada";
 "AlbumDetailView.ConfirmDeletion" = "Confirmar eliminación";
 "GalleryView.AlbumCoverSetToast" = "Portada del álbum establecida";
@@ -571,3 +570,5 @@
 "AlbumDetailView.AlbumCoverMenuTitle" = "Portada del álbum";
 "AlbumDetailView.DeleteSelectedMedia" = "¿Quieres eliminar %@?";
 "AlbumDetailView.CoverImageResetToast" = "La imagen de portada por defecto es la última imagen tomada";
+
+"AlbumDetailView.ResetCoverImage" = "Predeterminar a la Imagen Más Reciente";
