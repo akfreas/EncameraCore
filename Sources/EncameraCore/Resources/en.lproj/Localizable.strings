@@ -158,9 +158,9 @@
 "AlbumDetailView.DeleteSelectedMedia" = "Do you want to delete %@?";
 "AlbumDetailView.AlbumCoverMenuTitle" = "Album Cover";
 "AlbumDetailView.RemoveCoverImage" = "Disable Album Cover";
-"AlbumDetailView.ResetCoverImage" = "Default to First Image";
+"AlbumDetailView.ResetCoverImage" = "Default to Last Image";
 "AlbumDetailView.CoverImageRemovedToast" = "Cover image disabled";
-"AlbumDetailView.CoverImageResetToast" = "Cover image defaults to first image";
+"AlbumDetailView.CoverImageResetToast" = "Cover image defaults to last image taken";
 "OK" = "OK";
 /* ./Encamera/KeyManagement/AlbumCell.swift */
 "Active" = "Active";

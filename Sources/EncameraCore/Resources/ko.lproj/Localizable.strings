@@ -430,3 +430,12 @@
 "AlbumDetailView.Select" = "미디어 선택";
 "Settings.PurchasesRestoredMessage" = "유효한 구매가 복원되었습니다.";
 "Settings.PurchasesRestored" = "구매가 복원되었습니다!";
+"AlbumDetailView.ResetCoverImage" = "마지막 이미지로 기본 설정";
+"AlbumDetailView.CoverImageRemovedToast" = "표지 이미지 비활성화됨";
+"AlbumDetailView.ConfirmDeletion" = "삭제 확인";
+"GalleryView.AlbumCoverSetToast" = "앨범 커버 설정됨";
+"GalleryView.MakeAlbumCover" = "앨범 커버로 설정";
+"AlbumDetailView.RemoveCoverImage" = "앨범 커버 비활성화";
+"AlbumDetailView.AlbumCoverMenuTitle" = "앨범 커버";
+"AlbumDetailView.DeleteSelectedMedia" = "%@를 삭제하시겠습니까?";
+"AlbumDetailView.CoverImageResetToast" = "커버 이미지는 마지막으로 촬영된 이미지로 기본 설정됩니다";

@@ -45,7 +45,7 @@ def get_translations(keys_and_values, from_lang, to_lang):
         translations.extend([f"{key} = \"{translation}\";" for key, translation in zip(chunk.keys(), translation_text)])
     return translations
 
-def compare_and_translate(master_keys_and_values, directory, master_dir, from_lang, to_lang):
+def compare_and_translate(master_keys_and_values, directory, master_dir, from_lang, to_lang, silent=False):
     loc_path = Path(directory) / "Localizable.strings"
     if loc_path.exists():
         local_keys_and_values = load_strings_from_file(loc_path)
@@ -56,7 +56,7 @@ def compare_and_translate(master_keys_and_values, directory, master_dir, from_la
             print(f"Missing translations in {directory.name}:")
             for key in sorted(missing_keys):
                 print(f"  {key}")
-            if input("Do you want to translate these missing keys? (y/n) ").lower() == "y":
+            if silent or input("Do you want to translate these missing keys? (y/n) ").lower() == "y":
                 missing_keys_and_values = {key: master_keys_and_values[key] for key in missing_keys}
                 translations = get_translations(missing_keys_and_values, from_lang, to_lang)
                 append_translations_to_file(loc_path, translations)
@@ -65,6 +65,7 @@ def main():
     parser = argparse.ArgumentParser(description='Compare and translate localization files.')
     parser.add_argument('--master', type=str, help='Path to the master localization directory.')
     parser.add_argument('--api_key', type=str, help='OpenAI API key.')
+    parser.add_argument('--silent', action='store_true', help='Automatically translate missing strings without prompting')
     args = parser.parse_args()
 
     openai.api_key = args.api_key
@@ -83,9 +84,7 @@ def main():
     for directory in master_dir.parent.iterdir():
         if directory.is_dir() and directory != master_dir:
             to_lang = language_map.get(directory.name, "English")
-            compare_and_translate(master_keys_and_values, directory, master_dir, from_lang, to_lang)
+            compare_and_translate(master_keys_and_values, directory, master_dir, from_lang, to_lang, args.silent)
 
-if __name__ == '__main__':
-    main()
 if __name__ == '__main__':
     main()
