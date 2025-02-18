@@ -6,12 +6,10 @@
 //
 
 import Foundation
-import StoreKit
 
 enum RenewalFrequency: String {
     case monthly
     case yearly
-    
 }
 
 public enum AppFeature {
