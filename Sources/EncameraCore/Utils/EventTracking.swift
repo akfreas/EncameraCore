@@ -21,27 +21,25 @@ public class EventTracking {
 
     private static func track(category: String, action: String, name: String? = nil, value: Float? = nil) {
 #if DEBUG
-        
         debugPrint("[Tracking] Category: \(category), action: \(action), name: \(name ?? "none"), value: \(value ?? 0)")
-
-
-
 #else
         if FeatureToggle.isEnabled(feature: .stopTracking) {
             return
         }
-        if let subscriptionId = StoreActor.shared.subscriptionController.entitledSubscriptionID {
-            Self.shared.piwikTracker.setCustomDimension(identifier: 2, value: subscriptionId)
-        } else if let productId = StoreActor.shared.productController.purchasedProduct?.id {
-            Self.shared.piwikTracker.setCustomDimension(identifier: 2, value: productId)
-        }
         Self.shared.piwikTracker.sendEvent(category: category, action: action, name: name, value: value as NSNumber?, path: nil)
 #endif
     }
-#if DEBUG
-#else
-    //    add tracking
-#endif
+
+    public static func setSubscriptionDimensions(productID: String?) {
+        #if DEBUG
+        return
+        #else
+        if let productID {
+            Self.shared.piwikTracker.setCustomDimension(identifier: 2, value: productID)
+        }
+        #endif
+    }
+
     public static func trackAppLaunched() {
         track(category: "app", action: "launched")
     }
