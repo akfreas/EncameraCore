@@ -222,6 +222,18 @@ public class EventTracking {
         track(category: "album", action: "created")
     }
 
+    public static func trackAlbumCoverRemoved() {
+        track(category: "album", action: "cover_removed")
+    }
+
+    public static func trackAlbumCoverReset() {
+        track(category: "album", action: "cover_reset")
+    }
+
+    public static func trackAlbumCoverSet() {
+        track(category: "album", action: "cover_set")
+    }
+
     public static func trackAppOpened() {
         track(category: "app", action: "opened")
     }
