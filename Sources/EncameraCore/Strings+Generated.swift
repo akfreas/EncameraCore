@@ -515,8 +515,8 @@ public enum L10n {
   public static let photo = L10n.tr("Localizable", "PHOTO", fallback: "PHOTO")
   /// Photo limit reached
   public static let photoLimitReached = L10n.tr("Localizable", "Photo limit reached", fallback: "Photo limit reached")
-  /// PIN doesn’t match. Please try again.
-  public static let pinCodeDoesNotMatch = L10n.tr("Localizable", "PinCodeDoesNotMatch", fallback: "PIN doesn’t match. Please try again.")
+  /// PIN doesn't match. Please try again.
+  public static let pinCodeDoesNotMatch = L10n.tr("Localizable", "PinCodeDoesNotMatch", fallback: "PIN doesn't match. Please try again.")
   /// Too many attempts. Please wait for %@
   public static func pinCodeLockTryAgainIn(_ p1: Any) -> String {
     return L10n.tr("Localizable", "PinCodeLockTryAgainIn", String(describing: p1), fallback: "Too many attempts. Please wait for %@")
@@ -750,8 +750,8 @@ public enum L10n {
   public static let whatIsEncamera = L10n.tr("Localizable", "What is Encamera?", fallback: "What is Encamera?")
   /// Where do you want to save this key's media?
   public static let whereDoYouWantToSaveThisKeySMedia = L10n.tr("Localizable", "Where do you want to save this key's media?", fallback: "Where do you want to save this key's media?")
-  /// You will find all of your photos and videos grouped in the “Albums”
-  public static let whereToFindYourPictures = L10n.tr("Localizable", "WhereToFindYourPictures", fallback: "You will find all of your photos and videos grouped in the “Albums”")
+  /// You will find all of your photos and videos grouped in the "Albums"
+  public static let whereToFindYourPictures = L10n.tr("Localizable", "WhereToFindYourPictures", fallback: "You will find all of your photos and videos grouped in the \"Albums\"")
   /// Why Encrypt Media?
   public static let whyEncryptMedia = L10n.tr("Localizable", "Why Encrypt Media?", fallback: "Why Encrypt Media?")
   /// Yes
@@ -777,8 +777,8 @@ public enum L10n {
     public static let confirmDeletion = L10n.tr("Localizable", "AlbumDetailView.ConfirmDeletion", fallback: "Confirm Delete")
     /// Cover image disabled
     public static let coverImageRemovedToast = L10n.tr("Localizable", "AlbumDetailView.CoverImageRemovedToast", fallback: "Cover image disabled")
-    /// Cover image defaults to first image
-    public static let coverImageResetToast = L10n.tr("Localizable", "AlbumDetailView.CoverImageResetToast", fallback: "Cover image defaults to first image")
+    /// Cover image defaults to latest image
+    public static let coverImageResetToast = L10n.tr("Localizable", "AlbumDetailView.CoverImageResetToast", fallback: "Cover image defaults to latest image")
     /// Do you want to delete %@?
     public static func deleteSelectedMedia(_ p1: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.DeleteSelectedMedia", String(describing: p1), fallback: "Do you want to delete %@?")
@@ -811,8 +811,8 @@ public enum L10n {
     public static let removeCoverImage = L10n.tr("Localizable", "AlbumDetailView.RemoveCoverImage", fallback: "Disable Album Cover")
     /// Rename Album
     public static let renameAlbum = L10n.tr("Localizable", "AlbumDetailView.RenameAlbum", fallback: "Rename Album")
-    /// Default to First Image
-    public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Default to First Image")
+    /// Default to Latest Image
+    public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Default to Latest Image")
     /// Select Media
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select Media")
   }
@@ -878,6 +878,26 @@ public enum L10n {
     /// Live Photo - Hold to View
     public static let playLivePhoto = L10n.tr("Localizable", "GalleryView.PlayLivePhoto", fallback: "Live Photo - Hold to View")
   }
+  public enum HideAlbumsTutorial {
+    /// Keep your albums private
+    public static let heading1 = L10n.tr("Localizable", "HideAlbumsTutorial.Heading1", fallback: "Keep your albums private")
+    /// Access hidden albums
+    public static let heading2 = L10n.tr("Localizable", "HideAlbumsTutorial.Heading2", fallback: "Access hidden albums")
+    /// Remember album names
+    public static let heading3 = L10n.tr("Localizable", "HideAlbumsTutorial.Heading3", fallback: "Remember album names")
+    /// Hide an album
+    public static let heading4 = L10n.tr("Localizable", "HideAlbumsTutorial.Heading4", fallback: "Hide an album")
+    /// Encamera allows you to hide albums from the main view for extra privacy.
+    public static let subheading1 = L10n.tr("Localizable", "HideAlbumsTutorial.Subheading1", fallback: "Encamera allows you to hide albums from the main view for extra privacy.")
+    /// To access a hidden album, simply search for its name in the search bar.
+    public static let subheading2 = L10n.tr("Localizable", "HideAlbumsTutorial.Subheading2", fallback: "To access a hidden album, simply search for its name in the search bar.")
+    /// Make sure to remember the names of your hidden albums, as they won't appear in your album list.
+    public static let subheading3 = L10n.tr("Localizable", "HideAlbumsTutorial.Subheading3", fallback: "Make sure to remember the names of your hidden albums, as they won't appear in your album list.")
+    /// To hide an album, open it and tap the three dots menu, then select 'Hide Album'.
+    public static let subheading4 = L10n.tr("Localizable", "HideAlbumsTutorial.Subheading4", fallback: "To hide an album, open it and tap the three dots menu, then select 'Hide Album'.")
+    /// Hide Albums Tutorial
+    public static let title = L10n.tr("Localizable", "HideAlbumsTutorial.Title", fallback: "Hide Albums")
+  }
   public enum KeyCopiedToClipboard {
     /// Key copied to clipboard. Store this in a password manager or other secure place.
     public static let storeThisInAPasswordManagerOrOtherSecurePlace = L10n.tr("Localizable", "Key copied to clipboard. Store this in a password manager or other secure place.", fallback: "Key copied to clipboard. Store this in a password manager or other secure place.")
@@ -910,8 +930,8 @@ public enum L10n {
       public static let prompt = L10n.tr("Localizable", "Notification.ImportImages.Prompt", fallback: "Prompting user to import more images for security.")
     }
     public enum InactiveUserReminder {
-      /// Don’t forget to secure more images by adding them to your album. Import now!
-      public static let body = L10n.tr("Localizable", "Notification.InactiveUserReminder.Body", fallback: "Don’t forget to secure more images by adding them to your album. Import now!")
+      /// Don't forget to secure more images by adding them to your album. Import now!
+      public static let body = L10n.tr("Localizable", "Notification.InactiveUserReminder.Body", fallback: "Don't forget to secure more images by adding them to your album. Import now!")
       /// Your images might be at risk 🚨
       public static let title = L10n.tr("Localizable", "Notification.InactiveUserReminder.Title", fallback: "Your images might be at risk 🚨")
     }
@@ -952,8 +972,8 @@ public enum L10n {
       public static let educationalContent = L10n.tr("Localizable", "Notification.VideoSave.EducationalContent", fallback: "Showing educational content on how to save videos.")
     }
     public enum WidgetReminder {
-      /// Don’t forget to add the widget on the lock screen and take images quickly. See how!
-      public static let body = L10n.tr("Localizable", "Notification.WidgetReminder.Body", fallback: "Don’t forget to add the widget on the lock screen and take images quickly. See how!")
+      /// Don't forget to add the widget on the lock screen and take images quickly. See how!
+      public static let body = L10n.tr("Localizable", "Notification.WidgetReminder.Body", fallback: "Don't forget to add the widget on the lock screen and take images quickly. See how!")
       /// Take directly encrypted photos 📸
       public static let title = L10n.tr("Localizable", "Notification.WidgetReminder.Title", fallback: "Take directly encrypted photos 📸")
     }
