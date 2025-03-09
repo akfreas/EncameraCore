@@ -111,4 +111,5 @@ public protocol KeyManager {
     func passwordExists() -> Bool
     func changePassword(newPassword: String, existingPassword: String) throws
     func backupKeychainToiCloud(backupEnabled: Bool) throws
+    func clearPassword() throws
 }

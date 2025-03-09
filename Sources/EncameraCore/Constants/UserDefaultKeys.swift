@@ -24,7 +24,6 @@ public enum UserDefaultKey {
     case keyTutorialClosed
     case currentAlbumID
     case showCurrentAlbumOnLaunch
-    case usesPinPassword
     case lockoutEnd
     case launchCountKey
     case lastVersionKey

@@ -379,6 +379,14 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         return item != nil
     }
     
+    public func clearPassword() throws {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.account,
+        ]
+        let status = SecItemDelete(query as CFDictionary)
+    }
+    
     public func setPassword(_ password: String) throws {
         let hashed = try hashFrom(password: password)
         try setPasswordHash(hash: hashed)

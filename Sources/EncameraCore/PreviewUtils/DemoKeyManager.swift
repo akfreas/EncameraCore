@@ -3,7 +3,9 @@ import Combine
 
 public class DemoKeyManager: KeyManager {
     public var areKeysStoredIniCloud: Bool = false
-    
+    public func clearPassword() throws {
+        
+    }
     public var keyPublisher: AnyPublisher<PrivateKey?, Never>
 
 

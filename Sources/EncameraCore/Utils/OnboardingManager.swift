@@ -163,7 +163,7 @@ public class OnboardingManager: OnboardingManaging {
             Task {
                 try await saveOnboardingState(.completed, settings: SavedSettings(useBiometricsForAuth: true))
             }
-            UserDefaultUtils.set(true, forKey: .usesPinPassword)
+            UserDefaultUtils.set(AuthenticationMethodType.pinCode.rawValue, forKey: .authenticationMethodType)
             return .completed
         }
         observables.onboardingState = state
