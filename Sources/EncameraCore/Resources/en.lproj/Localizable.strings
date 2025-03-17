@@ -563,6 +563,19 @@
 "HideAlbumsTutorial.Heading4" = "Hide an album";
 "HideAlbumsTutorial.Subheading4" = "To hide an album, open it and tap the three dots menu, then select 'Hide Album'.";
 
+/* Authentication Method View */
+"AuthenticationMethod.MultipleMethodsInfo" = "You can select multiple authentication methods";
+"AuthenticationMethod.TapToDisableBanner" = "Tap to disable the selected method";
+"AuthenticationMethod.DisableTitle" = "Disable Authentication Method";
+"AuthenticationMethod.Cancel" = "Cancel";
+"AuthenticationMethod.Disable" = "Disable";
+"AuthenticationMethod.ConfirmDisable" = "Do you really want to disable %@?";
+"AuthenticationMethod.ConfirmDisableGeneric" = "Do you really want to disable this authentication method?";
+"AuthenticationMethod.IncompatibleTitle" = "Incompatible Authentication Methods";
+"AuthenticationMethod.OK" = "OK";
+"AuthenticationMethod.IncompatibleMessage" = "The selected authentication methods are incompatible.";
+"AuthenticationMethod.IncompatibleDetail" = "%@ cannot be used with the currently selected methods. PIN and Password cannot be used together.";
+
 /* Authentication Method Security Levels */
 "AuthenticationMethod.SecurityLevel.FaceID" = "Low protection";
 "AuthenticationMethod.SecurityLevel.PinCode" = "Moderate protection";

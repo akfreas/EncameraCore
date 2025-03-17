@@ -835,6 +835,32 @@ public enum L10n {
     public static let enjoyingTheApp = L10n.tr("Localizable", "AskForReview.EnjoyingTheApp", fallback: "Are you enjoying the app?")
   }
   public enum AuthenticationMethod {
+    /// Cancel
+    public static let cancel = L10n.tr("Localizable", "AuthenticationMethod.Cancel", fallback: "Cancel")
+    /// Do you really want to disable %@?
+    public static func confirmDisable(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AuthenticationMethod.ConfirmDisable", String(describing: p1), fallback: "Do you really want to disable %@?")
+    }
+    /// Do you really want to disable this authentication method?
+    public static let confirmDisableGeneric = L10n.tr("Localizable", "AuthenticationMethod.ConfirmDisableGeneric", fallback: "Do you really want to disable this authentication method?")
+    /// Disable
+    public static let disable = L10n.tr("Localizable", "AuthenticationMethod.Disable", fallback: "Disable")
+    /// Disable Authentication Method
+    public static let disableTitle = L10n.tr("Localizable", "AuthenticationMethod.DisableTitle", fallback: "Disable Authentication Method")
+    /// %@ cannot be used with the currently selected methods. PIN and Password cannot be used together.
+    public static func incompatibleDetail(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AuthenticationMethod.IncompatibleDetail", String(describing: p1), fallback: "%@ cannot be used with the currently selected methods. PIN and Password cannot be used together.")
+    }
+    /// The selected authentication methods are incompatible.
+    public static let incompatibleMessage = L10n.tr("Localizable", "AuthenticationMethod.IncompatibleMessage", fallback: "The selected authentication methods are incompatible.")
+    /// Incompatible Authentication Methods
+    public static let incompatibleTitle = L10n.tr("Localizable", "AuthenticationMethod.IncompatibleTitle", fallback: "Incompatible Authentication Methods")
+    /// Authentication Method View
+    public static let multipleMethodsInfo = L10n.tr("Localizable", "AuthenticationMethod.MultipleMethodsInfo", fallback: "You can select multiple authentication methods")
+    /// OK
+    public static let ok = L10n.tr("Localizable", "AuthenticationMethod.OK", fallback: "OK")
+    /// Tap to disable the selected method
+    public static let tapToDisableBanner = L10n.tr("Localizable", "AuthenticationMethod.TapToDisableBanner", fallback: "Tap to disable the selected method")
     public enum SecurityLevel {
       /// Authentication Method Security Levels
       public static let faceID = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.FaceID", fallback: "Low protection")
