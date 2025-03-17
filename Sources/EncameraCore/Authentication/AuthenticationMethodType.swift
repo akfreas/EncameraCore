@@ -1,9 +1,9 @@
 import Foundation
 
 public enum AuthenticationMethodType: String, CaseIterable {
-    case faceID = "Face ID only"
-    case pinCode = "PIN Code"
-    case password = "Password"
+    case faceID
+    case pinCode
+    case password
     
     public var securityLevel: String {
         switch self {

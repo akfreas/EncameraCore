@@ -23,6 +23,11 @@
 "Password" = "Password";
 "Use Password" = "Use Password";
 "Keep your encrypted data safe by using %@." = "Keep your encrypted data safe by using %@.";
+"FaceIDOnlyAlert.Title" = "Clear PIN/Password?";
+"FaceIDOnlyAlert.Message" = "Switching to Face ID only will clear your current PIN/password. You will only be able to unlock the app using Face ID.";
+"FaceIDOnlyAlert.Continue" = "Continue";
+"FaceIDOnlyAlert.Cancel" = "Cancel";
+"AuthenticationMethod" = "Authentication method";
 /* ./EncameraCore/Utils/PasswordValidator.swift */
 "Not determined." = "Not determined.";
 "Password is valid." = "Password is valid.";
@@ -38,6 +43,7 @@
 "Local" = "Local";
 "SaveToiCloudDrive" = "Save to iCloud Drive";
 "SaveLocally" = "Save to this device";
+"ChangePinCode" = "Change PIN Code";
 
 /* Encamera App */
 /* ./Encamera/CameraView/CameraView.swift */

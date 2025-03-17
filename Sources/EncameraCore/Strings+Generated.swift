@@ -91,6 +91,8 @@ public enum L10n {
   /// 
   /// 
   public static let appDataExplanation = L10n.tr("Localizable", "appDataExplanation", fallback: "Are you sure you want to erase ALL app data?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\nTHIS WILL NOT ERASE:\n\n• Media you have stored locally or on iCloud\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n")
+  /// Authentication method
+  public static let authenticationMethod = L10n.tr("Localizable", "AuthenticationMethod", fallback: "Authentication method")
   /// Back to album
   public static let backToAlbum = L10n.tr("Localizable", "Back to album", fallback: "Back to album")
   /// Back Up Key
@@ -115,6 +117,8 @@ public enum L10n {
   public static let changeKeyAlbum = L10n.tr("Localizable", "Change Key Album", fallback: "I Want to Choose Another Destination Album")
   /// Change Password
   public static let changePassword = L10n.tr("Localizable", "Change Password", fallback: "Change Password")
+  /// Change PIN Code
+  public static let changePinCode = L10n.tr("Localizable", "ChangePinCode", fallback: "Change PIN Code")
   /// Check that the same key that was used to encrypt this media is set as the active key.
   public static let checkThatTheSameKeyThatWasUsedToEncryptThisMediaIsSetAsTheActiveKey = L10n.tr("Localizable", "Check that the same key that was used to encrypt this media is set as the active key.", fallback: "Check that the same key that was used to encrypt this media is set as the active key.")
   /// Choose your storage
@@ -851,6 +855,16 @@ public enum L10n {
   public enum ErrorDeletingKeyAndAssociatedFiles {
     /// Error deleting key and associated files. Please try again or try to delete files manually via the Files app.
     public static let pleaseTryAgainOrTryToDeleteFilesManuallyViaTheFilesApp = L10n.tr("Localizable", "Error deleting key and associated files. Please try again or try to delete files manually via the Files app.", fallback: "Error deleting key and associated files. Please try again or try to delete files manually via the Files app.")
+  }
+  public enum FaceIDOnlyAlert {
+    /// Cancel
+    public static let cancel = L10n.tr("Localizable", "FaceIDOnlyAlert.Cancel", fallback: "Cancel")
+    /// Continue
+    public static let `continue` = L10n.tr("Localizable", "FaceIDOnlyAlert.Continue", fallback: "Continue")
+    /// Switching to Face ID only will clear your current PIN/password. You will only be able to unlock the app using Face ID.
+    public static let message = L10n.tr("Localizable", "FaceIDOnlyAlert.Message", fallback: "Switching to Face ID only will clear your current PIN/password. You will only be able to unlock the app using Face ID.")
+    /// Clear PIN/Password?
+    public static let title = L10n.tr("Localizable", "FaceIDOnlyAlert.Title", fallback: "Clear PIN/Password?")
   }
   public enum FeedbackView {
     /// What could we improve?
