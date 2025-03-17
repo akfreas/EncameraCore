@@ -585,3 +585,7 @@
 "AuthenticationMethod.TextDescription.FaceID" = "Face ID";
 "AuthenticationMethod.TextDescription.PinCode" = "Pin Code";
 "AuthenticationMethod.TextDescription.Password" = "Password";
+
+"AuthenticationMethod.ConfirmDisableFaceID" = "Do you really want to disable %@?";
+"AuthenticationMethod.ConfirmDisablePinCode" = "Do you really want to disable %@? This will clear the PIN code you have stored.";
+"AuthenticationMethod.ConfirmDisablePassword" = "Do you really want to disable %@? This will clear the password you have stored.";

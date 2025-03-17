@@ -174,7 +174,10 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         switch queryResult {
         case errSecSuccess:
             // Passphrase exists, update it
-            let updateQuery: [String: Any] = [kSecValueData as String: passphraseData]
+            let updateQuery: [String: Any] = [
+                kSecValueData as String: passphraseData,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            ]
             let updateStatus = SecItemUpdate(passphraseQuery as CFDictionary, updateQuery as CFDictionary)
 
             try checkStatus(status: updateStatus)
@@ -232,7 +235,10 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
         if let existingKey = try? getKey(by: key.name) {
-            let updateQuery: [String: Any] = [kSecValueData as String: Data(key.keyBytes)]
+            let updateQuery: [String: Any] = [
+                kSecValueData as String: Data(key.keyBytes),
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            ]
             let updateStatus = SecItemUpdate(existingKey.keychainQueryDictForKeychain as CFDictionary, updateQuery as CFDictionary)
             try checkStatus(status: updateStatus)
 
@@ -255,7 +261,10 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         for key in keys {
             try update(key: key, backupToiCloud: backupEnabled)
         }
-        let updateQuery = [kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue : kCFBooleanFalse]
+        let updateQuery = [
+            kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue : kCFBooleanFalse,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+        ] as [String : Any]
         let updateStatus = SecItemUpdate(queryForPassphrase() as CFDictionary, updateQuery as CFDictionary)
 
         try checkStatus(status: updateStatus)
@@ -264,7 +273,9 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     public func update(key: PrivateKey, backupToiCloud: Bool) throws {
         
-        var updateDict: [String: Any] = [:]
+        var updateDict: [String: Any] = [
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+        ]
         if backupToiCloud {
             updateDict[kSecAttrSynchronizable as String] = kCFBooleanTrue
         } else {
@@ -399,7 +410,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrAccount as String: KeychainConstants.account,
         ]
         let update: [String: Any] = [
-            kSecValueData as String: hashed
+            kSecValueData as String: hashed,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
         ]
 
         let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
@@ -456,6 +468,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
             kSecValueData as String: hash,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
         ]
         let setPasswordStatus = SecItemAdd(query as CFDictionary, nil)
 
@@ -528,7 +541,6 @@ private extension KeychainManager {
         ]
 
         if let additionalQuery {
-
             return baseQuery.merging(additionalQuery, uniquingKeysWith: { $1 })
         }
 
@@ -624,7 +636,8 @@ private extension PrivateKey {
             kSecAttrCreationDate as String: creationDate,
             kSecValueData as String: Data(keyBytes),
             kSecAttrApplicationLabel as String: applicationLabel,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
         ]
     }
 }

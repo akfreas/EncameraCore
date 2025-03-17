@@ -841,8 +841,20 @@ public enum L10n {
     public static func confirmDisable(_ p1: Any) -> String {
       return L10n.tr("Localizable", "AuthenticationMethod.ConfirmDisable", String(describing: p1), fallback: "Do you really want to disable %@?")
     }
+    /// Do you really want to disable %@?
+    public static func confirmDisableFaceID(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AuthenticationMethod.ConfirmDisableFaceID", String(describing: p1), fallback: "Do you really want to disable %@?")
+    }
     /// Do you really want to disable this authentication method?
     public static let confirmDisableGeneric = L10n.tr("Localizable", "AuthenticationMethod.ConfirmDisableGeneric", fallback: "Do you really want to disable this authentication method?")
+    /// Do you really want to disable %@? This will clear the password you have stored.
+    public static func confirmDisablePassword(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AuthenticationMethod.ConfirmDisablePassword", String(describing: p1), fallback: "Do you really want to disable %@? This will clear the password you have stored.")
+    }
+    /// Do you really want to disable %@? This will clear the PIN code you have stored.
+    public static func confirmDisablePinCode(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AuthenticationMethod.ConfirmDisablePinCode", String(describing: p1), fallback: "Do you really want to disable %@? This will clear the PIN code you have stored.")
+    }
     /// Disable
     public static let disable = L10n.tr("Localizable", "AuthenticationMethod.Disable", fallback: "Disable")
     /// Disable Authentication Method
