@@ -8,11 +8,22 @@ public enum AuthenticationMethodType: String, CaseIterable, Codable {
     public var securityLevel: String {
         switch self {
         case .faceID:
-            return "Low protection"
+            return L10n.AuthenticationMethod.SecurityLevel.faceID
         case .pinCode:
-            return "Moderate protection"
+            return L10n.AuthenticationMethod.SecurityLevel.pinCode
         case .password:
-            return "Strong protection"
+            return L10n.AuthenticationMethod.SecurityLevel.password
+        }
+    }
+
+    public var textDescription: String {
+        switch self {
+        case .faceID:
+            return L10n.AuthenticationMethod.TextDescription.faceID
+        case .pinCode:
+            return L10n.AuthenticationMethod.TextDescription.pinCode
+        case .password:
+            return L10n.AuthenticationMethod.TextDescription.password
         }
     }
     

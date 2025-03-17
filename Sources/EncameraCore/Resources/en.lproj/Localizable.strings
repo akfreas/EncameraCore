@@ -562,3 +562,13 @@
 "HideAlbumsTutorial.Subheading3" = "Make sure to remember the names of your hidden albums, as they won't appear in your album list.";
 "HideAlbumsTutorial.Heading4" = "Hide an album";
 "HideAlbumsTutorial.Subheading4" = "To hide an album, open it and tap the three dots menu, then select 'Hide Album'.";
+
+/* Authentication Method Security Levels */
+"AuthenticationMethod.SecurityLevel.FaceID" = "Low protection";
+"AuthenticationMethod.SecurityLevel.PinCode" = "Moderate protection";
+"AuthenticationMethod.SecurityLevel.Password" = "Strong protection";
+
+/* Authentication Method Text Descriptions */
+"AuthenticationMethod.TextDescription.FaceID" = "Face ID";
+"AuthenticationMethod.TextDescription.PinCode" = "Pin Code";
+"AuthenticationMethod.TextDescription.Password" = "Password";

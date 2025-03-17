@@ -15,6 +15,8 @@ class DeviceAuthManagerTests: XCTestCase {
     
     override func setUp() {
         authManager = DeviceAuthManager(settingsManager: SettingsManager())
+        let keyManager = DemoKeyManager()
+        authManager.setKeyManager(keyManager)
     }
     
     

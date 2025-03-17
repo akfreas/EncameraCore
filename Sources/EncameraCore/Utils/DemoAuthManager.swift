@@ -9,11 +9,33 @@ import Foundation
 import Combine
 
 public class DemoAuthManager: AuthManager {
+    public var authenticationMethodsPublisher: AnyPublisher<[AuthenticationMethodType], Never>
+
+    public func getUserInputAuthenticationMethod() -> AuthenticationMethodType {
+        return .faceID
+    }
+    
+    public func hasBiometricAuthenticationMethod() -> Bool {
+        false
+    }
+    
+    public func hasAuthenticationMethod(_ method: AuthenticationMethodType) -> Bool {
+        return false
+    }
+    
+    public func setAuthenticationMethod(_ method: AuthenticationMethodType) {
+
+    }
+    
+    public func resetAuthenticationMethodsToDefault() {
+
+    }
+    
     public func waitForAuthResponse() async -> AuthManagerState {
         return .unauthenticated
     }
     public init() {
-        
+        fatalError()
     }
     
     public var availableBiometric: AuthenticationMethod? = .faceID
@@ -42,5 +64,24 @@ public class DemoAuthManager: AuthManager {
     }
     public var useBiometricsForAuth: Bool = true
     
+    public func getAuthenticationMethods() -> [AuthenticationMethodType] {
+        return [.faceID, .pinCode, .password]
+    }
     
+    public func addAuthenticationMethod(_ method: AuthenticationMethodType) -> Bool {
+        return true
+    }
+    
+    public func removeAuthenticationMethod(_ method: AuthenticationMethodType) {
+
+    }
+
+    public func getAuthenticationMethodType() -> AuthenticationMethodType {
+        return .faceID
+    }
+
+    public func getAuthenticationMethod() -> AuthenticationMethod {
+        return .faceID
+    }
+
 }

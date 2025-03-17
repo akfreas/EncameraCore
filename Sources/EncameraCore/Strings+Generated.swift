@@ -834,6 +834,24 @@ public enum L10n {
     /// Are you enjoying the app?
     public static let enjoyingTheApp = L10n.tr("Localizable", "AskForReview.EnjoyingTheApp", fallback: "Are you enjoying the app?")
   }
+  public enum AuthenticationMethod {
+    public enum SecurityLevel {
+      /// Authentication Method Security Levels
+      public static let faceID = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.FaceID", fallback: "Low protection")
+      /// Strong protection
+      public static let password = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.Password", fallback: "Strong protection")
+      /// Moderate protection
+      public static let pinCode = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.PinCode", fallback: "Moderate protection")
+    }
+    public enum TextDescription {
+      /// Authentication Method Text Descriptions
+      public static let faceID = L10n.tr("Localizable", "AuthenticationMethod.TextDescription.FaceID", fallback: "Face ID")
+      /// Password
+      public static let password = L10n.tr("Localizable", "AuthenticationMethod.TextDescription.Password", fallback: "Password")
+      /// Pin Code
+      public static let pinCode = L10n.tr("Localizable", "AuthenticationMethod.TextDescription.PinCode", fallback: "Pin Code")
+    }
+  }
   public enum EnterTheNameOfTheKeyToDeleteItForever {
     /// Enter the name of the key to delete it forever. All media will remain saved.
     public static let allMediaWillRemainSaved = L10n.tr("Localizable", "Enter the name of the key to delete it forever. All media will remain saved.", fallback: "Enter the name of the key to delete it forever. All media will remain saved.")
