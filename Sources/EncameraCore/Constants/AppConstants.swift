@@ -23,7 +23,7 @@ public enum AppConstants {
     public static let lowOpacity = 0.4
     public static let previewDirectory = "preview_thumbnails"
     public static let appStoreURL = "https://apps.apple.com/us/app/encamera-encrypted-photo-vault/id1639202616"
-    public static let defaultPinCodeLength = 4
+    public static let defaultPinCodeLength: PasscodeType.PasscodeLength = .four
     public static let lockoutTime: TimeInterval = 300
     public static let maxCharacterAlbumName = 20
     public static let widgetVimeoLink = URL(string: "https://vimeo.com/896507875")!

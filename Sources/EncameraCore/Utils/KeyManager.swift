@@ -95,6 +95,7 @@ public protocol KeyManager {
     var currentKey: PrivateKey? { get }
     var keyPublisher: AnyPublisher<PrivateKey?, Never> { get }
     var areKeysStoredIniCloud: Bool { get }
+    var passcodeType: PasscodeType { get }
     func clearKeychainData()
     func keyWith(name: String) -> PrivateKey?
     func storedKeys() throws -> [PrivateKey]
@@ -106,10 +107,11 @@ public protocol KeyManager {
     @discardableResult func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey
     func retrieveKeyPassphrase() throws -> KeyPassphrase
     func checkPassword(_ password: String) throws -> Bool
-    func setPassword(_ password: String) throws
-    func setOrUpdatePassword(_ password: String) throws
+    func setPassword(_ password: String, type: PasscodeType) throws
+    func setOrUpdatePassword(_ password: String, type: PasscodeType) throws
     func passwordExists() -> Bool
-    func changePassword(newPassword: String, existingPassword: String) throws
+    func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws
     func backupKeychainToiCloud(backupEnabled: Bool) throws
     func clearPassword() throws
+
 }

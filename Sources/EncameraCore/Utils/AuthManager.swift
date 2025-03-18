@@ -83,25 +83,11 @@ public protocol AuthManager {
     var useBiometricsForAuth: Bool { get set }
     var canAuthenticateWithBiometrics: Bool { get }
     var deviceBiometryType: AuthenticationMethod? { get }
-    
-    // Authentication methods
     func deauthorize()
     func authorize(with password: String, using keyManager: KeyManager) throws
     func authorizeWithBiometrics() async throws
     @discardableResult func evaluateWithBiometrics() async throws -> Bool
     func waitForAuthResponse() async -> AuthManagerState
-    
-    // Authentication method management
-    var authenticationMethodsPublisher: AnyPublisher<[PasscodeType], Never> { get }
-    func getAuthenticationMethods() -> [PasscodeType]
-    func getUserInputAuthenticationMethod() -> PasscodeType
-    func hasBiometricAuthenticationMethod() -> Bool
-    func hasAuthenticationMethod(_ method: PasscodeType) -> Bool
-    @discardableResult func addAuthenticationMethod(_ method: PasscodeType) -> Bool
-    func removeAuthenticationMethod(_ method: PasscodeType)
-    func removeAllAuthenticationMethods()
-    func setAuthenticationMethod(_ method: PasscodeType)
-    func resetAuthenticationMethodsToDefault()
 }
 
 public class DeviceAuthManager: AuthManager {
@@ -135,34 +121,16 @@ public class DeviceAuthManager: AuthManager {
             if let _useBiometricsForAuth = self._useBiometricsForAuth {
                 return _useBiometricsForAuth
             }
-            
-            // Check if FaceID is enabled as an authentication method
-            let faceIDEnabled = hasBiometricAuthenticationMethod()
-            
-            // If FaceID is enabled as an authentication method, check the settings
-            if faceIDEnabled {
-                guard let settings = try? settingsManager.loadSettings(),
-                      let useBiometrics = settings.useBiometricsForAuth, availableBiometric != .none else {
-                    return false
-                }
-                self._useBiometricsForAuth = useBiometrics
-                return useBiometrics
+            guard let settings = try? settingsManager.loadSettings(),
+                  let useBiometrics = settings.useBiometricsForAuth, availableBiometric != .none  else {
+                return false
             }
-            
-            // If FaceID is not enabled as an authentication method, return false
-            return false
+            self._useBiometricsForAuth = useBiometrics
+            return useBiometrics
         }
         set(value) {
             self._useBiometricsForAuth = value
             try? settingsManager.saveSettings(SavedSettings(useBiometricsForAuth: value))
-            
-            // If biometrics are enabled, make sure FaceID is added as an authentication method
-            if value && availableBiometric != .none {
-                _ = addAuthenticationMethod(.faceID)
-            } else if !value {
-                // If biometrics are disabled, make sure FaceID is removed as an authentication method
-                removeAuthenticationMethod(.faceID)
-            }
         }
     }
     
@@ -188,16 +156,8 @@ public class DeviceAuthManager: AuthManager {
     }
     
     public var canAuthenticateWithBiometrics: Bool {
-        // Check if biometrics are available on the device AND if FaceID is enabled as an authentication method
-        let biometricsAvailable = availableBiometric == .faceID || availableBiometric == .touchID
-        let faceIDEnabled = hasBiometricAuthenticationMethod()
         
-        // If keyManager is not set yet, just check if biometrics are available and enabled
-        guard let keyManager = self.keyManager else {
-            return biometricsAvailable && faceIDEnabled
-        }
-        
-        return biometricsAvailable && (faceIDEnabled || !keyManager.passwordExists())
+        return availableBiometric == .faceID || availableBiometric == .touchID
     }
     
     private var isAuthenticatedSubject: PassthroughSubject<Bool, Never> = .init()
@@ -206,17 +166,6 @@ public class DeviceAuthManager: AuthManager {
     private var appStateCancellables = Set<AnyCancellable>()
     private var generalCancellables = Set<AnyCancellable>()
     private var settingsManager: SettingsManager
-    private var _keyManager: KeyManager?
-    
-    // Property to access keyManager, with a fallback for when it's not set yet
-    private var keyManager: KeyManager? {
-        return _keyManager
-    }
-    
-    // Method to set the keyManager after initialization
-    public func setKeyManager(_ keyManager: KeyManager) {
-        self._keyManager = keyManager
-    }
     
     public init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
@@ -323,30 +272,6 @@ public class DeviceAuthManager: AuthManager {
         } else {
             self.authState = .unauthenticated
         }
-    }
-
-
-    public static func getAuthenticationMethods() -> [PasscodeType] {
-        guard let data = UserDefaultUtils.data(forKey: .authenticationMethods),
-              let methods = try? JSONDecoder().decode([PasscodeType].self, from: data) else {
-            return [.pinCode(length: AppConstants.defaultPinCodeLength)]
-        }
-        return methods
-    }
-
-    public func getAuthenticationMethods() -> [PasscodeType] {
-        return Self.getAuthenticationMethods()
-    }
-
-    public func setAuthenticationMethod(_ method: PasscodeType) {
-        let methods = method
-        if let data = try? JSONEncoder().encode(methods) {
-            UserDefaultUtils.set(data, forKey: .authenticationMethods)
-        }
-    }
-    
-    public func resetAuthenticationMethodsToDefault() {
-        setAuthenticationMethod(.pinCode(length: AppConstants.defaultPinCodeLength))
     }
 }
 

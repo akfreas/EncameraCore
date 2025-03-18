@@ -32,6 +32,28 @@ public struct KeyPassphrase: Codable {
 public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     
+    public var passcodeType: PasscodeType {
+        if passwordExists() == false {
+            return .none
+        }
+
+        // Handle case where we haven't setup the passcode type
+        guard let passcodeTypeData = UserDefaultUtils.data(forKey: .passcodeType), passwordExists() else {
+            UserDefaultUtils.set(PasscodeType.pinCode(length: AppConstants.defaultPinCodeLength), forKey: .passcodeType)
+            return .pinCode(length: AppConstants.defaultPinCodeLength)
+        }
+
+        // Use the JSONDecoder to decode the data using our Codable implementation
+        do {
+            let decoder = JSONDecoder()
+            return try decoder.decode(PasscodeType.self, from: passcodeTypeData)
+        } catch {
+            // Fallback to default if decoding fails
+            print("Error decoding passcode type: \(error)")
+            return .pinCode(length: AppConstants.defaultPinCodeLength)
+        }
+    }
+
 
     public var isAuthenticated: AnyPublisher<Bool, Never>
     private var cancellables = Set<AnyCancellable>()
@@ -398,12 +420,12 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         let status = SecItemDelete(query as CFDictionary)
     }
     
-    public func setPassword(_ password: String) throws {
+    public func setPassword(_ password: String, type: PasscodeType) throws {
         let hashed = try hashFrom(password: password)
         try setPasswordHash(hash: hashed)
     }
 
-    public func setOrUpdatePassword(_ password: String) throws {
+    public func setOrUpdatePassword(_ password: String, type: PasscodeType) throws {
         let hashed = try hashFrom(password: password)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -416,13 +438,13 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
         let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
         if status == errSecItemNotFound {
-            try setPassword(password)
+            try setPassword(password, type: type)
         } else {
             try checkStatus(status: status)
         }
     }
 
-    public func changePassword(newPassword: String, existingPassword: String) throws {
+    public func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws {
         guard try checkPassword(existingPassword) == true else {
             throw KeyManagerError.invalidPassword
         }
@@ -437,7 +459,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         } catch {
             printDebug("Clearing password failed", error)
         }
-        try setPassword(newPassword)
+        try setPassword(newPassword, type: type)
     }
 
     public func getPasswordHash() throws -> Data  {

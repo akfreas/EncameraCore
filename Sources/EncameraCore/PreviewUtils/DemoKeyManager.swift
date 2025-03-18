@@ -2,6 +2,22 @@ import Foundation
 import Combine
 
 public class DemoKeyManager: KeyManager {
+    public func setPassword(_ password: String, type: PasscodeType) throws {
+
+    }
+    
+    public func setOrUpdatePassword(_ password: String, type: PasscodeType) throws {
+
+    }
+    
+    public func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws {
+        
+    }
+    
+    public var passcodeType: PasscodeType {
+        return .pinCode(length: AppConstants.defaultPinCodeLength)
+    }
+
     public var areKeysStoredIniCloud: Bool = false
     public func clearPassword() throws {
         

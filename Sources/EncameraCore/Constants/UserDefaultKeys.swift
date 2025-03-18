@@ -36,6 +36,7 @@ public enum UserDefaultKey {
     case showPushNotificationPrompt
     case isAlbumHidden(name: String)
     case albumCoverImage(albumName: String)
+    case passcodeType
 
     var rawValue: String {
         switch self {

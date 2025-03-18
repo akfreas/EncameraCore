@@ -9,23 +9,6 @@ import Foundation
 import Combine
 
 public class DemoAuthManager: AuthManager {
-    public var authenticationMethodsPublisher: AnyPublisher<[AuthenticationMethodType], Never>
-
-    public func getUserInputAuthenticationMethod() -> AuthenticationMethodType {
-        return .faceID
-    }
-    
-    public func hasBiometricAuthenticationMethod() -> Bool {
-        false
-    }
-    
-    public func hasAuthenticationMethod(_ method: AuthenticationMethodType) -> Bool {
-        return false
-    }
-    
-    public func setAuthenticationMethod(_ method: AuthenticationMethodType) {
-
-    }
     
     public func resetAuthenticationMethodsToDefault() {
 
@@ -64,28 +47,6 @@ public class DemoAuthManager: AuthManager {
     }
     public var useBiometricsForAuth: Bool = true
     
-    public func getAuthenticationMethods() -> [AuthenticationMethodType] {
-        return [.faceID, .pinCode, .password]
-    }
-    
-    public func addAuthenticationMethod(_ method: AuthenticationMethodType) -> Bool {
-        return true
-    }
-    
-    public func removeAuthenticationMethod(_ method: AuthenticationMethodType) {
 
-    }
-
-    public func removeAllAuthenticationMethods() {
-        // No-op for demo implementation
-    }
-
-    public func getAuthenticationMethodType() -> AuthenticationMethodType {
-        return .faceID
-    }
-
-    public func getAuthenticationMethod() -> AuthenticationMethod {
-        return .faceID
-    }
 
 }
