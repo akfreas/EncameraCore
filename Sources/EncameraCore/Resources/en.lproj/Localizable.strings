@@ -600,10 +600,15 @@
 "Change Authentication Method" = "Change Authentication Method";
 "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?" = "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?";
 "Continue" = "Continue";
-"This will remove all authentication methods. Your data will remain, but you'll need to set up a new PIN or password next time you open the app. Continue?" = "This will remove all authentication methods. Your data will remain, but you'll need to set up a new PIN or password next time you open the app. Continue?";
+"RemovePasscode" = "This will remove your passcode. You will only be able to use Face ID to get into the app. Continue?";
 "Clear" = "Clear";
 "Choose your login method" = "Choose your login method";
 "None" = "None";
+
+/* Cannot Clear Alert */
+"CannotClearTitle" = "Cannot Clear";
+"CannotClearMessage" = "You cannot clear your passcode. You must have Face ID enabled in order to do this";
+"OK" = "OK";
 
 /* PIN Code Setting */
 "Set 6-Digit PIN" = "Set 6-Digit PIN";

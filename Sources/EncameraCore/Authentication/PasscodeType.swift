@@ -2,7 +2,7 @@ import Foundation
 
 
 
-public enum PasscodeType: CaseIterable, Codable, Equatable {
+public enum PasscodeType: CaseIterable, Codable, Equatable, Identifiable {
     public enum PasscodeLength: Int, Codable {
         case four = 4
         case six = 6
@@ -12,6 +12,17 @@ public enum PasscodeType: CaseIterable, Codable, Equatable {
     case pinCode(length: PasscodeLength)
     case password
     case none
+    
+    public var id: String {
+        switch self {
+        case .pinCode(let length):
+            return "pinCode-\(length.rawValue)"
+        case .password:
+            return "password"
+        case .none:
+            return "none"
+        }
+    }
 
     public var textDescription: String {
         switch self {

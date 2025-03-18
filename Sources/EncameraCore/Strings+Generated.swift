@@ -113,6 +113,10 @@ public enum L10n {
   public static let cancel = L10n.tr("Localizable", "Cancel", fallback: "Cancel")
   /// ShareViewController.swift
   public static let cannotHandleMedia = L10n.tr("Localizable", "Cannot handle media", fallback: "Cannot handle media")
+  /// You cannot clear your passcode. You must have Face ID enabled in order to do this
+  public static let cannotClearMessage = L10n.tr("Localizable", "CannotClearMessage", fallback: "You cannot clear your passcode. You must have Face ID enabled in order to do this")
+  /// Cannot Clear Alert
+  public static let cannotClearTitle = L10n.tr("Localizable", "CannotClearTitle", fallback: "Cannot Clear")
   /// Change Authentication Method
   public static let changeAuthenticationMethod = L10n.tr("Localizable", "Change Authentication Method", fallback: "Change Authentication Method")
   /// I Want to Choose Another Destination Album
@@ -576,6 +580,8 @@ public enum L10n {
   public static let quicklyTakePictures = L10n.tr("Localizable", "QuicklyTakePictures", fallback: "Quickly take pictures and video.")
   /// Recovery Phrase Copied!
   public static let recoveryPhraseCopied = L10n.tr("Localizable", "RecoveryPhraseCopied", fallback: "Recovery Phrase Copied!")
+  /// This will remove your passcode. You will only be able to use Face ID to get into the app. Continue?
+  public static let removePasscode = L10n.tr("Localizable", "RemovePasscode", fallback: "This will remove your passcode. You will only be able to use Face ID to get into the app. Continue?")
   /// Rename
   public static let rename = L10n.tr("Localizable", "Rename", fallback: "Rename")
   /// Repeat Password
@@ -1169,12 +1175,6 @@ public enum L10n {
     public static let purchasesRestoredMessage = L10n.tr("Localizable", "Settings.PurchasesRestoredMessage", fallback: "Any valid purchases you made have been restored.")
     /// Version
     public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
-  }
-  public enum ThisWillRemoveAllAuthenticationMethods {
-    public enum YourDataWillRemainButYouLlNeedToSetUpANewPINOrPasswordNextTimeYouOpenTheApp {
-      /// This will remove all authentication methods. Your data will remain, but you'll need to set up a new PIN or password next time you open the app. Continue?
-      public static let `continue` = L10n.tr("Localizable", "This will remove all authentication methods. Your data will remain, but you'll need to set up a new PIN or password next time you open the app. Continue?", fallback: "This will remove all authentication methods. Your data will remain, but you'll need to set up a new PIN or password next time you open the app. Continue?")
-    }
   }
 }
 // swiftlint:enable explicit_type_interface function_parameter_count identifier_name line_length
