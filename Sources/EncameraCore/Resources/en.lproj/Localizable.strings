@@ -220,7 +220,6 @@
 "WelcomeBack" = "Welcome back!";
 "EnterYourPassword" = "Enter your password";
 "Or" = "Or";
-"Password" = "Password";
 "Invalid Password" = "Invalid Password";
 /* ./Encamera/AuthenticationView/AuthenticationView.swift */
 "Missing password" = "Missing password";
@@ -296,7 +295,6 @@
 "StorageExplanation" = "Encamera does not store media to your camera roll. All encrypted media are stored either on this app or on iCloud, depending on your storage choice.";
 "BackUpKeysHeader" = "Back up those keys!";
 "BackUpKeysExplanation" = "If you lose your key, it is impossible to recover your data. Back up your keys to a password manager after you create them, or save them to iCloud.";
-"Password" = "Password";
 "Repeat Password" = "Repeat Password";
 "Use %@?" = "Use %@?";
 "Enable %@ to quickly and securely gain access to the app." = "Enable %@ to quickly and securely gain access to the app.";
@@ -579,7 +577,6 @@
 /* Authentication Method Security Levels */
 "AuthenticationMethod.SecurityLevel.FaceID" = "Low protection";
 "AuthenticationMethod.SecurityLevel.PinCode" = "Moderate protection";
-"AuthenticationMethod.SecurityLevel.Password" = "Strong protection";
 
 /* Authentication Method Text Descriptions */
 "AuthenticationMethod.TextDescription.FaceID" = "Face ID";
@@ -589,3 +586,29 @@
 "AuthenticationMethod.ConfirmDisableFaceID" = "Do you really want to disable %@?";
 "AuthenticationMethod.ConfirmDisablePinCode" = "Do you really want to disable %@? This will clear the PIN code you have stored.";
 "AuthenticationMethod.ConfirmDisablePassword" = "Do you really want to disable %@? This will clear the password you have stored.";
+/* Authentication Method Types */
+"AuthenticationMethod.TextDescription.pinCode4Digit" = "4-digit PIN";
+"AuthenticationMethod.TextDescription.pinCode6Digit" = "6-digit PIN";
+
+"AuthenticationMethod.SecurityLevel.pinCode4Digit" = "Quick but less secure";
+"AuthenticationMethod.SecurityLevel.pinCode6Digit" = "More secure PIN code";
+"AuthenticationMethod.SecurityLevel.password" = "Most secure option";
+
+/* Authentication Method View */
+"Clear Password" = "Clear Password";
+"Clear saved password/PIN" = "Clear saved password/PIN";
+"Change Authentication Method" = "Change Authentication Method";
+"Changing your authentication method will require setting up a new PIN or password. Would you like to continue?" = "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?";
+"Continue" = "Continue";
+"This will remove all authentication methods. Your data will remain, but you'll need to set up a new PIN or password next time you open the app. Continue?" = "This will remove all authentication methods. Your data will remain, but you'll need to set up a new PIN or password next time you open the app. Continue?";
+"Clear" = "Clear";
+"Choose your login method" = "Choose your login method";
+"None" = "None";
+
+/* PIN Code Setting */
+"Set 6-Digit PIN" = "Set 6-Digit PIN";
+"Confirm 6-Digit PIN" = "Confirm 6-Digit PIN";
+
+/* Face ID */
+"Use Face ID" = "Use Face ID";
+"Fast and convenient" = "Fast and convenient";

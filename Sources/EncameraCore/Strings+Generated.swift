@@ -113,6 +113,8 @@ public enum L10n {
   public static let cancel = L10n.tr("Localizable", "Cancel", fallback: "Cancel")
   /// ShareViewController.swift
   public static let cannotHandleMedia = L10n.tr("Localizable", "Cannot handle media", fallback: "Cannot handle media")
+  /// Change Authentication Method
+  public static let changeAuthenticationMethod = L10n.tr("Localizable", "Change Authentication Method", fallback: "Change Authentication Method")
   /// I Want to Choose Another Destination Album
   public static let changeKeyAlbum = L10n.tr("Localizable", "Change Key Album", fallback: "I Want to Choose Another Destination Album")
   /// Change Password
@@ -121,12 +123,22 @@ public enum L10n {
   public static let changePinCode = L10n.tr("Localizable", "ChangePinCode", fallback: "Change PIN Code")
   /// Check that the same key that was used to encrypt this media is set as the active key.
   public static let checkThatTheSameKeyThatWasUsedToEncryptThisMediaIsSetAsTheActiveKey = L10n.tr("Localizable", "Check that the same key that was used to encrypt this media is set as the active key.", fallback: "Check that the same key that was used to encrypt this media is set as the active key.")
+  /// Choose your login method
+  public static let chooseYourLoginMethod = L10n.tr("Localizable", "Choose your login method", fallback: "Choose your login method")
   /// Choose your storage
   public static let chooseYourStorage = L10n.tr("Localizable", "ChooseYourStorage", fallback: "Choose your storage")
   /// Choose where to securely save your images from now on.
   public static let chooseYourStorageDescription = L10n.tr("Localizable", "ChooseYourStorageDescription", fallback: "Choose where to securely save your images from now on.")
+  /// Clear
+  public static let clear = L10n.tr("Localizable", "Clear", fallback: "Clear")
+  /// Authentication Method View
+  public static let clearPassword = L10n.tr("Localizable", "Clear Password", fallback: "Clear Password")
+  /// Clear saved password/PIN
+  public static let clearSavedPasswordPIN = L10n.tr("Localizable", "Clear saved password/PIN", fallback: "Clear saved password/PIN")
   /// Close
   public static let close = L10n.tr("Localizable", "Close", fallback: "Close")
+  /// Confirm 6-Digit PIN
+  public static let confirm6DigitPIN = L10n.tr("Localizable", "Confirm 6-Digit PIN", fallback: "Confirm 6-Digit PIN")
   /// Confirm adding key
   public static let confirmAddingKey = L10n.tr("Localizable", "Confirm adding key", fallback: "Confirm adding key")
   /// Confirm Pin Code
@@ -135,6 +147,8 @@ public enum L10n {
   public static let confirmStorage = L10n.tr("Localizable", "ConfirmStorage", fallback: "Confirm Storage")
   /// ./Encamera/Tutorial/ChooseStorageModal.swift
   public static let congratulations = L10n.tr("Localizable", "Congratulations!", fallback: "Congratulations!")
+  /// Continue
+  public static let `continue` = L10n.tr("Localizable", "Continue", fallback: "Continue")
   /// Picture taken overlay
   public static let coolPicture = L10n.tr("Localizable", "CoolPicture", fallback: "That's a cool picture!")
   /// Copied to Clipboard
@@ -281,6 +295,8 @@ public enum L10n {
   public static let faceID = L10n.tr("Localizable", "Face ID", fallback: "Face ID")
   /// ./Encamera/Styles/ViewModifiers/PurchaseOptionViewModifier.swift
   public static let familyShareable = L10n.tr("Localizable", "Family Shareable", fallback: "Family Shareable")
+  /// Fast and convenient
+  public static let fastAndConvenient = L10n.tr("Localizable", "Fast and convenient", fallback: "Fast and convenient")
   /// ./Encamera/Settings/SettingsView.swift
   public static let feedbackRequest = L10n.tr("Localizable", "FeedbackRequest", fallback: "Because Encamera does not track user behavior in any way, and collects no information about you, the user, we rely on your feedback to help us improve the app.")
   /// Let's secure some media
@@ -441,6 +457,8 @@ public enum L10n {
   public static let noAlbumSelected = L10n.tr("Localizable", "NoAlbumSelected", fallback: "No Album Selected. You must select an album to save photos to.")
   /// No commitment, cancel anytime
   public static let noCommitmentCancelAnytime = L10n.tr("Localizable", "NoCommitmentCancelAnytime", fallback: "No commitment, cancel anytime")
+  /// None
+  public static let `none` = L10n.tr("Localizable", "None", fallback: "None")
   /// Not authenticated for this operation.
   public static let notAuthenticatedForThisOperation = L10n.tr("Localizable", "Not authenticated for this operation.", fallback: "Not authenticated for this operation.")
   /// ./EncameraCore/Utils/PasswordValidator.swift
@@ -608,6 +626,8 @@ public enum L10n {
   public static let selectAnOption = L10n.tr("Localizable", "SelectAnOption", fallback: "Select an Option")
   /// Select a Product
   public static let selectProduct = L10n.tr("Localizable", "SelectProduct", fallback: "Select a Product")
+  /// PIN Code Setting
+  public static let set6DigitPIN = L10n.tr("Localizable", "Set 6-Digit PIN", fallback: "Set 6-Digit PIN")
   /// Set as Active Key
   public static let setAsActiveKey = L10n.tr("Localizable", "Set as Active Key", fallback: "Set as Active Key")
   /// Set Password
@@ -734,6 +754,8 @@ public enum L10n {
   public static func use(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Use %@?", String(describing: p1), fallback: "Use %@?")
   }
+  /// Face ID
+  public static let useFaceID = L10n.tr("Localizable", "Use Face ID", fallback: "Use Face ID")
   /// Use Password
   public static let usePassword = L10n.tr("Localizable", "Use Password", fallback: "Use Password")
   /// Use PIN instead
@@ -876,10 +898,14 @@ public enum L10n {
     public enum SecurityLevel {
       /// Authentication Method Security Levels
       public static let faceID = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.FaceID", fallback: "Low protection")
-      /// Strong protection
-      public static let password = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.Password", fallback: "Strong protection")
+      /// Most secure option
+      public static let password = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.password", fallback: "Most secure option")
       /// Moderate protection
       public static let pinCode = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.PinCode", fallback: "Moderate protection")
+      /// Quick but less secure
+      public static let pinCode4Digit = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.pinCode4Digit", fallback: "Quick but less secure")
+      /// More secure PIN code
+      public static let pinCode6Digit = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.pinCode6Digit", fallback: "More secure PIN code")
     }
     public enum TextDescription {
       /// Authentication Method Text Descriptions
@@ -888,7 +914,15 @@ public enum L10n {
       public static let password = L10n.tr("Localizable", "AuthenticationMethod.TextDescription.Password", fallback: "Password")
       /// Pin Code
       public static let pinCode = L10n.tr("Localizable", "AuthenticationMethod.TextDescription.PinCode", fallback: "Pin Code")
+      /// Authentication Method Types
+      public static let pinCode4Digit = L10n.tr("Localizable", "AuthenticationMethod.TextDescription.pinCode4Digit", fallback: "4-digit PIN")
+      /// 6-digit PIN
+      public static let pinCode6Digit = L10n.tr("Localizable", "AuthenticationMethod.TextDescription.pinCode6Digit", fallback: "6-digit PIN")
     }
+  }
+  public enum ChangingYourAuthenticationMethodWillRequireSettingUpANewPINOrPassword {
+    /// Changing your authentication method will require setting up a new PIN or password. Would you like to continue?
+    public static let wouldYouLikeToContinue = L10n.tr("Localizable", "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?", fallback: "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?")
   }
   public enum EnterTheNameOfTheKeyToDeleteItForever {
     /// Enter the name of the key to delete it forever. All media will remain saved.
@@ -1135,6 +1169,12 @@ public enum L10n {
     public static let purchasesRestoredMessage = L10n.tr("Localizable", "Settings.PurchasesRestoredMessage", fallback: "Any valid purchases you made have been restored.")
     /// Version
     public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
+  }
+  public enum ThisWillRemoveAllAuthenticationMethods {
+    public enum YourDataWillRemainButYouLlNeedToSetUpANewPINOrPasswordNextTimeYouOpenTheApp {
+      /// This will remove all authentication methods. Your data will remain, but you'll need to set up a new PIN or password next time you open the app. Continue?
+      public static let `continue` = L10n.tr("Localizable", "This will remove all authentication methods. Your data will remain, but you'll need to set up a new PIN or password next time you open the app. Continue?", fallback: "This will remove all authentication methods. Your data will remain, but you'll need to set up a new PIN or password next time you open the app. Continue?")
+    }
   }
 }
 // swiftlint:enable explicit_type_interface function_parameter_count identifier_name line_length

@@ -36,9 +36,6 @@ public enum UserDefaultKey {
     case showPushNotificationPrompt
     case isAlbumHidden(name: String)
     case albumCoverImage(albumName: String)
-    case authenticationMethodType
-    case authenticationMethods
-
 
     var rawValue: String {
         switch self {

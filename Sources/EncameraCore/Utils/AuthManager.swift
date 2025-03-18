@@ -92,14 +92,15 @@ public protocol AuthManager {
     func waitForAuthResponse() async -> AuthManagerState
     
     // Authentication method management
-    var authenticationMethodsPublisher: AnyPublisher<[AuthenticationMethodType], Never> { get }
-    func getAuthenticationMethods() -> [AuthenticationMethodType]
-    func getUserInputAuthenticationMethod() -> AuthenticationMethodType
+    var authenticationMethodsPublisher: AnyPublisher<[PasscodeType], Never> { get }
+    func getAuthenticationMethods() -> [PasscodeType]
+    func getUserInputAuthenticationMethod() -> PasscodeType
     func hasBiometricAuthenticationMethod() -> Bool
-    func hasAuthenticationMethod(_ method: AuthenticationMethodType) -> Bool
-    @discardableResult func addAuthenticationMethod(_ method: AuthenticationMethodType) -> Bool
-    func removeAuthenticationMethod(_ method: AuthenticationMethodType)
-    func setAuthenticationMethod(_ method: AuthenticationMethodType)
+    func hasAuthenticationMethod(_ method: PasscodeType) -> Bool
+    @discardableResult func addAuthenticationMethod(_ method: PasscodeType) -> Bool
+    func removeAuthenticationMethod(_ method: PasscodeType)
+    func removeAllAuthenticationMethods()
+    func setAuthenticationMethod(_ method: PasscodeType)
     func resetAuthenticationMethodsToDefault()
 }
 
@@ -323,123 +324,29 @@ public class DeviceAuthManager: AuthManager {
             self.authState = .unauthenticated
         }
     }
-    
-    // MARK: - Authentication Method Management
-    
-    public var authenticationMethodsPublisher: AnyPublisher<[AuthenticationMethodType], Never> {
-        UserDefaultUtils.publisher(for: .authenticationMethods)
-            .map { value -> [AuthenticationMethodType] in
-                guard let data = value as? Data,
-                      let methods = try? JSONDecoder().decode([AuthenticationMethodType].self, from: data) else {
-                    return [.pinCode]
-                }
-                return methods
-            }
-            .eraseToAnyPublisher()
-    }
-    
-    public static func getAuthenticationMethods() -> [AuthenticationMethodType] {
+
+
+    public static func getAuthenticationMethods() -> [PasscodeType] {
         guard let data = UserDefaultUtils.data(forKey: .authenticationMethods),
-              let methods = try? JSONDecoder().decode([AuthenticationMethodType].self, from: data) else {
-            return [.pinCode]
+              let methods = try? JSONDecoder().decode([PasscodeType].self, from: data) else {
+            return [.pinCode(length: AppConstants.defaultPinCodeLength)]
         }
         return methods
     }
 
-    public func getAuthenticationMethods() -> [AuthenticationMethodType] {
+    public func getAuthenticationMethods() -> [PasscodeType] {
         return Self.getAuthenticationMethods()
     }
 
-    public func getUserInputAuthenticationMethod() -> AuthenticationMethodType {
-        return Self.getUserInputAuthenticationMethod()
-    }
-
-    public static func getUserInputAuthenticationMethod() -> AuthenticationMethodType {
-        let methods = getAuthenticationMethods()
-
-        // First check for password
-        if methods.contains(.password) {
-            return .password
-        }
-
-        // Then check for PIN code
-        if methods.contains(.pinCode) {
-            return .pinCode
-        }
-
-        // Default to PIN code if neither is found
-        return .pinCode
-    }
-    
-    public func hasBiometricAuthenticationMethod() -> Bool {
-        return getAuthenticationMethods().contains(.faceID)
-    }
-    
-    public func hasAuthenticationMethod(_ method: AuthenticationMethodType) -> Bool {
-        return getAuthenticationMethods().contains(method)
-    }
-    
-    @discardableResult
-    public func addAuthenticationMethod(_ method: AuthenticationMethodType) -> Bool {
-        var methods = getAuthenticationMethods()
-
-        methods.removeAll(where: {$0.isIncompatibleWith(method)})
-
-        // Use a Set to avoid duplicates
-        var methodsSet = Set(methods)
-        methodsSet.insert(method)
-        methods = Array(methodsSet)
-
-        // Save the updated methods
+    public func setAuthenticationMethod(_ method: PasscodeType) {
+        let methods = method
         if let data = try? JSONEncoder().encode(methods) {
             UserDefaultUtils.set(data, forKey: .authenticationMethods)
-            
-            // Update biometrics settings if FaceID is added, but avoid circular dependency
-            if method == .faceID {
-                self._useBiometricsForAuth = true
-                try? settingsManager.saveSettings(SavedSettings(useBiometricsForAuth: true))
-            }
-        }
-
-        return true
-    }
-    
-    public func removeAuthenticationMethod(_ method: AuthenticationMethodType) {
-        var methods = getAuthenticationMethods()
-        methods.removeAll { $0 == method }
-
-        // If all methods were removed, add the default
-        if methods.isEmpty {
-            methods = [.pinCode]
-        }
-
-        // Save the updated methods
-        if let data = try? JSONEncoder().encode(methods) {
-            UserDefaultUtils.set(data, forKey: .authenticationMethods)
-            
-            // Update biometrics settings if FaceID is removed, but avoid circular dependency
-            if method == .faceID {
-                self._useBiometricsForAuth = false
-                try? settingsManager.saveSettings(SavedSettings(useBiometricsForAuth: false))
-            }
-        }
-    }
-    
-    public func setAuthenticationMethod(_ method: AuthenticationMethodType) {
-        let methods = [method]
-        if let data = try? JSONEncoder().encode(methods) {
-            UserDefaultUtils.set(data, forKey: .authenticationMethods)
-            
-            // Update biometrics settings based on whether FaceID is included, but avoid circular dependency
-            self._useBiometricsForAuth = method == .faceID
-            try? settingsManager.saveSettings(SavedSettings(useBiometricsForAuth: method == .faceID))
         }
     }
     
     public func resetAuthenticationMethodsToDefault() {
-        setAuthenticationMethod(.pinCode)
-        // Since we're setting to pinCode, make sure biometrics are disabled
-        // This is handled in setAuthenticationMethod
+        setAuthenticationMethod(.pinCode(length: AppConstants.defaultPinCodeLength))
     }
 }
 

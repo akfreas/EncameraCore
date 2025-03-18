@@ -76,6 +76,10 @@ public class DemoAuthManager: AuthManager {
 
     }
 
+    public func removeAllAuthenticationMethods() {
+        // No-op for demo implementation
+    }
+
     public func getAuthenticationMethodType() -> AuthenticationMethodType {
         return .faceID
     }
