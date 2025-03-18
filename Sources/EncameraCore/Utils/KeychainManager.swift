@@ -37,21 +37,15 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             return .none
         }
 
-        // Handle case where we haven't setup the passcode type
-        guard let passcodeTypeData = UserDefaultUtils.data(forKey: .passcodeType), passwordExists() else {
-            UserDefaultUtils.set(PasscodeType.pinCode(length: AppConstants.defaultPinCodeLength), forKey: .passcodeType)
-            return .pinCode(length: AppConstants.defaultPinCodeLength)
+        // Try to retrieve stored passcode type
+        if let storedPasscodeType = retrievePasscodeTypeFromUserDefaults(), passwordExists() {
+            return storedPasscodeType
         }
-
-        // Use the JSONDecoder to decode the data using our Codable implementation
-        do {
-            let decoder = JSONDecoder()
-            return try decoder.decode(PasscodeType.self, from: passcodeTypeData)
-        } catch {
-            // Fallback to default if decoding fails
-            print("Error decoding passcode type: \(error)")
-            return .pinCode(length: AppConstants.defaultPinCodeLength)
-        }
+        
+        // If no passcode type is stored, set the default value
+        let defaultPasscodeType = PasscodeType.pinCode(length: AppConstants.defaultPinCodeLength)
+        savePasscodeTypeToUserDefaults(defaultPasscodeType)
+        return defaultPasscodeType
     }
 
 
@@ -423,6 +417,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     public func setPassword(_ password: String, type: PasscodeType) throws {
         let hashed = try hashFrom(password: password)
         try setPasswordHash(hash: hashed)
+        savePasscodeTypeToUserDefaults(type)
     }
 
     public func setOrUpdatePassword(_ password: String, type: PasscodeType) throws {
@@ -441,6 +436,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             try setPassword(password, type: type)
         } else {
             try checkStatus(status: status)
+            savePasscodeTypeToUserDefaults(type)
         }
     }
 
@@ -633,6 +629,30 @@ private extension KeychainManager {
             query[kSecAttrSynchronizable as String] = kCFBooleanFalse
         }
         return query as CFDictionary
+    }
+
+    private func savePasscodeTypeToUserDefaults(_ passcodeType: PasscodeType) {
+        let encoder = JSONEncoder()
+        do {
+            let data = try encoder.encode(passcodeType)
+            UserDefaultUtils.set(data, forKey: .passcodeType)
+        } catch {
+            printDebug("Error encoding passcode type", error)
+        }
+    }
+    
+    private func retrievePasscodeTypeFromUserDefaults() -> PasscodeType? {
+        guard let data = UserDefaultUtils.data(forKey: .passcodeType) else {
+            return nil
+        }
+        
+        do {
+            let decoder = JSONDecoder()
+            return try decoder.decode(PasscodeType.self, from: data)
+        } catch {
+            printDebug("Error decoding passcode type", error)
+            return nil
+        }
     }
 }
 
