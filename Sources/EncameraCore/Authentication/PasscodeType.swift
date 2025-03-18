@@ -36,7 +36,7 @@ public enum PasscodeType: CaseIterable, Codable, Equatable, Identifiable {
         case .password:
             return L10n.AuthenticationMethod.TextDescription.password
         case .none:
-            return "none"
+            return L10n.none
         }
     }
     

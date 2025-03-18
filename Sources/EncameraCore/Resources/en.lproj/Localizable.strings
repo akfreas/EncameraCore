@@ -607,7 +607,7 @@
 
 /* Cannot Clear Alert */
 "CannotClearTitle" = "Cannot Clear";
-"CannotClearMessage" = "You cannot clear your passcode. You must have Face ID enabled in order to do this";
+"CannotClearMessage" = "You cannot clear your passcode. You must have Face ID enabled in order to do this.";
 "OK" = "OK";
 
 /* PIN Code Setting */

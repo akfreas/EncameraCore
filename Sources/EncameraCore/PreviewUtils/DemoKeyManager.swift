@@ -15,7 +15,6 @@ public class DemoKeyManager: KeyManager {
     }
     
     public var passcodeType: PasscodeType {
-        fatalError()
         return .pinCode(length: AppConstants.defaultPinCodeLength)
     }
 

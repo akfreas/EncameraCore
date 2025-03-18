@@ -18,7 +18,7 @@ public class DemoAuthManager: AuthManager {
         return .unauthenticated
     }
     public init() {
-        fatalError()
+        
     }
     
     public var availableBiometric: AuthenticationMethod? = .faceID
