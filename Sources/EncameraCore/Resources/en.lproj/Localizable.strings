@@ -27,7 +27,7 @@
 "FaceIDOnlyAlert.Message" = "Switching to Face ID only will clear your current PIN/password. You will only be able to unlock the app using Face ID.";
 "FaceIDOnlyAlert.Continue" = "Continue";
 "FaceIDOnlyAlert.Cancel" = "Cancel";
-"AuthenticationMethod" = "Authentication method";
+"AuthenticationMethod" = "Passcode Options";
 /* ./EncameraCore/Utils/PasswordValidator.swift */
 "Not determined." = "Not determined.";
 "Password is valid." = "Password is valid.";
@@ -407,7 +407,7 @@
 
 "Enable Face ID" = "Enable Face ID";
 "Use PIN instead" = "Use PIN instead";
-"Select Login Method" = "Select Login Method";
+"Select Login Method" = "Select Passcode Type";
 "LoginMethodDescription" = "Choose how you want to access your private albums.";
 "FinishedReadyToUseEncamera" = "You are ready to use\nEncamera!";
 "FinishedSubtitle" = "Let's create your first album";
@@ -564,12 +564,10 @@
 /* Authentication Method View */
 "AuthenticationMethod.MultipleMethodsInfo" = "You can select multiple authentication methods";
 "AuthenticationMethod.TapToDisableBanner" = "Tap to disable the selected method";
-"AuthenticationMethod.DisableTitle" = "Disable Authentication Method";
+"AuthenticationMethod.DisableTitle" = "Disable Passcode";
 "AuthenticationMethod.Cancel" = "Cancel";
 "AuthenticationMethod.Disable" = "Disable";
 "AuthenticationMethod.ConfirmDisable" = "Do you really want to disable %@?";
-"AuthenticationMethod.ConfirmDisableGeneric" = "Do you really want to disable this authentication method?";
-"AuthenticationMethod.IncompatibleTitle" = "Incompatible Authentication Methods";
 "AuthenticationMethod.OK" = "OK";
 "AuthenticationMethod.IncompatibleMessage" = "The selected authentication methods are incompatible.";
 "AuthenticationMethod.IncompatibleDetail" = "%@ cannot be used with the currently selected methods. PIN and Password cannot be used together.";

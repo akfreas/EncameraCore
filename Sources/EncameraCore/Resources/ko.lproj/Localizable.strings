@@ -219,7 +219,6 @@
 "Start trial offer" = "무료 체험 시작";
 "MovieDecryptionError" = "영화를 로드하거나 복호화할 수 없습니다. 다운로드할 수 없을 수도 있습니다. 이 미디어가 iCloud에 있는 경우, 현재 인터넷 연결로 파일을 다운로드할 수 있는지 확인하세요. 오류: %@";
 "OnboardingIntroSubheadingText" = "Encamera는 모든 것을 암호화하여 원치 않는 시선으로부터 미디어를 안전하게 보호합니다.";
-"Select Login Method" = "로그인 방법 선택";
 "Password is valid." = "비밀번호가 유효합니다.";
 "Notification.ImageSecurityReminder.Body" = "이미지만이 아니라 비디오도 앨범에 저장할 수 있습니다. 지금 시도해보고 몇 가지를 확보하세요!";
 "Use Password" = "비밀번호 사용";
