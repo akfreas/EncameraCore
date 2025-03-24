@@ -87,7 +87,6 @@
 "Change Password" = "Change Password";
 "Current Password" = "Current Password";
 "New Password" = "New Password";
-"Repeat Password" = "Repeat Password";
 "Save" = "Save";
 "Change Password" = "Change Password";
 "Roadmap" = "Roadmap & Feature Requests";
@@ -221,6 +220,12 @@
 "EnterYourPassword" = "Enter your password";
 "Or" = "Or";
 "Invalid Password" = "Invalid Password";
+"PasswordSetSuccessfully" = "Password Set Successfully";
+"PasswordSetSuccessMessage" = "Your new password has been saved";
+"FailedToSavePassword" = "Failed to save password";
+"EnterPassword" = "Enter Password";
+"RepeatPassword" = "Repeat Password";
+"PasswordMismatch" = "Passwords do not match";
 /* ./Encamera/AuthenticationView/AuthenticationView.swift */
 "Missing password" = "Missing password";
 "Password incorrect" = "Password incorrect";
@@ -282,7 +287,6 @@
 "EncameraIsOpenSource" = "Open Source";
 "OpenSourceExplanation" = "Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.";
 
-"Enter Password" = "Enter Password";
 "You have an existing password for this device." = "You have an existing password for this device.";
 
 "Erase Device Data" = "Erase Device Data";
@@ -295,7 +299,6 @@
 "StorageExplanation" = "Encamera does not store media to your camera roll. All encrypted media are stored either on this app or on iCloud, depending on your storage choice.";
 "BackUpKeysHeader" = "Back up those keys!";
 "BackUpKeysExplanation" = "If you lose your key, it is impossible to recover your data. Back up your keys to a password manager after you create them, or save them to iCloud.";
-"Repeat Password" = "Repeat Password";
 "Use %@?" = "Use %@?";
 "Enable %@ to quickly and securely gain access to the app." = "Enable %@ to quickly and securely gain access to the app.";
 
@@ -615,3 +618,6 @@
 /* Face ID */
 "Use Face ID" = "Use Face ID";
 "Fast and convenient" = "Fast and convenient";
+
+"setPasswordSubtitle" = "This password will be used to securely access your app. Make sure you remember it!";
+"repeatPasswordSubtitle" = "Repeat your password to confirm.";

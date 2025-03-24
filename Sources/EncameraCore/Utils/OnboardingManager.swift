@@ -35,6 +35,8 @@ public enum OnboardingFlowScreen: String, Identifiable {
     case intro
     case enterExistingPassword
     case setPassword
+    case enterPassword
+    case confirmPassword
     case biometrics
     case biometricsWithPin
     case setPinCode
