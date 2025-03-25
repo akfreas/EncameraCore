@@ -410,7 +410,7 @@
 
 "Enable Face ID" = "Enable Face ID";
 "Use Passcode instead" = "Use Passcode instead";
-"Select Login Method" = "Select Passcode Type";
+"Select Login Method" = "Please select a method";
 "LoginMethodDescription" = "Choose how you want to access your private albums.";
 "FinishedReadyToUseEncamera" = "You are ready to use\nEncamera!";
 "FinishedSubtitle" = "Let's create your first album";
@@ -621,3 +621,8 @@
 
 "setPasswordSubtitle" = "This password will be used to securely access the app. Make sure you remember it!";
 "repeatPasswordSubtitle" = "Repeat your password to confirm.";
+
+/* ./EncameraCore/Authentication/PasscodeType.swift */
+"ProtectionLevel.Low" = "Low protection";
+"ProtectionLevel.Moderate" = "Moderate protection";
+"ProtectionLevel.Strong" = "Strong protection";

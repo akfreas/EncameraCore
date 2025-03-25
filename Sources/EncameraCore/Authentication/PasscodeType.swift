@@ -24,6 +24,21 @@ public enum PasscodeType: CaseIterable, Codable, Equatable, Identifiable {
         }
     }
 
+    public var protectionLevel: (text: String, bars: Int) {
+        switch self {
+        case .none:
+            return (L10n.ProtectionLevel.low, 1)
+        case .pinCode(let length):
+            if length == .four {
+                return (L10n.ProtectionLevel.moderate, 2)
+            } else {
+                return (L10n.ProtectionLevel.strong, 3)
+            }
+        case .password:
+            return (L10n.ProtectionLevel.strong, 4)
+        }
+    }
+
     public var textDescription: String {
         switch self {
         case .pinCode(let length):

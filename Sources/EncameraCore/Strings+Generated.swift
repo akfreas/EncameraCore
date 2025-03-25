@@ -650,12 +650,12 @@ public enum L10n {
   public static let setPassword = L10n.tr("Localizable", "Set Password", fallback: "Set Password")
   /// Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later.
   public static let setAPasswordWarning = L10n.tr("Localizable", "SetAPasswordWarning", fallback: "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later.")
-  /// This password will be used to securely access your app. Make sure you remember it!
-  public static let setPasswordSubtitle = L10n.tr("Localizable", "setPasswordSubtitle", fallback: "This password will be used to securely access your app. Make sure you remember it!")
+  /// This password will be used to securely access the app. Make sure you remember it!
+  public static let setPasswordSubtitle = L10n.tr("Localizable", "setPasswordSubtitle", fallback: "This password will be used to securely access the app. Make sure you remember it!")
   /// Set Pin Code
   public static let setPinCode = L10n.tr("Localizable", "SetPinCode", fallback: "Set Pin Code")
-  /// This pin will be used to securely login in your app. Make sure you remember it!
-  public static let setPinCodeSubtitle = L10n.tr("Localizable", "SetPinCodeSubtitle", fallback: "This pin will be used to securely login in your app. Make sure you remember it!")
+  /// This pin will be used to securely access the app. Make sure you remember it!
+  public static let setPinCodeSubtitle = L10n.tr("Localizable", "SetPinCodeSubtitle", fallback: "This pin will be used to securely access the app. Make sure you remember it!")
   /// Settings
   public static let settings = L10n.tr("Localizable", "Settings", fallback: "Settings")
   /// Face ID is Disabled
@@ -1141,6 +1141,14 @@ public enum L10n {
     public static let fileLoadedSuccessfully = L10n.tr("Localizable", "ProgressView.FileLoadedSuccessfully", fallback: "File loaded successfully")
     /// Starting download...
     public static let startingDownload = L10n.tr("Localizable", "ProgressView.StartingDownload", fallback: "Starting download...")
+  }
+  public enum ProtectionLevel {
+    /// ./EncameraCore/Authentication/PasscodeType.swift
+    public static let low = L10n.tr("Localizable", "ProtectionLevel.Low", fallback: "Low protection")
+    /// Moderate protection
+    public static let moderate = L10n.tr("Localizable", "ProtectionLevel.Moderate", fallback: "Moderate protection")
+    /// Strong protection
+    public static let strong = L10n.tr("Localizable", "ProtectionLevel.Strong", fallback: "Strong protection")
   }
   public enum PurchaseView {
     /// Unlock all of these benefits:
