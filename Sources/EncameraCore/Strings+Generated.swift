@@ -123,8 +123,8 @@ public enum L10n {
   public static let changeKeyAlbum = L10n.tr("Localizable", "Change Key Album", fallback: "I Want to Choose Another Destination Album")
   /// Change Password
   public static let changePassword = L10n.tr("Localizable", "Change Password", fallback: "Change Password")
-  /// Change PIN Code
-  public static let changePinCode = L10n.tr("Localizable", "ChangePinCode", fallback: "Change PIN Code")
+  /// Change Passcode
+  public static let changePasscode = L10n.tr("Localizable", "ChangePasscode", fallback: "Change Passcode")
   /// Check that the same key that was used to encrypt this media is set as the active key.
   public static let checkThatTheSameKeyThatWasUsedToEncryptThisMediaIsSetAsTheActiveKey = L10n.tr("Localizable", "Check that the same key that was used to encrypt this media is set as the active key.", fallback: "Check that the same key that was used to encrypt this media is set as the active key.")
   /// Choose your login method
@@ -219,10 +219,10 @@ public enum L10n {
   public static let done = L10n.tr("Localizable", "Done", fallback: "Done")
   /// Done!
   public static let doneOnboarding = L10n.tr("Localizable", "DoneOnboarding", fallback: "Done!")
-  /// Do you remember your pin?
-  public static let doYouRememberYourPin = L10n.tr("Localizable", "DoYouRememberYourPin", fallback: "Do you remember your pin?")
-  /// If you don't, you can set a new one by going to 'Change Pin'
-  public static let doYouRememberYourPinSubtitle = L10n.tr("Localizable", "DoYouRememberYourPinSubtitle", fallback: "If you don't, you can set a new one by going to 'Change Pin'")
+  /// Do you remember your passcode?
+  public static let doYouRememberYourPin = L10n.tr("Localizable", "DoYouRememberYourPin", fallback: "Do you remember your passcode?")
+  /// If you don't, you can set a new one by going to 'Change Passcode'
+  public static let doYouRememberYourPinSubtitle = L10n.tr("Localizable", "DoYouRememberYourPinSubtitle", fallback: "If you don't, you can set a new one by going to 'Change Passcode'")
   /// Are you done importing images?
   public static let doYouWantToDeleteNotImported = L10n.tr("Localizable", "DoYouWantToDeleteNotImported", fallback: "Are you done importing images?")
   /// Import Pictures
@@ -374,8 +374,8 @@ public enum L10n {
   public static let introStorageExplanation = L10n.tr("Localizable", "IntroStorageExplanation", fallback: "Your media is safely secured behind a key and stored locally on your device or iCloud.")
   /// Invalid Password
   public static let invalidPassword = L10n.tr("Localizable", "Invalid Password", fallback: "Invalid Password")
-  /// I Remember my Pin
-  public static let iRemember = L10n.tr("Localizable", "IRemember", fallback: "I Remember my Pin")
+  /// I Remember my Passcode
+  public static let iRemember = L10n.tr("Localizable", "IRemember", fallback: "I Remember my Passcode")
   /// Join Telegram Group
   public static let joinTelegramGroup = L10n.tr("Localizable", "Join Telegram Group", fallback: "Join Telegram Group")
   /// Keep your encrypted data safe by using %@.
@@ -774,10 +774,10 @@ public enum L10n {
   }
   /// Face ID
   public static let useFaceID = L10n.tr("Localizable", "Use Face ID", fallback: "Use Face ID")
+  /// Use Passcode instead
+  public static let usePasscodeInstead = L10n.tr("Localizable", "Use Passcode instead", fallback: "Use Passcode instead")
   /// Use Password
   public static let usePassword = L10n.tr("Localizable", "Use Password", fallback: "Use Password")
-  /// Use PIN instead
-  public static let usePINInstead = L10n.tr("Localizable", "Use PIN instead", fallback: "Use PIN instead")
   /// Use the built-in camera to take photos and videos.
   public static let useCameraToTakePhotos = L10n.tr("Localizable", "UseCameraToTakePhotos", fallback: "Use the built-in camera to take photos and videos.")
   /// VIDEO

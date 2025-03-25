@@ -43,7 +43,7 @@
 "Local" = "Local";
 "SaveToiCloudDrive" = "Save to iCloud Drive";
 "SaveLocally" = "Save to this device";
-"ChangePinCode" = "Change PIN Code";
+"ChangePasscode" = "Change Passcode";
 
 /* Encamera App */
 /* ./Encamera/CameraView/CameraView.swift */
@@ -409,7 +409,7 @@
 "NotificationBanner.Reddit.Button" = "Join Subreddit";
 
 "Enable Face ID" = "Enable Face ID";
-"Use PIN instead" = "Use PIN instead";
+"Use Passcode instead" = "Use Passcode instead";
 "Select Login Method" = "Select Passcode Type";
 "LoginMethodDescription" = "Choose how you want to access your private albums.";
 "FinishedReadyToUseEncamera" = "You are ready to use\nEncamera!";
@@ -433,7 +433,7 @@
 "AlbumDetailView.HideAlbumMenuItem" = "Hide Album";
 "LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";
 "SetPinCode" = "Set Pin Code";
-"SetPinCodeSubtitle" = "This pin will be used to securely login in your app. Make sure you remember it!";
+"SetPinCodeSubtitle" = "This pin will be used to securely access the app. Make sure you remember it!";
 "RepeatPinCode" = "Repeat Pin Code";
 "RepeatPinCodeSubtitle" = "Repeat your Pin code to confirm.";
 "ConfirmPinCode" = "Confirm Pin Code";
@@ -456,9 +456,9 @@
 "PinTooShort" = "PIN is too short. It must be at least %@ digits.";
 "MakeSureYouRememberYourPin" = "Make sure you remember your pin code!";
 "ErrorSavingPassword" = "Error saving password";
-"DoYouRememberYourPin" = "Do you remember your pin?";
-"DoYouRememberYourPinSubtitle" = "If you don't, you can set a new one by going to 'Change Pin'";
-"IRemember" = "I Remember my Pin";
+"DoYouRememberYourPin" = "Do you remember your passcode?";
+"DoYouRememberYourPinSubtitle" = "If you don't, you can set a new one by going to 'Change Passcode'";
+"IRemember" = "I Remember my Passcode";
 "IForgot" = "I Forgot";
 "TakeSurveyTitle" = "Want 3 Months Free?";
 "TakeSurveyBody" = "Give us your feedback and get 3 months for free";
@@ -619,5 +619,5 @@
 "Use Face ID" = "Use Face ID";
 "Fast and convenient" = "Fast and convenient";
 
-"setPasswordSubtitle" = "This password will be used to securely access your app. Make sure you remember it!";
+"setPasswordSubtitle" = "This password will be used to securely access the app. Make sure you remember it!";
 "repeatPasswordSubtitle" = "Repeat your password to confirm.";
