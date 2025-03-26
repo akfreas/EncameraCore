@@ -163,7 +163,7 @@ public class OnboardingManager: OnboardingManaging {
 
         if state == .hasPasswordAndNotOnboarded {
             Task {
-                try await saveOnboardingState(.completed, settings: SavedSettings(useBiometricsForAuth: true))
+                try await saveOnboardingState(.completed, settings: SavedSettings(useBiometricsForAuth: false))
             }
 
             return .completed

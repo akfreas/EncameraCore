@@ -122,7 +122,7 @@ public class DeviceAuthManager: AuthManager {
                 return _useBiometricsForAuth
             }
             guard let settings = try? settingsManager.loadSettings(),
-                  let useBiometrics = settings.useBiometricsForAuth, availableBiometric != .none  else {
+                  let useBiometrics = settings.useBiometricsForAuth, deviceBiometryType != .none  else {
                 return false
             }
             self._useBiometricsForAuth = useBiometrics
