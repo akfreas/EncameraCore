@@ -626,5 +626,6 @@
 "ProtectionLevel.Low" = "Low protection";
 "ProtectionLevel.Moderate" = "Moderate protection";
 "ProtectionLevel.Strong" = "Strong protection";
+"ProtectionLevel.Strongest" = "Strongest protection";
 
 "SplashScreen.Subline" = "Secure Your Memories";

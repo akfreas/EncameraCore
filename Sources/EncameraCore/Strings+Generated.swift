@@ -1149,6 +1149,8 @@ public enum L10n {
     public static let moderate = L10n.tr("Localizable", "ProtectionLevel.Moderate", fallback: "Moderate protection")
     /// Strong protection
     public static let strong = L10n.tr("Localizable", "ProtectionLevel.Strong", fallback: "Strong protection")
+    /// Strongest protection
+    public static let strongest = L10n.tr("Localizable", "ProtectionLevel.Strongest", fallback: "Strongest protection")
   }
   public enum PurchaseView {
     /// Unlock all of these benefits:

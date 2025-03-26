@@ -506,3 +506,4 @@
 "AuthenticationMethod.SecurityLevel.pinCode6Digit" = "더 안전한 PIN 코드";
 "HideAlbumsTutorial.Heading4" = "앨범 숨기기";
 "Set 6-Digit PIN" = "6자리 PIN 설정";
+"ProtectionLevel.Strongest" = "가장 강력한 보호";

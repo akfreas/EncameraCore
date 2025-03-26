@@ -35,7 +35,7 @@ public enum PasscodeType: CaseIterable, Codable, Equatable, Identifiable {
                 return (L10n.ProtectionLevel.strong, 3)
             }
         case .password:
-            return (L10n.ProtectionLevel.strong, 4)
+            return (L10n.ProtectionLevel.strongest, 4)
         }
     }
 

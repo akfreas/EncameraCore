@@ -638,3 +638,4 @@
 "AuthenticationMethod.SecurityLevel.pinCode6Digit" = "Código PIN más seguro";
 "HideAlbumsTutorial.Heading4" = "Ocultar un álbum";
 "Set 6-Digit PIN" = "Establecer PIN de 6 dígitos";
+"ProtectionLevel.Strongest" = "Protección más fuerte";
