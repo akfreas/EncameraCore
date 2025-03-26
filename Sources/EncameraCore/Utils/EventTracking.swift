@@ -326,4 +326,12 @@ public class EventTracking {
     public static func trackReviewAlertAskLaterPressed() {
         track(category: "review_alert", action: "ask_later_pressed")
     }
+
+    public static func trackAuthenticationMethodChanged(to type: String) {
+        track(category: "authentication", action: "method_changed", name: type)
+    }
+
+    public static func trackAuthenticationMethodCleared() {
+        track(category: "authentication", action: "method_cleared")
+    }
 }

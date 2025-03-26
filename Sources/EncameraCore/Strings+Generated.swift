@@ -634,8 +634,8 @@ public enum L10n {
   public static let selectAPlaceToKeepMediaForThisKey = L10n.tr("Localizable", "Select a place to keep media for this key.", fallback: "Select a place to keep media for this key.")
   /// ./Encamera/MediaImport/MediaImportView.swift
   public static let selectAll = L10n.tr("Localizable", "Select All", fallback: "Select All")
-  /// Select Passcode Type
-  public static let selectLoginMethod = L10n.tr("Localizable", "Select Login Method", fallback: "Select Passcode Type")
+  /// Please select a method
+  public static let selectLoginMethod = L10n.tr("Localizable", "Select Login Method", fallback: "Please select a method")
   /// Select Storage
   public static let selectStorage = L10n.tr("Localizable", "Select Storage", fallback: "Select Storage")
   /// Select an Option
@@ -1191,6 +1191,10 @@ public enum L10n {
     public static let purchasesRestoredMessage = L10n.tr("Localizable", "Settings.PurchasesRestoredMessage", fallback: "Any valid purchases you made have been restored.")
     /// Version
     public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
+  }
+  public enum SplashScreen {
+    /// Secure Your Memories
+    public static let subline = L10n.tr("Localizable", "SplashScreen.Subline", fallback: "Secure Your Memories")
   }
 }
 // swiftlint:enable explicit_type_interface function_parameter_count identifier_name line_length
