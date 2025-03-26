@@ -14,6 +14,7 @@ private enum KeychainConstants {
     static let account = "encamera"
     static let minKeyLength = 2
     static let passPhraseKeyItem = "encamera_key_passphrase"
+    static let passcodeTypeKeyItem = "encamera_passcode_type"
 }
 
 struct KeychainItem {
@@ -37,14 +38,14 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             return .none
         }
 
-        // Try to retrieve stored passcode type
-        if let storedPasscodeType = retrievePasscodeTypeFromUserDefaults(), passwordExists() {
+        // Try to retrieve stored passcode type from keychain
+        if let storedPasscodeType = try? retrievePasscodeTypeFromKeychain(), passwordExists() {
             return storedPasscodeType
         }
         
         // If no passcode type is stored, set the default value
         let defaultPasscodeType = PasscodeType.pinCode(length: AppConstants.defaultPinCodeLength)
-        savePasscodeTypeToUserDefaults(defaultPasscodeType)
+        try? savePasscodeTypeToKeychain(defaultPasscodeType)
         return defaultPasscodeType
     }
 
@@ -417,7 +418,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     public func setPassword(_ password: String, type: PasscodeType) throws {
         let hashed = try hashFrom(password: password)
         try setPasswordHash(hash: hashed)
-        savePasscodeTypeToUserDefaults(type)
+        try savePasscodeTypeToKeychain(type)
     }
 
     public func setOrUpdatePassword(_ password: String, type: PasscodeType) throws {
@@ -436,7 +437,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             try setPassword(password, type: type)
         } else {
             try checkStatus(status: status)
-            savePasscodeTypeToUserDefaults(type)
+            try savePasscodeTypeToKeychain(type)
         }
     }
 
@@ -631,28 +632,44 @@ private extension KeychainManager {
         return query as CFDictionary
     }
 
-    private func savePasscodeTypeToUserDefaults(_ passcodeType: PasscodeType) {
+    private func savePasscodeTypeToKeychain(_ passcodeType: PasscodeType) throws {
         let encoder = JSONEncoder()
-        do {
-            let data = try encoder.encode(passcodeType)
-            UserDefaultUtils.set(data, forKey: .passcodeType)
-        } catch {
-            printDebug("Error encoding passcode type", error)
+        let data = try encoder.encode(passcodeType)
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+        ]
+        
+        // Try to update first, if it doesn't exist, add it
+        let updateStatus = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        if updateStatus == errSecItemNotFound {
+            let addStatus = SecItemAdd(query as CFDictionary, nil)
+            try checkStatus(status: addStatus)
+        } else {
+            try checkStatus(status: updateStatus)
         }
     }
     
-    private func retrievePasscodeTypeFromUserDefaults() -> PasscodeType? {
-        guard let data = UserDefaultUtils.data(forKey: .passcodeType) else {
-            return nil
+    private func retrievePasscodeTypeFromKeychain() throws -> PasscodeType {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
+            kSecReturnData as String: true
+        ]
+        
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        try checkStatus(status: status)
+        
+        guard let data = item as? Data else {
+            throw KeyManagerError.dataError
         }
         
-        do {
-            let decoder = JSONDecoder()
-            return try decoder.decode(PasscodeType.self, from: data)
-        } catch {
-            printDebug("Error decoding passcode type", error)
-            return nil
-        }
+        let decoder = JSONDecoder()
+        return try decoder.decode(PasscodeType.self, from: data)
     }
 }
 
