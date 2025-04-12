@@ -209,7 +209,9 @@ public class AlbumManager: AlbumManaging, ObservableObject {
     public func moveAlbum(album: Album, toStorage: StorageType) throws -> Album {
         let fileManager = FileManager.default
         let currentStorage = album.storageOption.modelForType.init(album: album)
-
+        if toStorage == .icloud {
+            try? self.keyManager.backupKeychainToiCloud(backupEnabled: true)
+        }
         debugPrint("Starting the move process for album: \(album.name)")
 
         // Determine the new storage URL based on the destination storage type
