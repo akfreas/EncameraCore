@@ -8,6 +8,7 @@
 import Foundation
 import Sodium
 import Combine
+import Security // Need this import for keychain constants
 
 private enum KeychainConstants {
     static let applicationTag = "com.encamera.key"
@@ -67,15 +68,22 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     public var areKeysStoredIniCloud: Bool  {
         let keyQuery: [String: Any] = [
             kSecClass as String: kSecClassKey,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizable
+            kSecAttrSynchronizable as String: kCFBooleanTrue!,
+            kSecMatchLimit as String: kSecMatchLimitOne // We only need to know if at least one exists
         ]
 
-        do {
-            let keys = try keysFromQuery(query: keyQuery)
-            return keys.count > 0
-        } catch {
-            print("Error fetching keys: \(error)")
+        let status = SecItemCopyMatching(keyQuery as CFDictionary, nil) // We don't need the item itself (nil)
+
+        switch status {
+        case errSecSuccess:
+            // A synchronizable key was found
+            return true
+        case errSecItemNotFound:
+            // No synchronizable key was found
+            return false
+        default:
+            // An unexpected error occurred
+            print("Error checking for iCloud keys: \(status)")
             return false
         }
     }
@@ -101,7 +109,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecClassKey,
             kSecClassIdentity
         ]
-
+        
         for keychainClass in keychainClasses {
             let query: [String: Any] = [
                 kSecClass as String: keychainClass
@@ -279,7 +287,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             try update(key: key, backupToiCloud: backupEnabled)
         }
         let updateQuery = [
-            kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue : kCFBooleanFalse,
+            kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue! : kCFBooleanFalse as Any,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
         ] as [String : Any]
         let updateStatus = SecItemUpdate(queryForPassphrase() as CFDictionary, updateQuery as CFDictionary)
