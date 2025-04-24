@@ -24,7 +24,8 @@ public enum KeyManagerError: ErrorDescribable {
     case dictionaryLoadError
     case dictionaryTooSmall
     case typeError
-
+    case keyUpdateFailed
+    case keyDeletionFailed
     public var displayDescription: String {
         switch self {
         case .deleteKeychainItemsFailed:
@@ -55,6 +56,10 @@ public enum KeyManagerError: ErrorDescribable {
             return "Dictionary too small"
         case .typeError:
             return "Type error"
+        case .keyUpdateFailed:
+            return "Key update failed"
+        case .keyDeletionFailed:
+            return "Key deletion failed"
         }
 
     }
@@ -76,7 +81,9 @@ extension KeyManagerError: Equatable {
              (.keyDerivationFailed, .keyDerivationFailed),
              (.dictionaryLoadError, .dictionaryLoadError),
              (.dictionaryTooSmall, .dictionaryTooSmall),
-             (.typeError, .typeError):
+             (.typeError, .typeError),
+             (.keyUpdateFailed, .keyUpdateFailed),
+             (.keyDeletionFailed, .keyDeletionFailed):
             return true
         case (.unhandledError(let lhsError), .unhandledError(let rhsError)):
             return lhsError == rhsError

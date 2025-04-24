@@ -126,6 +126,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             print("Failed to delete passphrase item: \(passphraseStatus)")
         }
 
+        try? clearPassword()
+
         try? setActiveKey(nil)
         print("Keychain data cleared")
     }
@@ -205,7 +207,10 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             ]
             let updateStatus = SecItemUpdate(passphraseQuery as CFDictionary, updateQuery as CFDictionary)
 
-            try checkStatus(status: updateStatus)
+            // We can ignore ItemNotFound errors here, as the passphrase might not exist
+            if updateStatus != errSecItemNotFound {
+                try checkStatus(status: updateStatus)
+            }
         case errSecItemNotFound:
             // Passphrase does not exist, add it
             let addQuery = queryForPassphrase(additionalQuery: [
@@ -297,12 +302,16 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         ] as [String : Any]
         let updateStatus = SecItemUpdate(queryForPassphrase() as CFDictionary, updateQuery as CFDictionary)
 
-        try checkStatus(status: updateStatus)
+        // We can ignore ItemNotFound errors here, as the passphrase might not exist
+        if updateStatus != errSecItemNotFound {
+            try checkStatus(status: updateStatus)
+        }
 
         // Also update the PasscodeType item's synchronizable attribute
         let passcodeTypeUpdateQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem
+            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Ensure we find it regardless of sync status
         ]
         let passcodeTypeUpdateDict: [String: Any] = [
             kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue! : kCFBooleanFalse as Any,
@@ -317,7 +326,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         // Also update the Password Hash item's synchronizable attribute
         let passwordQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.account
+            kSecAttrAccount as String: KeychainConstants.account,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Ensure we find it regardless of sync status
         ]
         let passwordUpdateDict: [String: Any] = [
             kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue! : kCFBooleanFalse as Any,
@@ -370,11 +380,18 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     private func keysFromQuery(query: [String: Any]) throws -> [PrivateKey]  {
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        try checkStatus(status: status)
-
+        
+        // If no keys are found, return an empty array instead of throwing
+        if status == errSecItemNotFound {
+            return []
+        }
+        // For other non-success statuses, throw an error
+        try checkStatus(status: status) 
 
         guard let keychainItems = item as? [[String: Any]] else {
-            throw KeyManagerError.dataError
+            // This case might happen if status is success but item is nil or wrong type
+            printDebug("Keychain query succeeded but failed to cast items.")
+            return [] 
         }
         let keys = keychainItems.compactMap { keychainItem -> PrivateKey? in
             do {
@@ -437,18 +454,49 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
             kSecReturnData as String: true,
+            kSecReturnAttributes as String: true, // Added to retrieve attributes
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
+        
+        // Print details if successful
+        if status == errSecSuccess, let existingItem = item as? [String: Any] {
+            if let passwordData = existingItem[kSecValueData as String] as? Data,
+               let passwordString = String(data: passwordData, encoding: .utf8) {
+                printDebug("Retrieved Password Hash:", passwordString)
+            } else {
+                printDebug("Could not retrieve or decode password data.")
+            }
+            
+            if let syncStatus = existingItem[kSecAttrSynchronizable as String] as? Bool {
+                 printDebug("iCloud Sync Status:", syncStatus ? "Enabled" : "Disabled")
+             } else {
+                 // If kSecAttrSynchronizable is not present, it defaults to false (not synced)
+                 // Sometimes kCFBooleanFalse might be returned as NSNumber 0
+                 if let syncNum = existingItem[kSecAttrSynchronizable as String] as? NSNumber, syncNum.boolValue == false {
+                     printDebug("iCloud Sync Status: Disabled (default or explicit)")
+                 } else {
+                     printDebug("Could not determine iCloud Sync Status or it's set to default (Disabled). Attribute value:", existingItem[kSecAttrSynchronizable as String] ?? "Not Present")
+                 }
+             }
+        } else if status != errSecItemNotFound {
+             printDebug("Keychain access error:", status)
+         }
+
         do {
             try checkStatus(status: status)
         } catch is KeyManagerError {
-            
+            // Item not found is expected, don't log as an error here
+             if status != errSecItemNotFound {
+                 printDebug("KeyManagerError checking password existence:", status)
+             }
         } catch {
-            printDebug("Key error", error)
+            printDebug("Unexpected error checking password existence:", error)
         }
-        return item != nil
+        
+        // The function still returns true if an item was found, regardless of printing success
+        return status == errSecSuccess
     }
     
     public func clearPassword() throws {
@@ -619,6 +667,90 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         return false
     }
     
+    // MARK: - Debugging
+
+    public func dumpAllKeychainItems() {
+        printDebug("--- Dumping All Keychain Items Accessible by App ---")
+
+        let itemClasses: [CFString] = [
+            kSecClassGenericPassword,
+            kSecClassKey
+            // Add other classes here if the app uses them (e.g., kSecClassCertificate)
+        ]
+
+        for itemClass in itemClasses {
+            let query: [String: Any] = [
+                kSecClass as String: itemClass,
+                kSecMatchLimit as String: kSecMatchLimitAll,
+                kSecReturnAttributes as String: true,
+                kSecReturnData as String: true,
+                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            ]
+
+            var items: CFTypeRef?
+            let status = SecItemCopyMatching(query as CFDictionary, &items)
+
+            printDebug("\n--- Querying Class: \(itemClass) ---")
+
+            if status == errSecSuccess {
+                guard let foundItems = items as? [[String: Any]] else {
+                    printDebug("  Result found, but failed to cast to [[String: Any]] for class \(itemClass).")
+                    continue
+                }
+                
+                if foundItems.isEmpty {
+                    printDebug("  No items found for this class.")
+                } else {
+                    printDebug("  Found \(foundItems.count) item(s):")
+                    for (index, item) in foundItems.enumerated() {
+                        printDebug("    --- Item \(index + 1) ---")
+                        for (key, value) in item {
+                            var printableValue: String = "<Non-printable or complex value>"
+                            if let dataValue = value as? Data {
+                                // Try decoding as UTF-8 string, otherwise show byte count
+                                if let stringValue = String(data: dataValue, encoding: .utf8) {
+                                    printableValue = "'\(stringValue)' (String, \(dataValue.count) bytes)"
+                                } else {
+                                    printableValue = "<Data: \(dataValue.count) bytes>"
+                                }
+                            } else if let dateValue = value as? Date {
+                                printableValue = "\(dateValue) (Date)"
+                            } else if let boolValue = value as? Bool {
+                                printableValue = "\(boolValue) (Bool)"
+                            } else if let numberValue = value as? NSNumber {
+                                printableValue = "\(numberValue) (Number - Bool: \(numberValue.boolValue))" // Show Bool interpretation too
+                            } else if let stringValue = value as? String {
+                                printableValue = "'\(stringValue)' (String)"
+                            } else {
+                                // Fallback for other types
+                                printableValue = "\(value) (Type: \(type(of: value)))"
+                            }
+                            
+                            // Special handling for synchronizable status for clarity
+                            if key == (kSecAttrSynchronizable as String) {
+                                var syncStatusDesc = "Unknown/Not Present"
+                                if let boolValue = value as? Bool {
+                                    syncStatusDesc = boolValue ? "Enabled (Bool: true)" : "Disabled (Bool: false)"
+                                } else if let numberValue = value as? NSNumber {
+                                     syncStatusDesc = numberValue.boolValue ? "Enabled (Number: \(numberValue))" : "Disabled (Number: \(numberValue))"
+                                 } else if value is NSNull {
+                                      syncStatusDesc = "Disabled (NSNull)"
+                                 }
+                                 printDebug("      \(key): \(syncStatusDesc)")
+                            } else {
+                                printDebug("      \(key): \(printableValue)")
+                            }
+                        }
+                    }
+                }
+            } else if status == errSecItemNotFound {
+                printDebug("  No items found for this class (errSecItemNotFound).")
+            } else {
+                printDebug("  Error querying class \(itemClass): OSStatus \(status)")
+            }
+        }
+        printDebug("--- End Keychain Dump ---")
+    }
     
 }
 

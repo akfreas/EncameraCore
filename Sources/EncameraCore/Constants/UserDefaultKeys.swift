@@ -30,7 +30,6 @@ public enum UserDefaultKey {
     case photoAddedCount
     case videoAddedCount
     case widgetOpenCount
-    case notificationScheduledCount(identifier: NotificationIdentifier)
     case livePhotosActivated
     case defaultStorageLocation
     case showPushNotificationPrompt
@@ -44,8 +43,6 @@ public enum UserDefaultKey {
             return "\(UserDefaultKey.directoryPrefix)\(album.name)"
         case .featureToggle(feature: let feature):
             return "featureToggle_\(feature)"
-        case .notificationScheduledCount(identifier: let identifier):
-            return "notificationScheduledCount_\(identifier)"
         default:
             return String(describing: self)
         

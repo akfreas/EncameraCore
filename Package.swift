@@ -17,7 +17,6 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/jedisct1/swift-sodium.git", .upToNextMajor(from: "0.9.1")),
-        .package(url: "https://github.com/PiwikPRO/piwik-pro-sdk-framework-ios", .upToNextMajor(from: "1.2.1")),
     ],
     targets: [
         .target(
@@ -26,6 +25,12 @@ let package = Package(
                 .product(name: "Sodium", package: "swift-sodium")
             ],
             resources: [.process("Resources")]
+        ),
+        /*
+        .testTarget(
+            name: "EncameraCoreTests",
+            dependencies: ["EncameraCore"]
         )
+        */
     ]
 )
