@@ -33,8 +33,10 @@ public struct KeyPassphrase: Codable {
 
 public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     
+    private enum BackupFlagState {
+        case enabled, disabled, notSet
+    }
 
-    
     public var passcodeType: PasscodeType {
         if passwordExists() == false {
             return .none
@@ -68,24 +70,21 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     // Renamed and reimplemented to read the central backup status flag
     public var isSyncEnabled: Bool {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
-            kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Should be synced, but query defensively
-        ]
-
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-
-        if status == errSecSuccess, let data = item as? Data, let boolVal = data.boolValue {
-            return boolVal
-        } else {
-            // Default to false if not found or error reading
-            if status != errSecItemNotFound {
-                 print("Error reading backup status flag: \\(determineOSStatus(status: status)). Defaulting to false.")
-            }
-            return false
+        // Check the explicit flag state first
+        switch getBackupFlagState() {
+        case .enabled: return true
+        case .disabled: return false
+        case .notSet:
+            // Fallback logic if the flag is not set (e.g., first run after update)
+            // Check if *any* key is currently synced as a heuristic.
+            // This is less precise than the explicit flag but better than defaulting to false.
+            let keyQuery: [String: Any] = [
+                kSecClass as String: kSecClassKey,
+                kSecAttrSynchronizable as String: kCFBooleanTrue!,
+                kSecMatchLimit as String: kSecMatchLimitOne // We only need to know if at least one exists
+            ]
+            let status = SecItemCopyMatching(keyQuery as CFDictionary, nil)
+            return status == errSecSuccess
         }
     }
 
@@ -126,6 +125,17 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         let passphraseStatus = SecItemDelete(queryForPassphrase() as CFDictionary)
         if passphraseStatus != errSecSuccess && passphraseStatus != errSecItemNotFound {
             print("Failed to delete passphrase item: \(passphraseStatus)")
+        }
+
+        // Delete the backup status flag item
+        let backupStatusQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Match any existing item
+        ]
+        let backupStatusDeleteStatus = SecItemDelete(backupStatusQuery as CFDictionary)
+        if backupStatusDeleteStatus != errSecSuccess && backupStatusDeleteStatus != errSecItemNotFound {
+            print("Failed to delete backup status flag item: \(backupStatusDeleteStatus)")
         }
 
         try? clearPassword()
@@ -194,9 +204,6 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         let passphraseData = fullPassword.data(using: .utf8)!
         let passphraseQuery = queryForPassphrase(additionalQuery: [:])
 
-        // Determine sync status from the central flag
-        let shouldSync = self.isSyncEnabled
-
         var withOptions: [String: Any] = passphraseQuery
         withOptions[kSecReturnData as String] = true
 
@@ -209,7 +216,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             let updateQuery: [String: Any] = [
                 kSecValueData as String: passphraseData,
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Use isSyncEnabled
+                kSecAttrSynchronizable as String: syncValueForWrites // Use helper
             ]
             let updateStatus = SecItemUpdate(passphraseQuery as CFDictionary, updateQuery as CFDictionary)
 
@@ -222,7 +229,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             let addQuery = queryForPassphrase(additionalQuery: [
                 kSecValueData as String: passphraseData,
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Use isSyncEnabled
+                kSecAttrSynchronizable as String: syncValueForWrites // Use helper
             ])
             let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
             try checkStatus(status: addStatus)
@@ -271,15 +278,14 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
         // Use the central isSyncEnabled flag to determine sync status
-        let shouldSync = self.isSyncEnabled
         var query = key.keychainQueryDictForKeychain
-        query[kSecAttrSynchronizable as String] = shouldSync ? kCFBooleanTrue : kCFBooleanFalse
+        query[kSecAttrSynchronizable as String] = syncValueForWrites // Use helper
 
         if let existingKey = try? getKey(by: key.name) {
             let updateQuery: [String: Any] = [
                 kSecValueData as String: Data(key.keyBytes),
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Use isSyncEnabled
+                kSecAttrSynchronizable as String: syncValueForWrites // Use helper
             ]
             // Use the base query from the existing key for update, but target by label/name
             let baseQuery = try updateKeyQuery(for: existingKey.name)
@@ -321,12 +327,10 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         
         // If it already exists, update it
         if status == errSecDuplicateItem {
-            let updateDict: [String: Any] = [
-                kSecValueData as String: backupEnabled.data // Only update the value
-                // kSecAttrSynchronizable is implicitly kept as true because we don't change it
-                // kSecAttrAccessible should also remain as set initially
+            let newAttributes: [String: Any] = [
+                kSecValueData as String: backupEnabled.data, // Store the actual boolean value
             ]
-            status = SecItemUpdate(backupStatusQuery as CFDictionary, updateDict as CFDictionary)
+            status = SecItemUpdate(backupStatusQuery as CFDictionary, newAttributes as CFDictionary)
         }
         
         // Check status after add or update attempt
@@ -415,7 +419,9 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecReturnData as String: true,
             kSecReturnAttributes as String: true,
             kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Match any existing item
+
+//            kSecAttrSynchronizable as String: syncQueryValueForReads
         ]
         
         return try keysFromQuery(query: query)
@@ -499,7 +505,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrAccount as String: KeychainConstants.account,
             kSecReturnData as String: true,
             kSecReturnAttributes as String: true, // Added to retrieve attributes
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            // Use helper computed property for query value
+            kSecAttrSynchronizable as String: syncQueryValueForReads
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
@@ -577,18 +584,17 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     public func setOrUpdatePassword(_ password: String, type: PasscodeType) throws {
         let hashed = try hashFrom(password: password)
-        let shouldSync = isSyncEnabled // Determine desired sync status
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
-            kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Explicitly set sync status
+            kSecAttrSynchronizable as String: syncValueForWrites // Use helper
         ]
 
         let update: [String: Any] = [
             kSecValueData as String: hashed,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-            kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Explicitly set sync status
+            kSecAttrSynchronizable as String: syncValueForWrites // Use helper
         ]
 
         let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
@@ -626,7 +632,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
             kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            // Use helper computed property for query value
+            kSecAttrSynchronizable as String: syncQueryValueForReads
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
@@ -646,14 +653,12 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
     public func setPasswordHash(hash: Data) throws {
-        let shouldSync = isSyncEnabled // Determine desired sync status
-
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
             kSecValueData as String: hash,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-            kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Explicitly set sync status
+            kSecAttrSynchronizable as String: syncValueForWrites // Use helper
         ]
         let setPasswordStatus = SecItemAdd(query as CFDictionary, nil)
 
@@ -667,7 +672,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             let attributesToUpdate: [String: Any] = [
                 kSecValueData as String: hash,
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Explicitly set sync status
+                kSecAttrSynchronizable as String: syncValueForWrites // Use helper
             ]
             let updateStatus = SecItemUpdate(updateQuery as CFDictionary, attributesToUpdate as CFDictionary)
             try checkStatus(status: updateStatus, defaultError: .keyUpdateFailed) // Throw specific error on update failure
@@ -823,7 +828,8 @@ private extension KeychainManager {
         let baseQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+            // Use helper computed property for query value
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
 
         if let additionalQuery {
@@ -871,7 +877,8 @@ private extension KeychainManager {
             kSecReturnData as String: true,
             kSecReturnAttributes as String: true,
             kSecAttrLabel as String: keyData,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+            // Use helper computed property for query value
+            kSecAttrSynchronizable as String: syncQueryValueForReads
         ]
         return query as CFDictionary
     }
@@ -883,10 +890,10 @@ private extension KeychainManager {
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecAttrLabel as String: keyData,
+            // Add Any to ensure we find the key regardless of current sync state for update
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
         return query as CFDictionary
-
     }
     
     private func createKeychainQueryForWrite(with key: PrivateKey, backupToiCloud: Bool) -> CFDictionary {
@@ -902,7 +909,6 @@ private extension KeychainManager {
     private func savePasscodeTypeToKeychain(_ passcodeType: PasscodeType) throws {
         let encoder = JSONEncoder()
         let data = try encoder.encode(passcodeType)
-        let shouldSync = isSyncEnabled
 
         // Base query to find the item, regardless of sync status
         let baseQuery: [String: Any] = [
@@ -912,19 +918,19 @@ private extension KeychainManager {
         ]
 
         // Attributes for adding the item
-        var addQuery: [String: Any] = [
+        let addQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-            kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Explicitly set sync status
+            kSecAttrSynchronizable as String: syncValueForWrites // Use helper
         ]
 
         // Attributes for updating the item
         let updateAttributes: [String: Any] = [
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked, // Keep accessibility
-            kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Explicitly set sync status
+            kSecAttrSynchronizable as String: syncValueForWrites // Use helper
         ]
 
         // Try to update first
@@ -945,7 +951,8 @@ private extension KeychainManager {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
             kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            // Use helper computed property for query value
+            kSecAttrSynchronizable as String: syncQueryValueForReads
         ]
         
         var item: CFTypeRef?
@@ -959,6 +966,55 @@ private extension KeychainManager {
         let decoder = JSONDecoder()
         return try decoder.decode(PasscodeType.self, from: data)
     }
+
+    // --- Private Helpers for Sync Status Handling ---
+
+    /// Determines the explicit state of the central backup status flag.
+    private func getBackupFlagState() -> BackupFlagState {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
+            kSecReturnData as String: true,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Find it regardless of its internal sync status
+        ]
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+
+        switch status {
+        case errSecSuccess:
+            if let data = item as? Data, let boolVal = data.boolValue {
+                return boolVal ? .enabled : .disabled
+            } else {
+                // Found item but couldn't read boolean value - treat as not set for safety
+                print("Warning: Found backup status flag but couldn't decode its value.")
+                return .notSet
+            }
+        case errSecItemNotFound:
+            // Flag item doesn't exist
+            return .notSet
+        default:
+            // Other error occurred reading the flag
+            print("Error reading backup status flag: \\(determineOSStatus(status: status)). Assuming not set.")
+            return .notSet
+        }
+    }
+
+    /// Provides the correct value for kSecAttrSynchronizable in read queries.
+    private var syncQueryValueForReads: CFTypeRef {
+        switch getBackupFlagState() {
+        case .enabled: return kCFBooleanTrue!
+        case .disabled: return kCFBooleanFalse!
+        case .notSet: return kSecAttrSynchronizableAny
+        }
+    }
+
+    /// Provides the correct value for kSecAttrSynchronizable in write/update operations.
+    private var syncValueForWrites: CFBoolean {
+        return self.isSyncEnabled ? kCFBooleanTrue! : kCFBooleanFalse!
+    }
+
+    // --------------------------------------------------
 
 }
 
