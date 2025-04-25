@@ -112,7 +112,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         
         for keychainClass in keychainClasses {
             let query: [String: Any] = [
-                kSecClass as String: keychainClass
+                kSecClass as String: keychainClass,
+                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Match any existing item
             ]
 
             let status = SecItemDelete(query as CFDictionary)
@@ -582,6 +583,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
             kSecReturnData as String: true,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
@@ -638,6 +640,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
             kSecReturnData as String: true,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
@@ -898,7 +901,8 @@ private extension KeychainManager {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
-            kSecReturnData as String: true
+            kSecReturnData as String: true,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         var item: CFTypeRef?
