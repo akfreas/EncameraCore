@@ -97,20 +97,19 @@ extension KeyManagerError: Equatable {
 public protocol KeyManager {
     
     init(isAuthenticated: AnyPublisher<Bool, Never>)
-    
+    var isSyncEnabled: Bool { get }
     var isAuthenticated: AnyPublisher<Bool, Never> { get }
     var currentKey: PrivateKey? { get }
     var keyPublisher: AnyPublisher<PrivateKey?, Never> { get }
-    var areKeysStoredIniCloud: Bool { get }
     var passcodeType: PasscodeType { get }
     func clearKeychainData()
     func keyWith(name: String) -> PrivateKey?
     func storedKeys() throws -> [PrivateKey]
     func getPasswordHash() throws -> Data
     func setPasswordHash(hash: Data) throws
-    func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws
-    func generateKeyUsingRandomWords(name: String, backupToiCloud: Bool) throws -> PrivateKey
-    @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String, backupToiCloud: Bool) throws -> PrivateKey
+    func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws
+    func generateKeyUsingRandomWords(name: String) throws -> PrivateKey
+    @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String) throws -> PrivateKey
     @discardableResult func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey
     func retrieveKeyPassphrase() throws -> KeyPassphrase
     func checkPassword(_ password: String) throws -> Bool

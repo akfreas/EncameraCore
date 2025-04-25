@@ -2,6 +2,8 @@ import Foundation
 import Combine
 
 public class DemoKeyManager: KeyManager {
+    public var isSyncEnabled: Bool = false
+    
     public func setPassword(_ password: String, type: PasscodeType) throws {
 
     }
@@ -18,7 +20,7 @@ public class DemoKeyManager: KeyManager {
         return .pinCode(length: AppConstants.defaultPinCodeLength)
     }
 
-    public var areKeysStoredIniCloud: Bool = false
+
     public func clearPassword() throws {
         
     }
@@ -52,19 +54,19 @@ public class DemoKeyManager: KeyManager {
         return ""
     }
     public func retrieveKeyPassphrase() throws -> KeyPassphrase {
-        return KeyPassphrase(words: ["your", "cool", "cat"], iCloudBackupEnabled: true)
+        return KeyPassphrase(words: ["your", "cool", "cat"])
     }
     public func passwordExists() -> Bool {
         return hasExistingPassword
     }
-    public func generateKeyUsingRandomWords(name: String, backupToiCloud: Bool) throws -> PrivateKey {
+    public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
         return DemoPrivateKey.dummyKey()
     }
     
     public func backupKeychainToiCloud(backupEnabled: Bool) throws {
 
     }
-    @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String, backupToiCloud: Bool) throws -> PrivateKey {
+    @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String) throws -> PrivateKey {
         return DemoPrivateKey.dummyKey()
     }
 
@@ -95,11 +97,11 @@ public class DemoKeyManager: KeyManager {
 
     }
 
-    public func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
+    public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
 
     }
 
-    public func update(key: PrivateKey, backupToiCloud: Bool) throws {
+    public func update(key: PrivateKey) throws {
 
     }
 
@@ -120,7 +122,7 @@ public class DemoKeyManager: KeyManager {
 
     }
 
-    public func generateNewKey(name: String, backupToiCloud: Bool) throws -> PrivateKey {
+    public func generateNewKey(name: String) throws -> PrivateKey {
         return try PrivateKey(base64String: "")
     }
 

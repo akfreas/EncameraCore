@@ -16,6 +16,7 @@ private enum KeychainConstants {
     static let minKeyLength = 2
     static let passPhraseKeyItem = "encamera_key_passphrase"
     static let passcodeTypeKeyItem = "encamera_passcode_type"
+    static let backupStatusKeyItem = "com.encamera.backupStatus"
 }
 
 struct KeychainItem {
@@ -27,11 +28,11 @@ struct KeychainItem {
 
 public struct KeyPassphrase: Codable {
     public let words: [String]
-    public let iCloudBackupEnabled: Bool
 }
 
 
 public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
+    
 
     
     public var passcodeType: PasscodeType {
@@ -65,25 +66,25 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         keySubject.eraseToAnyPublisher()
     }
 
-    public var areKeysStoredIniCloud: Bool  {
-        let keyQuery: [String: Any] = [
-            kSecClass as String: kSecClassKey,
-            kSecAttrSynchronizable as String: kCFBooleanTrue!,
-            kSecMatchLimit as String: kSecMatchLimitOne // We only need to know if at least one exists
+    // Renamed and reimplemented to read the central backup status flag
+    public var isSyncEnabled: Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
+            kSecReturnData as String: true,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Should be synced, but query defensively
         ]
 
-        let status = SecItemCopyMatching(keyQuery as CFDictionary, nil) // We don't need the item itself (nil)
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
 
-        switch status {
-        case errSecSuccess:
-            // A synchronizable key was found
-            return true
-        case errSecItemNotFound:
-            // No synchronizable key was found
-            return false
-        default:
-            // An unexpected error occurred
-            print("Error checking for iCloud keys: \(determineOSStatus(status: status))")
+        if status == errSecSuccess, let data = item as? Data, let boolVal = data.boolValue {
+            return boolVal
+        } else {
+            // Default to false if not found or error reading
+            if status != errSecItemNotFound {
+                 print("Error reading backup status flag: \\(determineOSStatus(status: status)). Defaulting to false.")
+            }
             return false
         }
     }
@@ -134,7 +135,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
 
-    @discardableResult public func generateKeyUsingRandomWords(name: String, backupToiCloud: Bool = false) throws -> PrivateKey {
+    @discardableResult public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
 
         guard let dictionaryPath = Bundle.main.path(forResource: "dictionary", ofType: "txt"),
               let dictionaryContent = try? String(contentsOfFile: dictionaryPath) else {
@@ -149,15 +150,15 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
         let selectedWords = (0..<10).compactMap { _ in words.randomElement()?.lowercased() }
 
-        return try generateKeyFromPasswordComponentsAndSave(selectedWords, name: name, backupToiCloud: backupToiCloud)
+        return try generateKeyFromPasswordComponentsAndSave(selectedWords, name: name)
     }
 
     @discardableResult public func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey {
         
-        return try generateKeyFromPasswordComponentsAndSave(passphrase.words, name: AppConstants.defaultKeyName, backupToiCloud: passphrase.iCloudBackupEnabled)
+        return try generateKeyFromPasswordComponentsAndSave(passphrase.words, name: AppConstants.defaultKeyName)
     }
 
-    @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String, backupToiCloud: Bool = false) throws -> PrivateKey {
+    @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String) throws -> PrivateKey {
         guard !components.isEmpty else {
             throw KeyManagerError.invalidInput
         }
@@ -187,11 +188,14 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
         let key = PrivateKey(name: name, keyBytes: keyBytes, creationDate: Date())
         
-        try save(key: key, setNewKeyToCurrent: true, backupToiCloud: backupToiCloud)
+        try save(key: key, setNewKeyToCurrent: true)
 
         // Save or update the passphrase in the keychain
         let passphraseData = fullPassword.data(using: .utf8)!
         let passphraseQuery = queryForPassphrase(additionalQuery: [:])
+
+        // Determine sync status from the central flag
+        let shouldSync = self.isSyncEnabled
 
         var withOptions: [String: Any] = passphraseQuery
         withOptions[kSecReturnData as String] = true
@@ -205,7 +209,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             let updateQuery: [String: Any] = [
                 kSecValueData as String: passphraseData,
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: backupToiCloud ? kCFBooleanTrue! : kCFBooleanFalse! // Explicitly set sync status
+                kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Use isSyncEnabled
             ]
             let updateStatus = SecItemUpdate(passphraseQuery as CFDictionary, updateQuery as CFDictionary)
 
@@ -217,7 +221,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             // Passphrase does not exist, add it
             let addQuery = queryForPassphrase(additionalQuery: [
                 kSecValueData as String: passphraseData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+                kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Use isSyncEnabled
             ])
             let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
             try checkStatus(status: addStatus)
@@ -225,6 +230,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             // Handle other errors
             try checkStatus(status: queryResult)
         }
+
 
         return key
 
@@ -251,11 +257,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
         let words = passphrase.components(separatedBy: "-")
 
-        // Check if the item is stored in iCloud
-        let stored = result[kSecAttrSynchronizable as String]
-        let isStoredInICloud = (stored as? Bool) == true
-
-        let keyPassphrase = KeyPassphrase(words: words, iCloudBackupEnabled: isStoredInICloud)
+        // Construct without the boolean flag
+        let keyPassphrase = KeyPassphrase(words: words)
 
         return keyPassphrase
     }
@@ -266,15 +269,17 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         }
     }
     
-    public func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
+    public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
+        // Use the central isSyncEnabled flag to determine sync status
+        let shouldSync = self.isSyncEnabled
         var query = key.keychainQueryDictForKeychain
-        query[kSecAttrSynchronizable as String] = backupToiCloud ? kCFBooleanTrue : kCFBooleanFalse
+        query[kSecAttrSynchronizable as String] = shouldSync ? kCFBooleanTrue : kCFBooleanFalse
 
         if let existingKey = try? getKey(by: key.name) {
             let updateQuery: [String: Any] = [
                 kSecValueData as String: Data(key.keyBytes),
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: backupToiCloud ? kCFBooleanTrue! : kCFBooleanFalse! // Explicitly set sync status
+                kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Use isSyncEnabled
             ]
             // Use the base query from the existing key for update, but target by label/name
             let baseQuery = try updateKeyQuery(for: existingKey.name)
@@ -294,23 +299,58 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     public func backupKeychainToiCloud(backupEnabled: Bool) throws {
         
+        // --- Add/Update the centralized backup status flag ---
+        let backupStatusQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem
+        ]
 
+        // Attributes for the backup status item
+        // NOTE: kSecAttrSynchronizable is ALWAYS true for this item
+        let backupStatusAttributes: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
+            kSecValueData as String: backupEnabled.data, // Store the actual boolean value
+            kSecAttrSynchronizable as String: kCFBooleanTrue!, // Always sync this flag itself
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked // Consistent accessibility
+        ]
+        
+        // Try to add the item first
+        var status = SecItemAdd(backupStatusAttributes as CFDictionary, nil)
+        
+        // If it already exists, update it
+        if status == errSecDuplicateItem {
+            let updateDict: [String: Any] = [
+                kSecValueData as String: backupEnabled.data // Only update the value
+                // kSecAttrSynchronizable is implicitly kept as true because we don't change it
+                // kSecAttrAccessible should also remain as set initially
+            ]
+            status = SecItemUpdate(backupStatusQuery as CFDictionary, updateDict as CFDictionary)
+        }
+        
+        // Check status after add or update attempt
+        try checkStatus(status: status)
+        
+        // --- Update existing items based on backupEnabled ---
         let keys = try storedKeys()
         for key in keys {
+            // Pass backupEnabled to update individual key sync status
             try update(key: key, backupToiCloud: backupEnabled)
         }
+        
+        // Update Passphrase sync status based on backupEnabled
         let updateQuery = [
             kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue! : kCFBooleanFalse as Any,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked // Maintain accessibility
         ] as [String : Any]
         let updateStatus = SecItemUpdate(queryForPassphrase() as CFDictionary, updateQuery as CFDictionary)
-
+        
         // We can ignore ItemNotFound errors here, as the passphrase might not exist
         if updateStatus != errSecItemNotFound {
             try checkStatus(status: updateStatus)
         }
 
-        // Also update the PasscodeType item's synchronizable attribute
+        // Also update the PasscodeType item's synchronizable attribute based on backupEnabled
         let passcodeTypeUpdateQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
@@ -326,7 +366,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             try checkStatus(status: passcodeTypeUpdateStatus)
         }
 
-        // Also update the Password Hash item's synchronizable attribute
+        // Also update the Password Hash item's synchronizable attribute based on backupEnabled
         let passwordQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
@@ -536,12 +576,12 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     public func setOrUpdatePassword(_ password: String, type: PasscodeType) throws {
         let hashed = try hashFrom(password: password)
-        let shouldSync = areKeysStoredIniCloud // Determine desired sync status
+        let shouldSync = isSyncEnabled // Determine desired sync status
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Match any existing item
+            kSecAttrSynchronizable as String: shouldSync ? kCFBooleanTrue! : kCFBooleanFalse! // Explicitly set sync status
         ]
 
         let update: [String: Any] = [
@@ -605,7 +645,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
     public func setPasswordHash(hash: Data) throws {
-        let shouldSync = areKeysStoredIniCloud // Determine desired sync status
+        let shouldSync = isSyncEnabled // Determine desired sync status
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -861,7 +901,7 @@ private extension KeychainManager {
     private func savePasscodeTypeToKeychain(_ passcodeType: PasscodeType) throws {
         let encoder = JSONEncoder()
         let data = try encoder.encode(passcodeType)
-        let shouldSync = areKeysStoredIniCloud
+        let shouldSync = isSyncEnabled
 
         // Base query to find the item, regardless of sync status
         let baseQuery: [String: Any] = [
@@ -946,5 +986,21 @@ private extension PrivateKey {
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
         ]
+    }
+}
+
+// Helper extension for Bool to Data conversion (if not already present)
+extension Bool {
+    var data: Data {
+        var intValue = self ? 1 : 0
+        return Data(bytes: &intValue, count: MemoryLayout<Int>.size)
+    }
+}
+
+// Helper extension for Data to Bool conversion (needed for reading the flag later)
+extension Data {
+    var boolValue: Bool? {
+        guard count == MemoryLayout<Int>.size else { return nil }
+        return withUnsafeBytes { $0.load(as: Int.self) == 1 }
     }
 }
