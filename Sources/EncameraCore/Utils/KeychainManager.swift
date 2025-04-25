@@ -302,7 +302,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         // --- Add/Update the centralized backup status flag ---
         let backupStatusQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem
+            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
 
         // Attributes for the backup status item
