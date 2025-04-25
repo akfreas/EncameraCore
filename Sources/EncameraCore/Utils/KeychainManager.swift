@@ -83,7 +83,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             return false
         default:
             // An unexpected error occurred
-            print("Error checking for iCloud keys: \(status)")
+            print("Error checking for iCloud keys: \(determineOSStatus(status: status))")
             return false
         }
     }
@@ -134,8 +134,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
 
-    @discardableResult public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
-        
+    @discardableResult public func generateKeyUsingRandomWords(name: String, backupToiCloud: Bool = false) throws -> PrivateKey {
+
         guard let dictionaryPath = Bundle.main.path(forResource: "dictionary", ofType: "txt"),
               let dictionaryContent = try? String(contentsOfFile: dictionaryPath) else {
             throw KeyManagerError.dictionaryLoadError
@@ -149,15 +149,15 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
         let selectedWords = (0..<10).compactMap { _ in words.randomElement()?.lowercased() }
 
-        return try generateKeyFromPasswordComponents(selectedWords, name: name)
+        return try generateKeyFromPasswordComponentsAndSave(selectedWords, name: name, backupToiCloud: backupToiCloud)
     }
 
     @discardableResult public func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey {
         
-        return try generateKeyFromPasswordComponents(passphrase.words, name: AppConstants.defaultKeyName)
+        return try generateKeyFromPasswordComponentsAndSave(passphrase.words, name: AppConstants.defaultKeyName, backupToiCloud: passphrase.iCloudBackupEnabled)
     }
 
-    @discardableResult public func generateKeyFromPasswordComponents(_ components: [String], name: String) throws -> PrivateKey {
+    @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String, backupToiCloud: Bool = false) throws -> PrivateKey {
         guard !components.isEmpty else {
             throw KeyManagerError.invalidInput
         }
@@ -187,7 +187,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
         let key = PrivateKey(name: name, keyBytes: keyBytes, creationDate: Date())
         
-        try save(key: key, setNewKeyToCurrent: true, backupToiCloud: areKeysStoredIniCloud)
+        try save(key: key, setNewKeyToCurrent: true, backupToiCloud: backupToiCloud)
 
         // Save or update the passphrase in the keychain
         let passphraseData = fullPassword.data(using: .utf8)!
@@ -204,7 +204,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             // Passphrase exists, update it
             let updateQuery: [String: Any] = [
                 kSecValueData as String: passphraseData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+                kSecAttrSynchronizable as String: backupToiCloud ? kCFBooleanTrue! : kCFBooleanFalse! // Explicitly set sync status
             ]
             let updateStatus = SecItemUpdate(passphraseQuery as CFDictionary, updateQuery as CFDictionary)
 
@@ -251,7 +252,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         let words = passphrase.components(separatedBy: "-")
 
         // Check if the item is stored in iCloud
-        let isStoredInICloud = (result[kSecAttrSynchronizable as String] as? Bool) == true
+        let stored = result[kSecAttrSynchronizable as String]
+        let isStoredInICloud = (stored as? Bool) == true
 
         let keyPassphrase = KeyPassphrase(words: words, iCloudBackupEnabled: isStoredInICloud)
 
@@ -534,7 +536,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     public func setOrUpdatePassword(_ password: String, type: PasscodeType) throws {
         let hashed = try hashFrom(password: password)
-        let shouldSync = getCurrentSyncStatus() // Determine desired sync status
+        let shouldSync = areKeysStoredIniCloud // Determine desired sync status
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -603,7 +605,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
     public func setPasswordHash(hash: Data) throws {
-        let shouldSync = getCurrentSyncStatus() // Determine desired sync status
+        let shouldSync = areKeysStoredIniCloud // Determine desired sync status
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -859,7 +861,7 @@ private extension KeychainManager {
     private func savePasscodeTypeToKeychain(_ passcodeType: PasscodeType) throws {
         let encoder = JSONEncoder()
         let data = try encoder.encode(passcodeType)
-        let shouldSync = getCurrentSyncStatus() // Determine desired sync status
+        let shouldSync = areKeysStoredIniCloud
 
         // Base query to find the item, regardless of sync status
         let baseQuery: [String: Any] = [
@@ -917,24 +919,6 @@ private extension KeychainManager {
         return try decoder.decode(PasscodeType.self, from: data)
     }
 
-    // Helper to determine the desired synchronization status
-    private func getCurrentSyncStatus() -> Bool {
-        // Prioritize the KeyPassphrase item's sync status
-        let query: [String: Any] = queryForPassphrase(additionalQuery: [
-            kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ])
-
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-
-        if status == errSecSuccess, let result = item as? [String: Any] {
-            return (result[kSecAttrSynchronizable as String] as? Bool) ?? false
-        }
-
-        // Fallback: Check if any key is currently stored in iCloud
-        return areKeysStoredIniCloud
-    }
 }
 
 private extension PrivateKey {

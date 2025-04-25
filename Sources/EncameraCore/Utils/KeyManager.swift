@@ -109,8 +109,8 @@ public protocol KeyManager {
     func getPasswordHash() throws -> Data
     func setPasswordHash(hash: Data) throws
     func save(key: PrivateKey, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws
-    func generateKeyUsingRandomWords(name: String) throws -> PrivateKey
-    @discardableResult func generateKeyFromPasswordComponents(_ components: [String], name: String) throws -> PrivateKey
+    func generateKeyUsingRandomWords(name: String, backupToiCloud: Bool) throws -> PrivateKey
+    @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String, backupToiCloud: Bool) throws -> PrivateKey
     @discardableResult func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey
     func retrieveKeyPassphrase() throws -> KeyPassphrase
     func checkPassword(_ password: String) throws -> Bool

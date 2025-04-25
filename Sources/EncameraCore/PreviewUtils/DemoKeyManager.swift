@@ -57,14 +57,14 @@ public class DemoKeyManager: KeyManager {
     public func passwordExists() -> Bool {
         return hasExistingPassword
     }
-    public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
+    public func generateKeyUsingRandomWords(name: String, backupToiCloud: Bool) throws -> PrivateKey {
         return DemoPrivateKey.dummyKey()
     }
     
     public func backupKeychainToiCloud(backupEnabled: Bool) throws {
 
     }
-    @discardableResult public func generateKeyFromPasswordComponents(_ components: [String], name: String) throws -> PrivateKey {
+    @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String, backupToiCloud: Bool) throws -> PrivateKey {
         return DemoPrivateKey.dummyKey()
     }
 
