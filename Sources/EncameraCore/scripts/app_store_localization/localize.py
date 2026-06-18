@@ -690,6 +690,7 @@ class Localizer:
         auto_create_strings=False,
         force_retranslation=False,
         version_id=None,
+        skip_confirmation=False,
     ):
         self.config_path = config_path
         self.credentials_path = credentials_path
@@ -698,6 +699,7 @@ class Localizer:
         self.auto_create_strings = auto_create_strings
         self.force_retranslation = force_retranslation
         self.version_id = version_id
+        self.skip_confirmation = skip_confirmation
 
     def run(self):
         print("🌍 App Store Localization Manager")
@@ -905,17 +907,21 @@ class Localizer:
             print("🎉 No translations to upload!")
             return False
     
-        # Confirm before updating
-        questions = [
-            inquirer.Confirm('proceed',
-                           message="Proceed with updating App Store Connect metadata?",
-                           default=True),
-        ]
-    
-        answers = inquirer.prompt(questions)
-        if not answers or not answers.get('proceed'):
-            print("⏭️  Operation cancelled")
-            return False
+        # Confirm before updating (skipped when driven by release.py, which
+        # has already gated this with its own preflights and prompts)
+        if self.skip_confirmation:
+            print("⏭️  Skipping update confirmation (skip_confirmation=True)")
+        else:
+            questions = [
+                inquirer.Confirm('proceed',
+                               message="Proceed with updating App Store Connect metadata?",
+                               default=True),
+            ]
+
+            answers = inquirer.prompt(questions)
+            if not answers or not answers.get('proceed'):
+                print("⏭️  Operation cancelled")
+                return False
     
         print("\n🔄 Proceeding with App Store Connect API updates...")
     

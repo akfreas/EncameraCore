@@ -281,7 +281,12 @@ def preflight_no_active_xcode_cloud_builds(client, workflow_id):
 
 def run_localize(config_path, credentials_path, version_id=None):
     from localize import Localizer
-    result = Localizer(str(config_path), credentials_path, version_id=version_id).run()
+    result = Localizer(
+        str(config_path),
+        credentials_path,
+        version_id=version_id,
+        skip_confirmation=True,
+    ).run()
     if not result:
         print("Localizer did not complete successfully. Aborting release.")
         sys.exit(1)
