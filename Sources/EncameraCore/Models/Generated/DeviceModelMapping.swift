@@ -4,8 +4,8 @@
 //
 //  AUTO-GENERATED FILE - DO NOT EDIT MANUALLY
 //  Source: https://gist.github.com/adamawolf/3048717
-//  Source Hash: 63436c13aa4c3143b013905c2620f0fbc7b4b4bc118b4830e16b9da5545a3e68
-//  Last Updated: 2026-01-03 07:36:27
+//  Source Hash: 6e27b629890c7ed299483bf612c5ffa2ba43848344f25baf96beff26d74a7c67
+//  Last Updated: 2026-06-18 14:17:25
 //
 //  To regenerate, run: python3 Scripts/generate_device_mapping.py
 //
@@ -24,7 +24,7 @@ public enum DeviceModelMapping {
     }
     
     /// The complete mapping of device identifiers to names
-    /// Contains 226 devices
+    /// Contains 231 devices
     public static let deviceMapping: [String: String] = [
         // MARK: - iPhone
         "iPhone1,1": "iPhone",
@@ -69,6 +69,7 @@ public enum DeviceModelMapping {
         "iPhone18,2": "iPhone 17 Pro Max",
         "iPhone18,3": "iPhone 17",
         "iPhone18,4": "iPhone Air",
+        "iPhone18,5": "iPhone 17e",
         "iPhone2,1": "iPhone 3GS",
         "iPhone3,1": "iPhone 4",
         "iPhone3,2": "iPhone 4 GSM Rev A",
@@ -132,11 +133,15 @@ public enum DeviceModelMapping {
         "iPad15,7": "iPad 11th Gen (WiFi)",
         "iPad15,8": "iPad 11th Gen (WiFi+Cellular)",
         "iPad16,1": "iPad mini 7th Gen (WiFi)",
+        "iPad16,10": "iPad Air 13-inch 8th Gen (WiFi)",
+        "iPad16,11": "iPad Air 13-inch 8th Gen (WiFi+Cellular)",
         "iPad16,2": "iPad mini 7th Gen (WiFi+Cellular)",
         "iPad16,3": "iPad Pro 11 inch 5th Gen (WiFi)",
         "iPad16,4": "iPad Pro 11 inch 5th Gen (WiFi+Cellular)",
         "iPad16,5": "iPad Pro 12.9 inch 7th Gen (WiFi)",
         "iPad16,6": "iPad Pro 12.9 inch 7th Gen (WiFi+Cellular)",
+        "iPad16,8": "iPad Air 11-inch 8th Gen (WiFi)",
+        "iPad16,9": "iPad Air 11-inch 8th Gen (WiFi+Cellular)",
         "iPad2,1": "2nd Gen iPad",
         "iPad2,2": "2nd Gen iPad GSM",
         "iPad2,3": "2nd Gen iPad CDMA",
