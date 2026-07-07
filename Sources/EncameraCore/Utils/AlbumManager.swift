@@ -191,6 +191,12 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             try? fileManager.removeItem(at: albumURL)
         }
 
+        // Remove the album's persisted metadata (including its hidden state) so
+        // it doesn't linger in places that read from the synced store / legacy
+        // UserDefaults — e.g. the Settings "Hidden Albums" list.
+        albumsSyncedStore?.deleteAlbum(name: album.name)
+        UserDefaultUtils.set(nil, forKey: .isAlbumHidden(name: album.name))
+
         albumOperationSubject.send(.albumDeleted(album: album))
         broadcastAlbumsUpdated()
         currentAlbum = fetchAlbumsFromFilesystem().first
