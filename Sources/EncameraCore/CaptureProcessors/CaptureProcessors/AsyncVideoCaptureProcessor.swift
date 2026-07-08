@@ -63,9 +63,26 @@ extension AsyncVideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
     
     public func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         debugPrint(outputFileURL)
-        
-        let cleartextVideo = try! InteractableMedia(underlyingMedia: [CleartextMedia(source: .url(outputFileURL), mediaType: .video, id: videoId)])
-        continuation?.resume(returning: cleartextVideo)
+
+        // AVFoundation reports a non-nil error even when the recording is usable
+        // (e.g. a clean user-initiated stop) via AVErrorRecordingSuccessfullyFinishedKey.
+        // Only treat it as a failure when the recording did not finish successfully —
+        // otherwise an interrupted recording was silently saved as a truncated clip.
+        if let error = error {
+            let finishedSuccessfully = (error as NSError)
+                .userInfo[AVErrorRecordingSuccessfullyFinishedKey] as? Bool ?? false
+            if !finishedSuccessfully {
+                continuation?.resume(throwing: error)
+                return
+            }
+        }
+
+        do {
+            let cleartextVideo = try InteractableMedia(underlyingMedia: [CleartextMedia(source: .url(outputFileURL), mediaType: .video, id: videoId)])
+            continuation?.resume(returning: cleartextVideo)
+        } catch {
+            continuation?.resume(throwing: error)
+        }
     }
     
     public func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {

@@ -175,6 +175,11 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         NotificationUtils.cameraDidStartRunningPublisher.sink { value in
             Task {
                 await self.zoomService.loadAvailableZoomFactors()
+                // On virtual multi-camera devices the default videoZoomFactor (1.0)
+                // is the ultra-wide lens. Snap to the 1x (wide-base) lens now that
+                // the session is running, so the camera starts at 1x rather than
+                // ultra-wide. Done here (after start) so the session can't reset it.
+                await self.set(zoom: .x1)
             }
         }.store(in: &cancellables)
 
@@ -266,6 +271,11 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
 
     private func performCameraTransition(to newCamera: AVCaptureDevice) throws {
         let newVideoDeviceInput = try AVCaptureDeviceInput(device: newCamera)
+
+        // Input changes must be wrapped in a configuration transaction; swapping
+        // the device input outside begin/commitConfiguration corrupts session state.
+        session.beginConfiguration()
+        defer { session.commitConfiguration() }
 
         // Remove the current video device input.
         if let videoDeviceInput = videoDeviceInput {
@@ -414,24 +424,28 @@ extension CameraConfigurationService {
     }
 
     public nonisolated func toggleTorch(on: Bool) {
-        guard let device = AVCaptureDevice.default(for: .video) else { return }
+        // Toggle the torch on the device that is actually attached to the running
+        // session. On hardware that uses a virtual multi-camera input (e.g.
+        // .builtInTripleCamera / .builtInDualWideCamera), AVCaptureDevice.default(for: .video)
+        // returns a *different* constituent device. Locking that constituent for the
+        // torch reconfigures the session and interrupts an in-flight video recording,
+        // which is why recording with flash on stopped after ~1 second.
+        let device = session.inputs
+            .compactMap { ($0 as? AVCaptureDeviceInput)?.device }
+            .first(where: { $0.hasMediaType(.video) })
+            ?? AVCaptureDevice.default(for: .video)
 
-        if device.hasTorch {
-            do {
-                try device.lockForConfiguration()
-
-                if on == true {
-                    device.torchMode = .on
-                } else {
-                    device.torchMode = .off
-                }
-
-                device.unlockForConfiguration()
-            } catch {
-                printDebug("Torch could not be used")
-            }
-        } else {
+        guard let device, device.hasTorch else {
             printDebug("Torch is not available")
+            return
+        }
+
+        do {
+            try device.lockForConfiguration()
+            device.torchMode = on ? .on : .off
+            device.unlockForConfiguration()
+        } catch {
+            printDebug("Torch could not be used")
         }
     }
 
