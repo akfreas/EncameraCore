@@ -841,3 +841,9 @@
 "BackgroundTaskProgress.IndexCompleted" = "تم تحسين مكتبة الصور";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "الألبومات المخفية في الكاميرا";
 "AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "اكتب لإنشاء أو فتح";
+"AlbumDetailView.ImportReasonUnsupportedFormat" = "تنسيق غير مدعوم";
+"AlbumDetailView.ImportPartialSkipToast" = "تم استيراد %@ من %@ ملفات. تم تخطي %@ (%@).";
+"AlbumDetailView.ImportReasonTranscodeFailed" = "تعذر التحويل";
+"AlbumDetailView.ImportFailedAlertTitle" = "فشل الاستيراد";
+"AlbumDetailView.ImportReasonReadError" = "تعذر قراءة الملف";
+"AlbumDetailView.ImportFailedAlertMessage" = "تعذر استيراد أي من الملفات المحددة (%@).";

@@ -856,3 +856,9 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "BackgroundTaskProgress.IndexCompleted" = "Biblioteca foto optimizată";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "Albume ascunse în Cameră";
 "AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "Tastează pentru a crea sau deschide";
+"AlbumDetailView.ImportReasonUnsupportedFormat" = "format neacceptat";
+"AlbumDetailView.ImportPartialSkipToast" = "S-au importat %@ din %@ fișiere. %@ omise (%@).";
+"AlbumDetailView.ImportReasonTranscodeFailed" = "nu a putut fi convertit";
+"AlbumDetailView.ImportFailedAlertTitle" = "Import nereușit";
+"AlbumDetailView.ImportReasonReadError" = "fișierul nu a putut fi citit";
+"AlbumDetailView.ImportFailedAlertMessage" = "Niciunul dintre fișierele selectate nu a putut fi importat (%@).";

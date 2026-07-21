@@ -990,3 +990,9 @@
 "BackgroundTaskProgress.IndexCompleted" = "Biblioteca de fotos optimizada";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "Álbumes ocultos en la cámara";
 "AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "Escribe para crear o abrir";
+"AlbumDetailView.ImportReasonUnsupportedFormat" = "formato no compatible";
+"AlbumDetailView.ImportPartialSkipToast" = "Se importaron %@ de %@ archivos. %@ omitidos (%@).";
+"AlbumDetailView.ImportReasonTranscodeFailed" = "no se pudo convertir";
+"AlbumDetailView.ImportFailedAlertTitle" = "Importación fallida";
+"AlbumDetailView.ImportReasonReadError" = "no se pudo leer el archivo";
+"AlbumDetailView.ImportFailedAlertMessage" = "Ninguno de los archivos seleccionados pudo ser importado (%@).";

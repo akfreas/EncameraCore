@@ -837,3 +837,9 @@
 "BackgroundTaskProgress.IndexCompleted" = "照片库已优化";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "相机中的隐藏相册";
 "AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "输入以创建或打开";
+"AlbumDetailView.ImportReasonUnsupportedFormat" = "不支持的格式";
+"AlbumDetailView.ImportPartialSkipToast" = "已导入 %@ 个文件，共 %@ 个。已跳过 %@ 个（%@）。";
+"AlbumDetailView.ImportReasonTranscodeFailed" = "无法转换";
+"AlbumDetailView.ImportFailedAlertTitle" = "导入失败";
+"AlbumDetailView.ImportReasonReadError" = "文件无法读取";
+"AlbumDetailView.ImportFailedAlertMessage" = "无法导入所选文件（%@）。";

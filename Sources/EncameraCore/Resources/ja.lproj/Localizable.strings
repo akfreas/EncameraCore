@@ -872,3 +872,9 @@
 "BackgroundTaskProgress.IndexCompleted" = "フォトライブラリが最適化されました";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "カメラの非表示アルバム";
 "AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "入力して作成または開く";
+"AlbumDetailView.ImportReasonUnsupportedFormat" = "サポートされていない形式";
+"AlbumDetailView.ImportPartialSkipToast" = "%@ 件中 %@ 件のファイルをインポートしました。%@ 件がスキップされました（%@）。";
+"AlbumDetailView.ImportReasonTranscodeFailed" = "変換できませんでした";
+"AlbumDetailView.ImportFailedAlertTitle" = "インポートに失敗しました";
+"AlbumDetailView.ImportReasonReadError" = "ファイルを読み込めませんでした";
+"AlbumDetailView.ImportFailedAlertMessage" = "選択されたファイルのいずれもインポートできませんでした（%@）。";

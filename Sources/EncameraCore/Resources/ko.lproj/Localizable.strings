@@ -860,3 +860,9 @@
 "BackgroundTaskProgress.IndexCompleted" = "사진 라이브러리 최적화됨";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "카메라의 숨김 앨범";
 "AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "입력하여 생성 또는 열기";
+"AlbumDetailView.ImportReasonUnsupportedFormat" = "지원되지 않는 형식";
+"AlbumDetailView.ImportPartialSkipToast" = "%@개의 파일 중 %@개를 가져왔습니다. %@개는 건너뜀(%@).";
+"AlbumDetailView.ImportReasonTranscodeFailed" = "변환할 수 없습니다";
+"AlbumDetailView.ImportFailedAlertTitle" = "가져오기 실패";
+"AlbumDetailView.ImportReasonReadError" = "파일을 읽을 수 없습니다";
+"AlbumDetailView.ImportFailedAlertMessage" = "선택한 파일 중 어떤 것도 가져올 수 없습니다(%@).";
