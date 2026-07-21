@@ -90,14 +90,14 @@ listing:
     Join us on Discord! Find the link to our Discord community in the settings view!
 
     New in this update:
-       Pinch to zoom in the camera: pinch the viewfinder to zoom smoothly in or out, with live magnification shown on the active zoom button
-       Hidden albums in the camera (opt-in): a new Settings toggle lets the camera album picker include hidden albums, and you can move media into or create a hidden album right from the Move sheet
-       Big albums load faster: thousands of photos now page in on demand instead of all at once, and your sort order sticks as you move between screens
-       Screen stays awake during imports: long media imports no longer get cut short by the screen going to sleep
+       Zoom while recording: adjust the zoom level during video recording without interrupting your clip
+       Refreshed camera controls: updated icons for the controls at the top of the camera view
 
     Bug fixes:
+       Steadier video recording: switching lenses, toggling the flash, or changing settings no longer interrupts or corrupts a recording in progress, and recording errors are surfaced instead of quietly saving a cut-off clip
+       Hidden album privacy in the camera: hidden albums no longer show a photo thumbnail in the camera, and it can no longer be tapped to open them
+       Deleted hidden albums no longer linger in the hidden-albums list in Settings
        Camera now opens at 1x instead of ultra-wide on multi-lens iPhones
-       Various stability and performance improvements
 
 limits:
   name: 30
