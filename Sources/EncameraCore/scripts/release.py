@@ -11,8 +11,10 @@ Preflights (cheap/local checks first, network calls last):
   3. Local RELEASE_BRANCH matches origin/RELEASE_BRANCH (no diverging commits).
   4. app_store.yml has changed since the last git tag (what's new updated).
   5. All .lproj files are in sync with en.lproj (no missing translations).
-  6. No TestFlight builds for the release version are still PROCESSING.
-  7. No active (PENDING/RUNNING) build runs on the "Build for TestFlight"
+  6. The version we're targeting lines up everywhere: project.yml
+     marketing_version == the editable ASC version == a VALID TestFlight build.
+  7. No TestFlight builds for the release version are still PROCESSING.
+  8. No active (PENDING/RUNNING) build runs on the "Build for TestFlight"
      Xcode Cloud workflow.
 
 Release steps (after preflights pass):
@@ -31,6 +33,7 @@ Requires the `asc` library: pip install -e scripts/asc
 """
 
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -44,7 +47,7 @@ try:
         set_version_release_type,
         submit_for_review,
     )
-    from asc.testflight import list_builds_for_version
+    from asc.testflight import list_builds_for_version, list_builds_with_versions
     from asc.xcode_cloud.build_runs import list_build_runs_for_workflow
 except ImportError:
     print("Missing required package 'asc'. Install with: pip install -e scripts/asc")
@@ -52,6 +55,10 @@ except ImportError:
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[3]
+# project.yml holds the single source of truth for the marketing version the
+# binary is stamped with (x-version-settings.marketing_version). The release
+# must target exactly this version on ASC and TestFlight.
+PROJECT_YML = REPO_ROOT / "project.yml"
 APP_STORE_YML = SCRIPT_DIR / "app_store_localization" / "app_store.yml"
 EN_LPROJ = SCRIPT_DIR.parent / "Resources" / "en.lproj"
 LOCALIZATION_DIR = SCRIPT_DIR / "app_store_localization"
@@ -73,6 +80,30 @@ sys.path.insert(0, str(LOCALIZATION_DIR))
 def confirm(prompt):
     """Prompt y/N; return True on y/yes, False otherwise (default No)."""
     return input(f"{prompt} (y/N): ").strip().lower() in ("y", "yes")
+
+
+def read_marketing_version(project_yml=PROJECT_YML):
+    """Return the marketing_version string from project.yml, or None if unreadable.
+
+    Reads the ``x-version-settings.marketing_version`` YAML anchor line
+    directly with a regex rather than parsing the whole file — project.yml is an
+    XcodeGen spec that yaml.safe_load chokes on (custom !-tags / anchors), and
+    this value is the single source of truth for the version the binary carries.
+    """
+    try:
+        text = project_yml.read_text()
+    except OSError as e:
+        print(f"  could not read {project_yml}: {e}")
+        return None
+    m = re.search(
+        r'^\s*marketing_version:\s*&\w+\s*"?([^"\s]+)"?',
+        text,
+        re.MULTILINE,
+    )
+    if not m:
+        print(f"  could not find marketing_version in {project_yml}")
+        return None
+    return m.group(1)
 
 
 def resolve_credentials_path(arg_path):
@@ -247,6 +278,68 @@ def preflight_strings_in_sync(en_lproj):
             print(f"  {lang_code} missing {len(info['missing_keys'])} key(s)")
         return False
     return True
+
+
+def preflight_target_version_matches(client, app_id, version_string, marketing_version):
+    """True if the target version is consistent across repo, ASC, and TestFlight.
+
+    Three things must agree, or we'd cut a release for the wrong version:
+      1. project.yml ``marketing_version`` (what the binary is stamped with)
+         equals the editable ASC ``version_string`` we're about to release.
+      2. TestFlight has at least one VALID (fully processed) build whose
+         marketing version equals ``version_string`` — i.e. a build we can
+         actually attach and submit.
+
+    Prints the specific mismatch and returns False on any disagreement.
+    """
+    ok = True
+
+    if marketing_version is None:
+        # read_marketing_version already printed why.
+        ok = False
+    elif marketing_version != version_string:
+        print(
+            f"  MISMATCH: project.yml marketing_version is {marketing_version}, "
+            f"but the editable ASC version is {version_string}. "
+            "Bump marketing_version in project.yml (or fix the ASC version) so they match."
+        )
+        ok = False
+    else:
+        print(f"  project.yml marketing_version {marketing_version} matches ASC version")
+
+    valid = list_builds_for_version(
+        client, app_id, version_string, processing_state="VALID"
+    )
+    if not valid:
+        print(
+            f"  MISMATCH: no VALID TestFlight build found for v{version_string}. "
+            "The version on TestFlight does not match the version being released — "
+            "wait for the matching build to finish processing (or upload it)."
+        )
+        # Surface what IS on TestFlight so the mismatch is obvious.
+        others = list_builds_with_versions(client, app_id, limit=20)
+        seen = []
+        for b in others:
+            v = b.get("_app_version")
+            state = b.get("attributes", {}).get("processingState")
+            if v and (v, state) not in seen:
+                seen.append((v, state))
+        if seen:
+            print("  TestFlight currently has builds for:")
+            for v, state in seen[:10]:
+                print(f"    v{v} ({state})")
+        ok = False
+    else:
+        newest = max(
+            valid, key=lambda b: b.get("attributes", {}).get("uploadedDate") or ""
+        )
+        attrs = newest.get("attributes", {})
+        print(
+            f"  VALID TestFlight build for v{version_string}: "
+            f"{attrs.get('version')} (uploaded {attrs.get('uploadedDate')})"
+        )
+
+    return ok
 
 
 def preflight_no_pending_builds(client, app_id, version_string):
@@ -443,7 +536,7 @@ def main():
     print()
 
     if not args.skip_preflights:
-        print(f"[1/7] On the {RELEASE_BRANCH} branch?")
+        print(f"[1/8] On the {RELEASE_BRANCH} branch?")
         if not preflight_on_release_branch():
             print(
                 f"  FAIL: releases must be cut from {RELEASE_BRANCH}. "
@@ -454,7 +547,7 @@ def main():
         print("  OK")
         print()
 
-        print("[2/7] Working tree clean (no staged or unstaged changes)?")
+        print("[2/8] Working tree clean (no staged or unstaged changes)?")
         if not preflight_clean_tree():
             print(
                 "  FAIL: working tree has uncommitted changes. Commit or stash them "
@@ -464,7 +557,7 @@ def main():
         print("  OK")
         print()
 
-        print(f"[3/7] Local {RELEASE_BRANCH} matches {ORIGIN_RELEASE_BRANCH}?")
+        print(f"[3/8] Local {RELEASE_BRANCH} matches {ORIGIN_RELEASE_BRANCH}?")
         if not preflight_local_release_matches_remote():
             print(
                 f"  FAIL: local {RELEASE_BRANCH} has diverged from {ORIGIN_RELEASE_BRANCH}. "
@@ -474,7 +567,7 @@ def main():
         print("  OK")
         print()
 
-        print(f"[4/7] app_store.yml changed since tag {last_tag}?")
+        print(f"[4/8] app_store.yml changed since tag {last_tag}?")
         yml_changed = preflight_app_store_yml_changed(APP_STORE_YML, last_tag)
         if yml_changed is None:
             print("  FAIL: could not run git diff — check REPO_ROOT and tag validity.")
@@ -489,7 +582,7 @@ def main():
         print("  OK")
         print()
 
-        print("[5/7] All .lproj files in sync with en.lproj?")
+        print("[5/8] All .lproj files in sync with en.lproj?")
         if not preflight_strings_in_sync(EN_LPROJ):
             print(
                 "  FAIL: missing translations. Run scripts/string_diff.py to "
@@ -527,7 +620,24 @@ def main():
     print()
 
     if not args.skip_preflights:
-        print(f"[6/7] No PROCESSING TestFlight builds for v{version_string}?")
+        marketing_version = read_marketing_version()
+        print(
+            f"[6/8] Target version matches everywhere "
+            f"(project.yml {marketing_version or '?'} == ASC {version_string} == a VALID build)?"
+        )
+        if not preflight_target_version_matches(
+            client, app_id, version_string, marketing_version
+        ):
+            print(
+                "  FAIL: the version we're releasing does not line up across "
+                "project.yml, App Store Connect, and TestFlight. Reconcile them "
+                "before releasing — see the mismatch above."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+
+        print(f"[7/8] No PROCESSING TestFlight builds for v{version_string}?")
         if not preflight_no_pending_builds(client, app_id, version_string):
             print(
                 "  FAIL: there are TestFlight builds still being processed by Apple. "
@@ -537,7 +647,7 @@ def main():
         print("  OK")
         print()
 
-        print("[7/7] No active build runs on the TestFlight Xcode Cloud workflow?")
+        print("[8/8] No active build runs on the TestFlight Xcode Cloud workflow?")
         if not preflight_no_active_xcode_cloud_builds(client, TESTFLIGHT_WORKFLOW_ID):
             print(
                 "  FAIL: an Xcode Cloud build is still running on the TestFlight "
