@@ -8,11 +8,20 @@ python release.py [--credentials PATH] [--skip-preflights] [--dry-run]
 
 ## Setup
 
-The script uses the editable `asc` library and the `Localizer` class from `app_store_localization/localize.py`. The existing `app_store_localization/venv` (or any venv that has `-e ../asc` installed) works:
+The script uses the editable `asc` library and the `Localizer` class from `app_store_localization/localize.py`. All dependencies for every script in this directory live in one virtualenv at `scripts/.venv`, built from `scripts/requirements.txt`. Create it once with:
 
 ```bash
-source app_store_localization/venv/bin/activate
+python3.11 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+
+Then run the release driver with it:
+
+```bash
+source .venv/bin/activate
 python release.py --dry-run
+# or, without activating:
+.venv/bin/python release.py --dry-run
 ```
 
 The first run should be `--dry-run` — it prints the planned release without touching ASC or git.

@@ -6,9 +6,9 @@ Run:
     python release.py [--credentials PATH] [--skip-preflights] [--dry-run] [--interactive]
 
 Preflights (cheap/local checks first, network calls last):
-  1. HEAD is on the 'main' branch.
+  1. HEAD is on RELEASE_BRANCH (see module constants).
   2. Working tree has no staged/unstaged changes.
-  3. Local main matches origin/main (no diverging commits).
+  3. Local RELEASE_BRANCH matches origin/RELEASE_BRANCH (no diverging commits).
   4. app_store.yml has changed since the last git tag (what's new updated).
   5. All .lproj files are in sync with en.lproj (no missing translations).
   6. No TestFlight builds for the release version are still PROCESSING.
@@ -62,6 +62,10 @@ LOCALIZATION_DIR = SCRIPT_DIR / "app_store_localization"
 TESTFLIGHT_WORKFLOW_ID = "0fe065ac-1630-4bd4-9158-c43af076cbd9"
 ACTIVE_BUILD_PROGRESS = {"PENDING", "RUNNING"}
 
+# Git branch releases are cut from; local must match origin/<RELEASE_BRANCH>.
+RELEASE_BRANCH = "release"
+ORIGIN_RELEASE_BRANCH = f"origin/{RELEASE_BRANCH}"
+
 # Make Localizer importable
 sys.path.insert(0, str(LOCALIZATION_DIR))
 
@@ -92,10 +96,10 @@ def resolve_credentials_path(arg_path):
 # --- preflights ---------------------------------------------------------------
 
 
-def preflight_on_main_branch():
-    """True if HEAD is on the 'main' branch.
+def preflight_on_release_branch():
+    f"""True if HEAD is on the '{RELEASE_BRANCH}' branch.
 
-    Releases must be cut from main — if HEAD is on a feature branch (or detached),
+    Releases must be cut from {RELEASE_BRANCH} — if HEAD is on a feature branch (or detached),
     the tag would land in the wrong place.
     """
     result = subprocess.run(
@@ -106,7 +110,7 @@ def preflight_on_main_branch():
         check=True,
     )
     branch = result.stdout.strip()
-    if branch != "main":
+    if branch != RELEASE_BRANCH:
         print(f"  current branch: {branch}")
         return False
     return True
@@ -142,40 +146,40 @@ def preflight_clean_tree():
     return False
 
 
-def preflight_local_main_matches_remote():
-    """True if local main is at the same commit as origin/main.
+def preflight_local_release_matches_remote():
+    f"""True if local {RELEASE_BRANCH} is at the same commit as {ORIGIN_RELEASE_BRANCH}.
 
-    Runs `git fetch origin main` first so the comparison reflects the current
+    Runs `git fetch origin {RELEASE_BRANCH}` first so the comparison reflects the current
     remote state, not a stale FETCH_HEAD. Returns False if local is ahead,
     behind, or diverged.
     """
     fetch = subprocess.run(
-        ["git", "fetch", "origin", "main"],
+        ["git", "fetch", "origin", RELEASE_BRANCH],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         check=False,
     )
     if fetch.returncode != 0:
-        print(f"  git fetch origin main failed: {fetch.stderr.strip()}")
+        print(f"  git fetch origin {RELEASE_BRANCH} failed: {fetch.stderr.strip()}")
         return False
 
     local = subprocess.run(
-        ["git", "rev-parse", "main"],
+        ["git", "rev-parse", RELEASE_BRANCH],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         check=False,
     )
     remote = subprocess.run(
-        ["git", "rev-parse", "origin/main"],
+        ["git", "rev-parse", ORIGIN_RELEASE_BRANCH],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         check=False,
     )
     if local.returncode != 0 or remote.returncode != 0:
-        print("  could not resolve main / origin/main SHAs")
+        print(f"  could not resolve {RELEASE_BRANCH} / {ORIGIN_RELEASE_BRANCH} SHAs")
         return False
 
     local_sha = local.stdout.strip()
@@ -183,8 +187,9 @@ def preflight_local_main_matches_remote():
     if local_sha == remote_sha:
         return True
 
+    rev_range = f"{RELEASE_BRANCH}...{ORIGIN_RELEASE_BRANCH}"
     counts = subprocess.run(
-        ["git", "rev-list", "--left-right", "--count", "main...origin/main"],
+        ["git", "rev-list", "--left-right", "--count", rev_range],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
@@ -192,7 +197,10 @@ def preflight_local_main_matches_remote():
     )
     if counts.returncode == 0:
         ahead, behind = counts.stdout.strip().split()
-        print(f"  local main is ahead {ahead}, behind {behind} vs origin/main")
+        print(
+            f"  local {RELEASE_BRANCH} is ahead {ahead}, behind {behind} "
+            f"vs {ORIGIN_RELEASE_BRANCH}"
+        )
     print(f"  local  {local_sha}")
     print(f"  remote {remote_sha}")
     return False
@@ -435,10 +443,11 @@ def main():
     print()
 
     if not args.skip_preflights:
-        print("[1/7] On the main branch?")
-        if not preflight_on_main_branch():
+        print(f"[1/7] On the {RELEASE_BRANCH} branch?")
+        if not preflight_on_release_branch():
             print(
-                "  FAIL: releases must be cut from main. Merge to main and re-run, "
+                f"  FAIL: releases must be cut from {RELEASE_BRANCH}. "
+                f"Check out {RELEASE_BRANCH} and re-run, "
                 "or use --skip-preflights if you really know what you're doing."
             )
             sys.exit(1)
@@ -455,11 +464,11 @@ def main():
         print("  OK")
         print()
 
-        print("[3/7] Local main matches origin/main?")
-        if not preflight_local_main_matches_remote():
+        print(f"[3/7] Local {RELEASE_BRANCH} matches {ORIGIN_RELEASE_BRANCH}?")
+        if not preflight_local_release_matches_remote():
             print(
-                "  FAIL: local main has diverged from origin/main. Push or pull "
-                "so they match before releasing — the tag must point at what's on origin."
+                f"  FAIL: local {RELEASE_BRANCH} has diverged from {ORIGIN_RELEASE_BRANCH}. "
+                "Push or pull so they match before releasing — the tag must point at what's on origin."
             )
             sys.exit(1)
         print("  OK")
