@@ -120,11 +120,10 @@ public class AppGroupFileAccess: DebugPrintable {
                 options: [.skipsHiddenFiles]
             )
             
-            let supportedExtensions = MediaType.supportedMediaFileExtensions.map { $0.lowercased() }
             let filteredURLs = fileURLs.filter { url in
-                supportedExtensions.contains(url.pathExtension.lowercased())
+                MediaType.from(url: url) != .unknown
             }
-            
+
             let media = filteredURLs.map { url -> CleartextMedia in
                 var cleartextMedia = CleartextMedia(source: url)
                 // Try to get creation date for timestamp
@@ -155,9 +154,8 @@ public class AppGroupFileAccess: DebugPrintable {
                 options: [.skipsHiddenFiles]
             )
             
-            let supportedExtensions = MediaType.supportedMediaFileExtensions.map { $0.lowercased() }
             let count = fileURLs.filter { url in
-                supportedExtensions.contains(url.pathExtension.lowercased())
+                MediaType.from(url: url) != .unknown
             }.count
             
             return count

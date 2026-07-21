@@ -836,6 +836,22 @@ public enum L10n {
     public static let hideAlbumMenuItem = L10n.tr("Localizable", "AlbumDetailView.HideAlbumMenuItem", fallback: "Hide Album")
     /// Import Pictures
     public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Pictures")
+    /// None of the selected files could be imported (%@).
+    public static func importFailedAlertMessage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.ImportFailedAlertMessage", String(describing: p1), fallback: "None of the selected files could be imported (%@).")
+    }
+    /// Import Failed
+    public static let importFailedAlertTitle = L10n.tr("Localizable", "AlbumDetailView.ImportFailedAlertTitle", fallback: "Import Failed")
+    /// Imported %@ of %@ files. %@ skipped (%@).
+    public static func importPartialSkipToast(_ p1: Any, _ p2: Any, _ p3: Any, _ p4: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.ImportPartialSkipToast", String(describing: p1), String(describing: p2), String(describing: p3), String(describing: p4), fallback: "Imported %@ of %@ files. %@ skipped (%@).")
+    }
+    /// file could not be read
+    public static let importReasonReadError = L10n.tr("Localizable", "AlbumDetailView.ImportReasonReadError", fallback: "file could not be read")
+    /// could not be converted
+    public static let importReasonTranscodeFailed = L10n.tr("Localizable", "AlbumDetailView.ImportReasonTranscodeFailed", fallback: "could not be converted")
+    /// unsupported format
+    public static let importReasonUnsupportedFormat = L10n.tr("Localizable", "AlbumDetailView.ImportReasonUnsupportedFormat", fallback: "unsupported format")
     /// Leave the app open and connected to WiFi for best results.
     public static let largeImportWarningMessage = L10n.tr("Localizable", "AlbumDetailView.LargeImportWarningMessage", fallback: "Leave the app open and connected to WiFi for best results.")
     /// For Faster Imports

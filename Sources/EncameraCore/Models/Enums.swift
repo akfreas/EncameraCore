@@ -16,51 +16,24 @@ public enum MediaType: Int, CaseIterable, Codable {
     case unknown
     case preview
     
-    public static var supportedMediaFileExtensions: [String] {
-        supportedMovieFileExtensions + supportedPhotoFileExtensions
-    }
-    
-    public static var supportedMovieFileExtensions: [String] {
-        supportedMovieFileTypes.map({$0.preferredFilenameExtension}).compactMap({$0})
-    }
-    
-    public static var supportedPhotoFileExtensions: [String] {
-        supportedPhotoFileTypes.map({$0.preferredFilenameExtension}).compactMap({$0}) + ["jpg"]
-    }
-    public static var supportedPhotoFileTypes: [UTType] {
-        [
-            UTType.image,
-            UTType.jpeg,
-            UTType.png,
-            UTType.heic
-        ]
-    }
-    
-    
-    
-    public static var supportedMovieFileTypes: [UTType] {
-        [
-            UTType.quickTimeMovie,
-            UTType.mpeg4Movie,
-            UTType.mpeg2Video
-        ]
-    }
-    
-    public static var mediaTypeMappings: [String: MediaType] {
-        var mapping: [String: MediaType] = [:]
-        
-        for extensionString in supportedPhotoFileExtensions {
-            mapping[extensionString] = .photo
+    /// Classifies a file URL as `.photo`, `.video`, or `.unknown` by the file
+    /// type's UTType conformance rather than a hardcoded extension whitelist, so
+    /// any image/video format the OS understands is recognized. This is the
+    /// single source of truth for cleartext type detection and mirrors the type
+    /// decision in `MediaTranscoder.normalizeForImport`.
+    public static func from(url: URL) -> MediaType {
+        guard let utType = UTType(filenameExtension: url.pathExtension.lowercased()) else {
+            return .unknown
         }
-        
-        for extensionString in supportedMovieFileExtensions {
-            mapping[extensionString] = .video
+        if utType.conforms(to: .image) {
+            return .photo
         }
-        
-        
-        return mapping
+        if utType.conforms(to: .movie) || utType.conforms(to: .video) {
+            return .video
+        }
+        return .unknown
     }
-    
+
     public static func typeFromMedia<T: MediaDescribing>(source: T) -> MediaType {
 
 
@@ -96,13 +69,7 @@ public enum MediaType: Int, CaseIterable, Codable {
     
     private static func typeFrom(media: CleartextMedia) -> MediaType {
         if case .url(let url) = media.source {
-            let pathExtension = url.pathExtension.lowercased()
-
-            guard let mapped = MediaType.mediaTypeMappings[pathExtension] else {
-                return .unknown
-            }
-
-            return mapped
+            return from(url: url)
         }
         return .photo
     }

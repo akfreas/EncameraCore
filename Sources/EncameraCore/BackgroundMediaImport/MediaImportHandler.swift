@@ -33,6 +33,38 @@ enum ImportMediaSource {
     }
 }
 
+// MARK: - Import Result Summary
+
+/// Details of a single media group that failed to import. Carries the media id
+/// and the underlying error so callers can surface a reason to the user (ENC-65)
+/// and classify it for analytics (ENC-66).
+///
+/// `@unchecked Sendable`: the wrapped `Error` values here are immutable enum/value
+/// errors, so they are safe to hand back through a throwing task group.
+public struct ImportItemFailure: @unchecked Sendable {
+    public let id: String
+    public let error: Error
+
+    public init(id: String, error: Error) {
+        self.id = id
+        self.error = error
+    }
+}
+
+/// The outcome of an import run: how many media groups succeeded, how many failed,
+/// and the per-item failure details for the fault-tolerant (preloaded) path.
+public struct ImportResultSummary: Sendable {
+    public let success: Int
+    public let failure: Int
+    public let failedItems: [ImportItemFailure]
+
+    public init(success: Int, failure: Int, failedItems: [ImportItemFailure] = []) {
+        self.success = success
+        self.failure = failure
+        self.failedItems = failedItems
+    }
+}
+
 // MARK: - Media Import Handler
 
 /// Handles all import-specific logic for importing media into encrypted albums.
@@ -89,11 +121,15 @@ public class MediaImportHandler: DebugPrintable {
         )
         
         // Execute using unified infrastructure with streaming mode
-        return try await executeImportTask(task, mediaSource: .streaming(results))
+        let summary = try await executeImportTask(task, mediaSource: .streaming(results))
+        return (summary.success, summary.failure)
     }
     
-    /// Start import from preloaded media (e.g., from Files app or Share Extension)
-    public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = [], userBatchId: String? = nil) async throws {
+    /// Start import from preloaded media (e.g., from Files app or Share Extension).
+    /// Returns a summary of successful and failed imports, including per-item failure
+    /// details so callers can surface skipped files to the user and to analytics.
+    @discardableResult
+    public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = [], userBatchId: String? = nil) async throws -> ImportResultSummary {
         printDebug("Starting import for \(media.count) media items to album: \(albumId) from source: \(source.rawValue) with \(assetIdentifiers.count) asset identifiers")
         
         // Validate configuration upfront
@@ -122,7 +158,7 @@ public class MediaImportHandler: DebugPrintable {
         )
         
         // Execute using unified infrastructure with preloaded mode
-        try await executeImportTask(task, mediaSource: .preloaded(media))
+        return try await executeImportTask(task, mediaSource: .preloaded(media))
     }
     
     /// Pauses an in-progress import task
@@ -213,41 +249,47 @@ public class MediaImportHandler: DebugPrintable {
     
     /// Unified import task execution that supports both preloaded and streaming modes.
     @discardableResult
-    private func executeImportTask(_ task: ImportTask, mediaSource: ImportMediaSource) async throws -> (success: Int, failure: Int) {
+    private func executeImportTask(_ task: ImportTask, mediaSource: ImportMediaSource) async throws -> ImportResultSummary {
         printDebug("Executing import task: \(task.id) with source: \(mediaSource.count) items")
-        
+
         let album = try validateAndGetAlbum(albumId: task.albumId)
         guard let albumManager = albumManager else {
             throw BackgroundImportError.configurationError
         }
-        
+
         taskManager.markTaskRunning(taskId: task.id)
-        
+
         printDebug("Starting background task for import: \(task.id)")
         startBackgroundTask()
         taskManager.resetTimeEstimationState()
-        
+
         var successCount = 0
         var failureCount = 0
+        var failedItems: [ImportItemFailure] = []
         var collectedAssetIdentifiers: [String] = []
         var wasCancelled = false
-        
+        // Preloaded (Files/Share) imports are fault-tolerant per item and finalize
+        // completed-with-failures; only an all-failures batch finalizes as failed.
+        let isPreloaded: Bool
+        if case .preloaded = mediaSource { isPreloaded = true } else { isPreloaded = false }
+
         currentImportTask = Task {
             let fileAccess = await InteractableMediaDiskAccess(for: album, albumManager: albumManager)
-            
             switch mediaSource {
             case .preloaded(let media):
-                try await performBatchImport(task: task, media: media, fileAccess: fileAccess)
-                successCount = task.uniqueMediaCount
+                let summary = try await performBatchImport(task: task, media: media, fileAccess: fileAccess)
+                successCount = summary.success
+                failureCount = summary.failure
+                failedItems = summary.failedItems
                 // For preloaded imports, asset identifiers are already set on the task
                 collectedAssetIdentifiers = task.assetIdentifiers
-                
+
             case .streaming(let results):
                 let counts = try await performStreamingImport(task: task, results: results, fileAccess: fileAccess)
                 successCount = counts.success
                 failureCount = counts.failure
                 collectedAssetIdentifiers = counts.assetIdentifiers
-                
+
                 // Check if we were cancelled (fewer successes than total results)
                 // This happens when the streaming loop breaks early due to cancellation
                 if successCount + failureCount < results.count {
@@ -255,17 +297,26 @@ public class MediaImportHandler: DebugPrintable {
                 }
             }
         }
-        
+
         do {
             try await currentImportTask?.value
-            
+
             await MainActor.run {
                 // Check if the task was cancelled during streaming (early exit from loop)
                 if wasCancelled {
                     self.printDebug("Streaming import was cancelled with \(collectedAssetIdentifiers.count) partial imports")
                     self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: collectedAssetIdentifiers)
+                } else if isPreloaded && successCount == 0 && failureCount > 0 {
+                    // Every item in the batch failed — finalize as failed rather than
+                    // a completed-with-failures partial success.
+                    self.printDebug("Batch import had \(failureCount) failures and no successes - finalizing failed")
+                    self.taskManager.finalizeTaskFailed(taskId: task.id, error: BackgroundImportError.allImportsFailed(failureCount: failureCount))
                 } else {
-                    self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: mediaSource.count, assetIdentifiers: collectedAssetIdentifiers)
+                    // Completed, possibly with per-item failures (partial success).
+                    // For partial success, report the succeeded count; empty/no-op and
+                    // streaming imports keep the full source count.
+                    let completedItems = (isPreloaded && successCount > 0) ? successCount : mediaSource.count
+                    self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: completedItems, assetIdentifiers: collectedAssetIdentifiers)
                 }
                 self.endBackgroundTask()
                 self.cleanupTempFilesIfSafe()
@@ -291,57 +342,94 @@ public class MediaImportHandler: DebugPrintable {
             throw error
         }
         
-        return (successCount, failureCount)
+        return ImportResultSummary(success: successCount, failure: failureCount, failedItems: failedItems)
     }
-    
+
     /// Legacy overload for backward compatibility with resumeImport
     private func executeImportTask(_ task: ImportTask) async throws {
-        try await executeImportTask(task, mediaSource: .preloaded(task.media))
+        _ = try await executeImportTask(task, mediaSource: .preloaded(task.media))
     }
     
+    /// Outcome of importing a single media group within a batch.
+    private enum MediaGroupOutcome: Sendable {
+        case success
+        case failure(ImportItemFailure)
+    }
+
     /// Performs batch import for preloaded media with concurrent processing.
-    private func performBatchImport(task: ImportTask, media: [CleartextMedia], fileAccess: FileAccess) async throws {
+    ///
+    /// Fault-tolerant per media group: a group that fails to import is recorded and
+    /// skipped instead of aborting the whole task, mirroring the streaming path's
+    /// per-item catch. Cancellation still propagates so pause/cancel halt the import.
+    private func performBatchImport(task: ImportTask, media: [CleartextMedia], fileAccess: FileAccess) async throws -> ImportResultSummary {
         printDebug("Performing batch import for task: \(task.id)")
         let startTime = Date()
         var processedGroups = 0
-        
+        var successCount = 0
+        var failedItems: [ImportItemFailure] = []
+
         let mediaGroups = groupMediaById(media)
         let totalGroups = mediaGroups.count
         printDebug("Grouped \(media.count) media items into \(totalGroups) groups (live photos count as 1)")
-        
+
         let batchSize = 3
         let batches = mediaGroups.chunked(into: batchSize)
         printDebug("Processing \(batches.count) batches of size \(batchSize)")
-        
+
         for (batchIndex, batch) in batches.enumerated() {
             // Check for cancellation before processing each batch
             try Task.checkCancellation()
             printDebug("Processing batch \(batchIndex + 1)/\(batches.count) with \(batch.count) media groups")
-            
-            try await withThrowingTaskGroup(of: Void.self) { group in
+
+            let outcomes = try await withThrowingTaskGroup(of: MediaGroupOutcome.self) { group -> [MediaGroupOutcome] in
                 for (groupIndex, mediaGroup) in batch.enumerated() {
                     group.addTask {
                         let globalIndex = batchIndex * batchSize + groupIndex
-                        try await self.processMediaGroup(
-                            mediaGroup: mediaGroup,
-                            fileAccess: fileAccess,
-                            task: task,
-                            groupIndex: globalIndex,
-                            totalGroups: totalGroups,
-                            startTime: startTime,
-                            processedGroups: processedGroups
-                        )
+                        let mediaId = mediaGroup.first?.id ?? "unknown"
+                        do {
+                            try await self.processMediaGroup(
+                                mediaGroup: mediaGroup,
+                                fileAccess: fileAccess,
+                                task: task,
+                                groupIndex: globalIndex,
+                                totalGroups: totalGroups,
+                                startTime: startTime,
+                                processedGroups: processedGroups
+                            )
+                            return .success
+                        } catch is CancellationError {
+                            // Let cancellation abort the whole import (pause/cancel).
+                            throw CancellationError()
+                        } catch {
+                            // Record the per-item failure and keep the batch going.
+                            self.printDebug("❌ Skipping media \(mediaId): \(error)")
+                            return .failure(ImportItemFailure(id: mediaId, error: error))
+                        }
                     }
                 }
-                
-                try await group.waitForAll()
+
+                var collected: [MediaGroupOutcome] = []
+                for try await outcome in group {
+                    collected.append(outcome)
+                }
+                return collected
             }
-            
+
+            for outcome in outcomes {
+                switch outcome {
+                case .success:
+                    successCount += 1
+                case .failure(let failure):
+                    failedItems.append(failure)
+                }
+            }
+
             processedGroups += batch.count
             printDebug("Completed batch \(batchIndex + 1)/\(batches.count), total processed: \(processedGroups)/\(totalGroups)")
         }
-        
-        printDebug("Batch import completed for task: \(task.id)")
+
+        printDebug("Batch import completed for task: \(task.id) - success: \(successCount), failed: \(failedItems.count)")
+        return ImportResultSummary(success: successCount, failure: failedItems.count, failedItems: failedItems)
     }
     
     /// Performs streaming import for MediaSelectionResults with sequential processing.

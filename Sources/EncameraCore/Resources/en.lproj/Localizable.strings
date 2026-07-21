@@ -178,6 +178,12 @@
 "AlbumDetailView.OpenSettings" = "Open Settings";
 "AlbumDetailView.LargeImportWarningTitle" = "For Faster Imports";
 "AlbumDetailView.LargeImportWarningMessage" = "Leave the app open and connected to WiFi for best results.";
+"AlbumDetailView.ImportPartialSkipToast" = "Imported %@ of %@ files. %@ skipped (%@).";
+"AlbumDetailView.ImportFailedAlertTitle" = "Import Failed";
+"AlbumDetailView.ImportFailedAlertMessage" = "None of the selected files could be imported (%@).";
+"AlbumDetailView.ImportReasonUnsupportedFormat" = "unsupported format";
+"AlbumDetailView.ImportReasonTranscodeFailed" = "could not be converted";
+"AlbumDetailView.ImportReasonReadError" = "file could not be read";
 "OK" = "OK";
 /* ./Encamera/KeyManagement/AlbumCell.swift */
 "Active" = "Active";

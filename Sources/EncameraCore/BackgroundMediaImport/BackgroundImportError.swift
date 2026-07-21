@@ -19,4 +19,7 @@ public enum BackgroundImportError: Error {
     case taskNotFound
     case operationCancelled
     case mismatchedType
+    /// Every item in a batch import failed, so the task is finalized as failed
+    /// rather than completed-with-failures.
+    case allImportsFailed(failureCount: Int)
 }

@@ -30,7 +30,8 @@ let package = Package(
         ),
         .testTarget(
             name: "EncameraCoreTests",
-            dependencies: ["EncameraCore"]
+            dependencies: ["EncameraCore"],
+            resources: [.copy("Fixtures")]
         )
     ]
 )
