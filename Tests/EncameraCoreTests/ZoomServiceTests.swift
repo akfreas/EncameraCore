@@ -31,6 +31,7 @@ private final class MockZoomableDevice: ZoomableDevice {
 private final class MockZoomServiceDelegate: ZoomServiceDelegate {
     var updatedZoomLevels: [ZoomLevel]?
     var updatedWideBaseZoomFactor: CGFloat?
+    var updatedVideoZoomFactor: CGFloat?
 
     func zoomService(_ service: ZoomService, didUpdateZoomLevels levels: [ZoomLevel]) {
         updatedZoomLevels = levels
@@ -38,6 +39,10 @@ private final class MockZoomServiceDelegate: ZoomServiceDelegate {
 
     func zoomService(_ service: ZoomService, didUpdateWideBaseZoomFactor factor: CGFloat) {
         updatedWideBaseZoomFactor = factor
+    }
+
+    func zoomService(_ service: ZoomService, didUpdateVideoZoomFactor factor: CGFloat) {
+        updatedVideoZoomFactor = factor
     }
 }
 
@@ -197,6 +202,66 @@ final class ZoomServiceTests: XCTestCase {
     func testNearestAvailableZoomLevel_emptyMap() {
         let result = sut.nearestAvailableZoomLevel(forVideoZoomFactor: 2.0)
         XCTAssertNil(result, "Should return nil when zoom factor map is empty")
+    }
+
+    // MARK: - Zoom Target (ENC-115)
+
+    func testSetZoom_recordsTarget() {
+        configureTripleCamera()
+        sut.loadAvailableZoomFactors()
+
+        sut.set(zoom: .x1)
+
+        XCTAssertEqual(sut.targetVideoZoomFactor, 2.0, "A discrete zoom request must become the target")
+        XCTAssertEqual(mockDevice.videoZoomFactor, 2.0)
+    }
+
+    func testSetContinuousZoom_recordsTarget() {
+        configureTripleCamera()
+        sut.loadAvailableZoomFactors()
+
+        sut.setContinuousZoom(factor: 3.0)
+
+        XCTAssertEqual(sut.targetVideoZoomFactor, 3.0, "A continuous zoom request must become the target")
+        XCTAssertEqual(mockDevice.videoZoomFactor, 3.0)
+    }
+
+    func testApplyTarget_restoresAfterExternalReset() {
+        configureTripleCamera()
+        sut.loadAvailableZoomFactors()
+        sut.set(zoom: .x1)
+        XCTAssertEqual(mockDevice.videoZoomFactor, 2.0)
+
+        // Simulate AVFoundation resetting the factor (activeFormat change,
+        // session reconfiguration) back to the ultra-wide default.
+        mockDevice.videoZoomFactor = 1.0
+
+        sut.applyTarget()
+
+        XCTAssertEqual(mockDevice.videoZoomFactor, 2.0, "The configuration-transaction postcondition must restore the target")
+    }
+
+    func testApplyTarget_noopWithoutTarget() {
+        configureTripleCamera()
+        sut.loadAvailableZoomFactors()
+
+        sut.applyTarget()
+
+        XCTAssertEqual(mockDevice.lockForConfigurationCallCount, 0, "No device write before the first zoom request")
+        XCTAssertEqual(mockDevice.videoZoomFactor, 1.0)
+    }
+
+    func testUpdateDevice_clearsTarget() {
+        configureTripleCamera()
+        sut.loadAvailableZoomFactors()
+        sut.set(zoom: .x1)
+
+        let newDevice = MockZoomableDevice()
+        sut.updateDevice(newDevice)
+        sut.applyTarget()
+
+        XCTAssertNil(sut.targetVideoZoomFactor, "A device change must clear the previous device's target")
+        XCTAssertEqual(newDevice.videoZoomFactor, 1.0, "A stale zoom target must not leak onto a new device")
     }
 
     // MARK: - Helpers

@@ -12,6 +12,7 @@ public enum ZoomLevel: CGFloat {
 public protocol ZoomServiceDelegate: AnyObject {
     func zoomService(_ service: ZoomService, didUpdateZoomLevels levels: [ZoomLevel])
     func zoomService(_ service: ZoomService, didUpdateWideBaseZoomFactor factor: CGFloat)
+    func zoomService(_ service: ZoomService, didUpdateVideoZoomFactor factor: CGFloat)
 }
 
 public class ZoomService: DebugPrintable {
@@ -33,11 +34,39 @@ public class ZoomService: DebugPrintable {
 
     public weak var delegate: ZoomServiceDelegate?
     private weak var device: ZoomableDevice?
+    private var videoZoomFactorObservation: NSKeyValueObservation?
+    /// The single source of intent: the videoZoomFactor the app wants the
+    /// device to have. AVFoundation resets the device's factor to its default
+    /// (the ultra-wide lens on virtual multi-cam devices) on activeFormat and
+    /// preset changes, so every configuration transaction ends by applying
+    /// this target via `applyTarget()` — device state is a deterministic
+    /// function of the last zoom request, never of reset timing.
+    public private(set) var targetVideoZoomFactor: CGFloat?
 
     public init() {}
 
     public func updateDevice(_ device: ZoomableDevice?) {
         self.device = device
+        targetVideoZoomFactor = nil
+        observeVideoZoomFactor(of: device)
+    }
+
+    /// Logs and forwards every hardware videoZoomFactor change, including ones
+    /// this service did not initiate (AVFoundation resets the factor to 1.0 —
+    /// the ultra-wide lens on virtual multi-cam devices — when the active
+    /// format changes).
+    private func observeVideoZoomFactor(of device: ZoomableDevice?) {
+        videoZoomFactorObservation = nil
+        guard let avDevice = device as? AVCaptureDevice else { return }
+        videoZoomFactorObservation = avDevice.observe(\.videoZoomFactor, options: [.initial, .old, .new]) { [weak self] _, change in
+            guard let self, let new = change.newValue else { return }
+            if let old = change.oldValue {
+                self.printDebug("videoZoomFactor changed: \(old) → \(new)")
+            } else {
+                self.printDebug("videoZoomFactor initial: \(new)")
+            }
+            self.delegate?.zoomService(self, didUpdateVideoZoomFactor: new)
+        }
     }
 
     // MARK: - Discovery
@@ -102,27 +131,13 @@ public class ZoomService: DebugPrintable {
     // MARK: - Discrete Zoom
 
     public func set(zoom: ZoomLevel) {
-        guard let device else {
-            printDebug("No current camera device available.")
-            return
-        }
         guard let targetFactor = zoomFactorMap[zoom] else {
             printDebug("Zoom level \(zoom) not available")
             return
         }
         printDebug("Setting zoom \(zoom.rawValue)x → videoZoomFactor=\(targetFactor)")
-        do {
-            try device.lockForConfiguration()
-            let clamped = min(max(targetFactor, device.minAvailableVideoZoomFactor),
-                              device.zoomDeviceActiveFormatVideoMaxZoomFactor)
-            if clamped != targetFactor {
-                printDebug("Clamped \(targetFactor) to \(clamped) (device range: \(device.minAvailableVideoZoomFactor)–\(device.zoomDeviceActiveFormatVideoMaxZoomFactor))")
-            }
-            device.videoZoomFactor = clamped
-            device.unlockForConfiguration()
-        } catch {
-            printDebug("Error occurred while setting video zoom factor: \(error)")
-        }
+        targetVideoZoomFactor = targetFactor
+        applyTarget()
     }
 
     // MARK: - Continuous Zoom
@@ -135,16 +150,40 @@ public class ZoomService: DebugPrintable {
         }
         let minFactor = zoomFactorMap.values.min() ?? device.minAvailableVideoZoomFactor
         let maxFactor = zoomFactorMap.values.max() ?? device.zoomDeviceActiveFormatVideoMaxZoomFactor
+        let clamped = min(max(factor, minFactor), maxFactor)
+        targetVideoZoomFactor = clamped
+        applyTarget()
+        return clamped
+    }
+
+    // MARK: - Target Application
+
+    /// Writes the target zoom to the device. Idempotent; besides running on
+    /// every zoom request, this is the mandatory final step of each
+    /// configuration transaction (activeFormat/preset changes, session start),
+    /// which is what keeps the device factor deterministic across the resets
+    /// those transactions cause. A no-op until the first zoom request.
+    public func applyTarget() {
+        guard let device, targetVideoZoomFactor != nil else { return }
         do {
             try device.lockForConfiguration()
-            let clamped = min(max(factor, minFactor), maxFactor)
-            device.videoZoomFactor = clamped
+            applyTargetAssumingLock()
             device.unlockForConfiguration()
-            return clamped
         } catch {
-            printDebug("Error setting continuous zoom factor: \(error)")
-            return device.videoZoomFactor
+            printDebug("Error occurred while applying zoom target: \(error)")
         }
+    }
+
+    /// Writes the target zoom without taking the configuration lock. For use
+    /// inside an existing `lockForConfiguration` block immediately after an
+    /// `activeFormat` change: the format change resets `videoZoomFactor` to
+    /// the device default (ultra-wide on virtual multi-cam devices), and
+    /// restoring it within the same lock keeps the reset from ever reaching
+    /// the preview.
+    public func applyTargetAssumingLock() {
+        guard let device, let target = targetVideoZoomFactor else { return }
+        device.videoZoomFactor = min(max(target, device.minAvailableVideoZoomFactor),
+                                     device.zoomDeviceActiveFormatVideoMaxZoomFactor)
     }
 
     // MARK: - Query

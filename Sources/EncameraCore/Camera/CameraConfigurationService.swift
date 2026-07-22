@@ -103,12 +103,47 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     }
 
     public func configure() async {
+        registerLifecycleObservers()
         if model.setupResult == .setupComplete {
             printDebug("Starting session from configure()")
             await start()
         } else {
             await self.initialSessionConfiguration()
         }
+    }
+
+    /// The app-lifecycle observers are registered exactly once per configure
+    /// cycle. Registering them inside `start()`/`stop()` accumulated a fresh
+    /// set of sinks on every transition, making the number of handlers that
+    /// ran on any lifecycle event depend on history.
+    private func registerLifecycleObservers() {
+        stopCancellables()
+        NotificationUtils.didEnterBackgroundPublisher
+            .sink { _ in
+                Task {
+                    await self.stop(observeRestart: true)
+                }
+            }.store(in: &cancellables)
+        NotificationUtils.willResignActivePublisher
+            .sink { _ in
+                Task {
+                    await self.stop(observeRestart: true)
+                }
+            }.store(in: &cancellables)
+        NotificationUtils.didBecomeActivePublisher
+            .sink { _ in
+                Task {
+                    self.printDebug("Starting session from didBecomeActivePublisher")
+                    await self.start()
+                }
+            }.store(in: &cancellables)
+        NotificationUtils.willEnterForegroundPublisher
+            .sink { _ in
+                Task {
+                    self.printDebug("Starting session from willEnterForegroundPublisher")
+                    await self.start()
+                }
+            }.store(in: &cancellables)
     }
 
     public func setDelegate(_ delegate: CameraConfigurationServicableDelegate) async {
@@ -135,25 +170,8 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
 
     public func stop(observeRestart: Bool) async {
         self.printDebug("Stopping session. ObserveRestart: \(observeRestart)")
-        self.stopCancellables()
-        if observeRestart {
-            NotificationUtils.didBecomeActivePublisher
-                .sink { _ in
-                    Task {
-                        self.printDebug("Starting session from didBecomeActivePublisher")
-                        await self.start()
-                    }
-                }.store(in: &self.cancellables)
-            NotificationUtils.willEnterForegroundPublisher
-                .sink { _ in
-                    Task {
-                        self.printDebug("Starting session from willEnterForegroundPublisher")
-                        await self.start()
-                    }
-                }.store(in: &self.cancellables)
-        } else {
-            cancellables.forEach({ $0.cancel() })
-            cancellables.removeAll()
+        if !observeRestart {
+            stopCancellables()
         }
 
         guard self.session.isRunning, self.model.setupResult == .setupComplete else {
@@ -171,42 +189,17 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             printDebug("Session is running already")
             return
         }
-
-        NotificationUtils.cameraDidStartRunningPublisher.sink { value in
-            Task {
-                await self.zoomService.loadAvailableZoomFactors()
-                // On virtual multi-camera devices the default videoZoomFactor (1.0)
-                // is the ultra-wide lens. Snap to the 1x (wide-base) lens now that
-                // the session is running, so the camera starts at 1x rather than
-                // ultra-wide. Done here (after start) so the session can't reset it.
-                await self.set(zoom: .x1)
-            }
-        }.store(in: &cancellables)
-
-        switch model.setupResult {
-        case .setupComplete:
-            session.startRunning()
-            printDebug("Started running session")
-            NotificationUtils.didEnterBackgroundPublisher
-                .sink { _ in
-                    Task {
-                        await self.stop(observeRestart: true)
-                    }
-                }.store(in: &cancellables)
-            NotificationUtils.willResignActivePublisher
-                .sink { _ in
-                    Task {
-                        await self.stop(observeRestart: true)
-                    }
-
-                }.store(in: &cancellables)
-            guard session.isRunning else {
-                printDebug("Session is not running")
-                return
-            }
-        default:
-            fatalError()
+        guard model.setupResult == .setupComplete else {
+            printDebug("Cannot start session, setupResult: \(model.setupResult)")
+            return
         }
+
+        printDebug("Calling startRunning, videoZoomFactor=\(zoomService.currentVideoZoomFactor())")
+        session.startRunning()
+        // Final step of the start transaction: the device must carry the
+        // intended zoom whenever the session (re)starts.
+        zoomService.applyTarget()
+        printDebug("Started running session, videoZoomFactor=\(zoomService.currentVideoZoomFactor())")
     }
 
     public func focus(at focusPoint: CGPoint) async {
@@ -355,28 +348,50 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             printDebug("Error occurred while creating video device input: \(error)")
         }
         zoomService.loadAvailableZoomFactors()
-        await configureForMode(targetMode: model.cameraMode)
+        // A new device starts at the wide (1x) lens; the outputs must be
+        // reconfigured for it even though the mode is unchanged.
+        zoomService.set(zoom: .x1)
+        await configureForMode(targetMode: model.cameraMode, force: true)
     }
 
-    public func configureForMode(targetMode: CameraMode) async {
+    /// Reconfigures outputs and preset for `targetMode` as one transaction.
+    /// A no-op when the mode is already active (unless `force`d, e.g. after a
+    /// camera flip, where the outputs must be reconfigured for the new device).
+    ///
+    /// For video, pass the desired `videoQuality` so the switch performs a
+    /// single format change: the quality's activeFormat is applied directly
+    /// (with the zoom target restored inside the same device lock) instead of
+    /// first going through a `.high` preset change — each format change resets
+    /// videoZoomFactor to the ultra-wide default and flashes the preview.
+    public func configureForMode(targetMode: CameraMode, videoQuality: VideoQualityOption? = nil, force: Bool = false) async {
 
-        session.beginConfiguration()
-        defer {
-            session.commitConfiguration()
+        guard force || targetMode != model.cameraMode else {
+            printDebug("Already configured for mode \(targetMode)")
+            return
         }
-        printDebug("Configuring for mode \(targetMode)")
+        printDebug("Configuring for mode \(targetMode), videoZoomFactor before=\(zoomService.currentVideoZoomFactor())")
+        session.beginConfiguration()
         do {
             switch targetMode {
             case .photo:
                 try addPhotoOutputToSession()
             case .video:
-                try addVideoOutputToSession()
+                try addVideoOutputToSession(setPreset: videoQuality == nil)
             }
             model.cameraMode = targetMode
         } catch {
             printDebug("Could not switch to mode \(targetMode)", error)
             self.model.setupResult = .configurationFailed
         }
+        session.commitConfiguration()
+        if targetMode == .video, let videoQuality {
+            applyVideoQuality(videoQuality)
+        }
+        // Final step of the transaction: preset/output changes reset the
+        // device's videoZoomFactor to the ultra-wide default on virtual
+        // multi-cam devices, so the intended zoom is applied on the way out.
+        zoomService.applyTarget()
+        printDebug("Configured for mode \(targetMode), videoZoomFactor after=\(zoomService.currentVideoZoomFactor())")
     }
 
 }
@@ -579,19 +594,36 @@ private extension CameraConfigurationService {
             return
         }
 
+        let frameDuration = CMTime(value: 1, timescale: CMTimeScale(option.frameRate))
+        // Re-applying the active format still resets videoZoomFactor and
+        // interrupts the preview; the quality sinks fire on every mode switch,
+        // so an already-active quality must be a strict no-op.
+        guard device.activeFormat != format || device.activeVideoMinFrameDuration != frameDuration else {
+            printDebug("Video quality \(option.displayLabel) already active")
+            return
+        }
+
         do {
             try device.lockForConfiguration()
             device.activeFormat = format
-            device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(option.frameRate))
-            device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(option.frameRate))
+            device.activeVideoMinFrameDuration = frameDuration
+            device.activeVideoMaxFrameDuration = frameDuration
+            // The activeFormat change resets videoZoomFactor to the device
+            // default (ultra-wide on virtual multi-cam devices); restoring it
+            // inside the same lock keeps the reset off the preview.
+            zoomService.applyTargetAssumingLock()
             device.unlockForConfiguration()
-            printDebug("Applied video quality: \(option.displayLabel)")
+            printDebug("Applied video quality: \(option.displayLabel), videoZoomFactor after activeFormat change=\(device.videoZoomFactor)")
         } catch {
             printDebug("Failed to apply video quality: \(error)")
         }
     }
 
-    private func addVideoOutputToSession() throws {
+    /// Pass `setPreset: false` when a specific video quality's activeFormat
+    /// will be applied right after the transaction commits — setting the
+    /// `.high` preset first would be a second format change (and a second
+    /// zoom reset) for the same mode switch.
+    private func addVideoOutputToSession(setPreset: Bool = true) throws {
         printDebug("Calling addVideoOutputToSession")
 
         let movieOutput = AVCaptureMovieFileOutput()
@@ -600,7 +632,9 @@ private extension CameraConfigurationService {
             throw SetupError.couldNotAddVideoOutputToSession
         }
         session.addOutput(movieOutput)
-        session.sessionPreset = .high
+        if setPreset {
+            session.sessionPreset = .high
+        }
         if let connection = movieOutput.connection(with: .video) {
             if connection.isVideoStabilizationSupported {
                 connection.preferredVideoStabilizationMode = .auto
@@ -683,6 +717,22 @@ private extension CameraConfigurationService {
         }
         model.setupResult = .setupComplete
 
+        // Land on the wide (1x) lens before the session starts: on virtual
+        // multi-cam devices the default videoZoomFactor 1.0 is the ultra-wide
+        // lens, so the first preview frames would otherwise be 0.5x. Discovery
+        // only reads static device/format properties, so both calls are safe
+        // while the session is not yet running.
+        zoomService.loadAvailableZoomFactors()
+        zoomService.set(zoom: .x1)
+
+        // Video qualities also derive from static device formats. Publishing
+        // them now means a quality is already selected before the first
+        // photo→video switch, so that switch can apply the quality's format
+        // directly instead of first falling back to the `.high` preset — a
+        // second format change and a second zoom reset.
+        loadAvailableVideoQualities()
+
+        printDebug("Initial session configuration committed, videoZoomFactor=\(zoomService.currentVideoZoomFactor())")
         printDebug("Starting session from initialSessionConfiguration")
         await start()
     }
@@ -699,6 +749,12 @@ extension CameraConfigurationService: ZoomServiceDelegate {
     nonisolated public func zoomService(_ service: ZoomService, didUpdateWideBaseZoomFactor factor: CGFloat) {
         Task { @MainActor in
             await self.delegate?.didUpdate(wideBaseZoomFactor: factor)
+        }
+    }
+
+    nonisolated public func zoomService(_ service: ZoomService, didUpdateVideoZoomFactor factor: CGFloat) {
+        Task { @MainActor in
+            await self.delegate?.didUpdate(videoZoomFactor: factor)
         }
     }
 }

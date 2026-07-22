@@ -76,8 +76,8 @@ class DemoCameraService: CameraConfigurationServicable {
         
     }
     
-    func configureForMode(targetMode: CameraMode) async {
-        
+    func configureForMode(targetMode: CameraMode, videoQuality: VideoQualityOption?, force: Bool) async {
+
     }
 
 }
