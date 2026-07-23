@@ -98,6 +98,7 @@ listing:
        Hidden album privacy in the camera: hidden albums no longer show a photo thumbnail in the camera, and it can no longer be tapped to open them
        Deleted hidden albums no longer linger in the hidden-albums list in Settings
        Camera now opens at 1x instead of ultra-wide on multi-lens iPhones
+       Importing from Files is more reliable and doesn't fail on incompatible image types
 
 limits:
   name: 30
