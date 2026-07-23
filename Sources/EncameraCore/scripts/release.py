@@ -23,9 +23,13 @@ Release steps (after preflights pass):
   3. Pick the most recently uploaded VALID TestFlight build for the version
      and attach it to the App Store version.
   4. Set releaseType=MANUAL on the version.
-  5. Submit the version for review.
+  5. Stage the version on a review submission — this leaves the app in the
+     "Ready for Review" state, fully prepared but NOT yet sent to Apple.
+  6. Prompt y/N to fully submit for review. On "yes" the submission is
+     confirmed and sent to Apple; on "no" the app is left "Ready for Review"
+     for you to submit manually from App Store Connect.
 
-With --interactive, the driver pauses for y/N confirmation on:
+With --interactive, the driver also pauses for y/N confirmation on:
   • the English whats_new text before running the Localizer
   • the chosen TestFlight build before attaching it to the App Store version
 
@@ -42,10 +46,11 @@ try:
     from asc.auth import Credentials
     from asc.client import ASCClient
     from asc.releases import (
+        confirm_review_submission,
         find_editable_version,
+        prepare_review_submission,
         set_build_for_version,
         set_version_release_type,
-        submit_for_review,
     )
     from asc.testflight import list_builds_for_version, list_builds_with_versions
     from asc.xcode_cloud.build_runs import list_build_runs_for_workflow
@@ -671,7 +676,8 @@ def main():
             dry_run=True, interactive=args.interactive,
         )
         print(f"  4. set releaseType=MANUAL on version {version.id}")
-        print(f"  5. submit version {version.id} for review")
+        print(f"  5. stage version {version.id} on a review submission (Ready for Review)")
+        print(f"  6. prompt to fully submit for review (confirm the submission)")
         print()
         print("Dry run complete — no changes made.")
         return
@@ -681,28 +687,40 @@ def main():
         confirm_whats_new(APP_STORE_YML)
         print()
 
-    print(f"[release 1/5] Pushing translated metadata via Localizer...")
+    print(f"[release 1/6] Pushing translated metadata via Localizer...")
     run_localize(APP_STORE_YML, credentials_path, version_id=version.id)
     print()
 
-    print(f"[release 2/5] Tagging git as {version_string}...")
+    print(f"[release 2/6] Tagging git as {version_string}...")
     tag_release(version_string)
     print()
 
-    print(f"[release 3/5] Selecting and attaching latest VALID build...")
+    print(f"[release 3/6] Selecting and attaching latest VALID build...")
     select_and_attach_build(
         client, app_id, version.id, version_string, interactive=args.interactive,
     )
     print()
 
-    print(f"[release 4/5] Setting releaseType=MANUAL...")
+    print(f"[release 4/6] Setting releaseType=MANUAL...")
     set_version_release_type(client, version.id, "MANUAL")
     print(f"  releaseType set to MANUAL")
     print()
 
-    print(f"[release 5/5] Submitting v{version_string} for review...")
-    submit_for_review(client, app_id, version.id)
-    print(f"  Submitted v{version_string} for review.")
+    print(f"[release 5/6] Staging v{version_string} on a review submission...")
+    submission_id = prepare_review_submission(client, app_id, version.id)
+    print(f"  v{version_string} is now READY FOR REVIEW (submission {submission_id}).")
+    print("  Nothing has been sent to Apple yet.")
+    print()
+
+    print(f"[release 6/6] Fully submit v{version_string} for review?")
+    if confirm(f"Submit v{version_string} to Apple for review now?"):
+        confirm_review_submission(client, submission_id)
+        print(f"  Submitted v{version_string} for review.")
+    else:
+        print(
+            f"  Left v{version_string} in READY FOR REVIEW. "
+            "Submit it from App Store Connect when you're ready."
+        )
 
 
 if __name__ == "__main__":

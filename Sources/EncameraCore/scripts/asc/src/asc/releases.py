@@ -218,7 +218,15 @@ def create_version_localization(
     )
 
 
-def submit_for_review(client: ASCClient, app_id: str, version_id: str) -> dict:
+def prepare_review_submission(client: ASCClient, app_id: str, version_id: str) -> str:
+    """Create a review submission and stage the version on it (does NOT submit).
+
+    After this returns, the review submission exists and holds the app store
+    version as an item, but ``submitted`` is still False — App Store Connect
+    shows the version as "Ready for Review". Call
+    :func:`confirm_review_submission` with the returned submission id to actually
+    send it to Apple.
+    """
     # Step 1: Create a review submission for the app
     submission = client.post("/v1/reviewSubmissions", {
         "data": {
@@ -246,13 +254,22 @@ def submit_for_review(client: ASCClient, app_id: str, version_id: str) -> dict:
             },
         }
     })
+    return submission_id
 
-    # Step 3: Confirm the submission
-    result = client.patch(f"/v1/reviewSubmissions/{submission_id}", {
+
+def confirm_review_submission(client: ASCClient, submission_id: str) -> dict:
+    """Confirm (send to Apple) a review submission staged by
+    :func:`prepare_review_submission`."""
+    return client.patch(f"/v1/reviewSubmissions/{submission_id}", {
         "data": {
             "type": "reviewSubmissions",
             "id": submission_id,
             "attributes": {"submitted": True},
         }
     })
-    return result
+
+
+def submit_for_review(client: ASCClient, app_id: str, version_id: str) -> dict:
+    """Stage the version on a review submission and immediately confirm it."""
+    submission_id = prepare_review_submission(client, app_id, version_id)
+    return confirm_review_submission(client, submission_id)
