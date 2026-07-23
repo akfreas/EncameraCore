@@ -119,6 +119,28 @@ def set_build_for_version(
     return AppStoreVersion.from_api(result["data"])
 
 
+def clear_build_for_version(
+    client: ASCClient, version_id: str
+) -> AppStoreVersion:
+    """Detach whatever build is currently associated with the appStoreVersion.
+
+    Sets the ``build`` relationship data to null. Attaching a fresh build over an
+    already-attached one can be rejected by App Store Connect, so callers that
+    re-run a release clear the old build first, then set the newest one.
+    """
+    body = {
+        "data": {
+            "type": "appStoreVersions",
+            "id": version_id,
+            "relationships": {
+                "build": {"data": None}
+            },
+        }
+    }
+    result = client.patch(f"/v1/appStoreVersions/{version_id}", body)
+    return AppStoreVersion.from_api(result["data"])
+
+
 def list_builds(
     client: ASCClient,
     app_id: str,

@@ -18,16 +18,23 @@ Preflights (cheap/local checks first, network calls last):
      Xcode Cloud workflow.
 
 Release steps (after preflights pass):
-  1. Run the Localizer (push translated metadata to ASC).
-  2. git tag <version>, then interactive y/N to push.
-  3. Pick the most recently uploaded VALID TestFlight build for the version
-     and attach it to the App Store version.
-  4. Set releaseType=MANUAL on the version.
-  5. Stage the version on a review submission — this leaves the app in the
+  1. Run the Localizer (push translated metadata to ASC) — skipped when the
+     translatable strings in app_store.yml are unchanged since the last
+     successful push (a gitignored hash cache saves the OpenAI tokens). After a
+     successful push the strings hash is recorded as the source of truth for the
+     next run. Use --force-localize to translate regardless.
+  2. Pick the most recently uploaded VALID TestFlight build for the version.
+     Any build already attached (e.g. from a previous run) is detached first,
+     then the freshest build is attached to supersede it — avoiding ASC errors.
+  3. Set releaseType=MANUAL on the version.
+  4. Stage the version on a review submission — this leaves the app in the
      "Ready for Review" state, fully prepared but NOT yet sent to Apple.
-  6. Prompt y/N to fully submit for review. On "yes" the submission is
+  5. Prompt y/N to fully submit for review. On "yes" the submission is
      confirmed and sent to Apple; on "no" the app is left "Ready for Review"
      for you to submit manually from App Store Connect.
+  6. Finally, git tag <version> and prompt y/N to push. The tag comes last —
+     regardless of whether the release was actually submitted — so it marks a
+     fully-prepared release rather than a mid-flight state.
 
 With --interactive, the driver also pauses for y/N confirmation on:
   • the English whats_new text before running the Localizer
@@ -37,6 +44,8 @@ Requires the `asc` library: pip install -e scripts/asc
 """
 
 import argparse
+import hashlib
+import json
 import re
 import subprocess
 import sys
@@ -46,6 +55,7 @@ try:
     from asc.auth import Credentials
     from asc.client import ASCClient
     from asc.releases import (
+        clear_build_for_version,
         confirm_review_submission,
         find_editable_version,
         prepare_review_submission,
@@ -67,6 +77,12 @@ PROJECT_YML = REPO_ROOT / "project.yml"
 APP_STORE_YML = SCRIPT_DIR / "app_store_localization" / "app_store.yml"
 EN_LPROJ = SCRIPT_DIR.parent / "Resources" / "en.lproj"
 LOCALIZATION_DIR = SCRIPT_DIR / "app_store_localization"
+
+# Cache of the hash of the last set of App Store strings we successfully pushed
+# to ASC. Gitignored — it's a per-machine token-saving cache, not source of
+# truth. If the current app_store.yml strings hash to this value, translation is
+# skipped (nothing changed since the last successful push). See EncameraCore/.gitignore.
+LOCALIZED_HASH_FILE = SCRIPT_DIR / ".last_localized.hash"
 
 # Xcode Cloud "Build for TestFlight" workflow — must be idle before we cut a
 # release, otherwise the build we're about to attach may be superseded by
@@ -109,6 +125,49 @@ def read_marketing_version(project_yml=PROJECT_YML):
         print(f"  could not find marketing_version in {project_yml}")
         return None
     return m.group(1)
+
+
+def compute_localization_hash(yml_path=APP_STORE_YML):
+    """Hash the translatable App Store strings in ``yml_path``, or None if unreadable.
+
+    The Localizer translates the ``listing`` fields (description, promotional_text,
+    whats_new, keywords) into every ``target_languages`` locale. Hashing exactly
+    those inputs — plus the language set and base language — lets us detect when a
+    re-run would produce identical translations and skip the (token-expensive)
+    OpenAI calls entirely. Serialized canonically (sorted keys) so the hash is
+    stable regardless of YAML key order.
+    """
+    import yaml
+
+    try:
+        with open(yml_path) as f:
+            data = yaml.safe_load(f)
+    except OSError as e:
+        print(f"  could not read {yml_path}: {e}")
+        return None
+    payload = {
+        "listing": (data or {}).get("listing") or {},
+        "target_languages": (data or {}).get("target_languages") or [],
+        "base_language": (data or {}).get("base_language"),
+    }
+    canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def read_stored_localization_hash(path=LOCALIZED_HASH_FILE):
+    """Return the hash recorded after the last successful push, or None."""
+    try:
+        return path.read_text().strip()
+    except OSError:
+        return None
+
+
+def write_stored_localization_hash(digest, path=LOCALIZED_HASH_FILE):
+    """Record ``digest`` as the source of truth for the next run's skip check."""
+    try:
+        path.write_text(digest + "\n")
+    except OSError as e:
+        print(f"  WARNING: could not write localization hash to {path}: {e}")
 
 
 def resolve_credentials_path(arg_path):
@@ -453,7 +512,8 @@ def tag_release(version_string):
 
 
 def select_and_attach_build(
-    client, app_id, version_id, version_string, *, dry_run=False, interactive=False
+    client, app_id, version_id, version_string, *,
+    current_build_id=None, dry_run=False, interactive=False,
 ):
     valid = list_builds_for_version(
         client, app_id, version_string, processing_state="VALID"
@@ -472,8 +532,22 @@ def select_and_attach_build(
     uploaded = latest.get("attributes", {}).get("uploadedDate", "?")
     print(f"  Latest VALID build: {build_number} (uploaded {uploaded}, id={build_id})")
 
+    already_attached = current_build_id == build_id
+
     if dry_run:
-        print("  [dry-run] would attach this build to the version")
+        if already_attached:
+            print("  [dry-run] latest build is already attached — nothing to do")
+        elif current_build_id:
+            print(
+                f"  [dry-run] would detach current build ({current_build_id}) "
+                "then attach the latest build to the version"
+            )
+        else:
+            print("  [dry-run] would attach this build to the version")
+        return build_id
+
+    if already_attached:
+        print(f"  Build {build_number} is already attached to v{version_string} — leaving as-is")
         return build_id
 
     if interactive and not confirm(
@@ -481,6 +555,12 @@ def select_and_attach_build(
     ):
         print("  Aborted by user — re-run when the correct build is uploaded.")
         sys.exit(1)
+
+    # A stale build attached from a previous run would make the set below fail,
+    # so detach it first, then attach the freshest VALID build to supersede it.
+    if current_build_id:
+        clear_build_for_version(client, version_id)
+        print(f"  Detached previously-attached build ({current_build_id})")
 
     set_build_for_version(client, version_id, build_id)
     print(f"  Attached build {build_number} to version {version_string}")
@@ -510,6 +590,11 @@ def main():
         "--interactive",
         action="store_true",
         help="Prompt for confirmation on the whats_new text and the selected TestFlight build",
+    )
+    parser.add_argument(
+        "--force-localize",
+        action="store_true",
+        help="Re-translate and push metadata even if the strings are unchanged since the last run",
     )
     args = parser.parse_args()
 
@@ -666,53 +751,80 @@ def main():
         print()
 
     # --- release ---
+    current_hash = compute_localization_hash(APP_STORE_YML)
+    stored_hash = read_stored_localization_hash()
+    localize_unchanged = bool(
+        current_hash and stored_hash and current_hash == stored_hash
+    )
+
     if args.dry_run:
         print("=== Dry-run release plan ===")
-        print(f"  1. Run Localizer on {APP_STORE_YML}")
-        print(f"  2. git tag {version_string} (then prompt to push)")
-        print(f"  3. attach latest VALID build:")
+        if localize_unchanged and not args.force_localize:
+            print(f"  1. SKIP Localizer — strings unchanged since last push "
+                  f"(hash {current_hash[:12]})")
+        else:
+            print(f"  1. Run Localizer on {APP_STORE_YML}, then record strings hash")
+        print(f"  2. attach latest VALID build (superseding any attached build):")
         select_and_attach_build(
             client, app_id, version.id, version_string,
+            current_build_id=version.build_id,
             dry_run=True, interactive=args.interactive,
         )
-        print(f"  4. set releaseType=MANUAL on version {version.id}")
-        print(f"  5. stage version {version.id} on a review submission (Ready for Review)")
-        print(f"  6. prompt to fully submit for review (confirm the submission)")
+        print(f"  3. set releaseType=MANUAL on version {version.id}")
+        print(f"  4. stage version {version.id} on a review submission (Ready for Review)")
+        print(f"  5. prompt to fully submit for review (confirm the submission)")
+        print(f"  6. git tag {version_string} (then prompt to push)")
         print()
         print("Dry run complete — no changes made.")
         return
 
     if args.interactive:
-        print("[release 0/5] Confirm whats_new (English)...")
+        print("[release 0/6] Confirm whats_new (English)...")
         confirm_whats_new(APP_STORE_YML)
         print()
 
     print(f"[release 1/6] Pushing translated metadata via Localizer...")
-    run_localize(APP_STORE_YML, credentials_path, version_id=version.id)
+    if localize_unchanged and not args.force_localize:
+        print(
+            f"  App Store strings unchanged since the last successful push "
+            f"(hash {current_hash[:12]}). Skipping translation to save tokens."
+        )
+        print(
+            f"  (delete {LOCALIZED_HASH_FILE.name} or pass --force-localize to re-translate.)"
+        )
+    else:
+        if stored_hash and current_hash and stored_hash != current_hash:
+            print("  Strings changed since the last push — re-translating.")
+        elif args.force_localize:
+            print("  --force-localize set — re-translating regardless of the hash.")
+        run_localize(APP_STORE_YML, credentials_path, version_id=version.id)
+        # Only record the hash once ALL translated strings have been written to
+        # ASC (run_localize aborts the whole release on failure), so the next run
+        # trusts it as the source of truth.
+        if current_hash:
+            write_stored_localization_hash(current_hash)
+            print(f"  Recorded strings hash {current_hash[:12]} for the next run.")
     print()
 
-    print(f"[release 2/6] Tagging git as {version_string}...")
-    tag_release(version_string)
-    print()
-
-    print(f"[release 3/6] Selecting and attaching latest VALID build...")
+    print(f"[release 2/6] Selecting and attaching latest VALID build...")
     select_and_attach_build(
-        client, app_id, version.id, version_string, interactive=args.interactive,
+        client, app_id, version.id, version_string,
+        current_build_id=version.build_id, interactive=args.interactive,
     )
     print()
 
-    print(f"[release 4/6] Setting releaseType=MANUAL...")
+    print(f"[release 3/6] Setting releaseType=MANUAL...")
     set_version_release_type(client, version.id, "MANUAL")
     print(f"  releaseType set to MANUAL")
     print()
 
-    print(f"[release 5/6] Staging v{version_string} on a review submission...")
+    print(f"[release 4/6] Staging v{version_string} on a review submission...")
     submission_id = prepare_review_submission(client, app_id, version.id)
     print(f"  v{version_string} is now READY FOR REVIEW (submission {submission_id}).")
     print("  Nothing has been sent to Apple yet.")
     print()
 
-    print(f"[release 6/6] Fully submit v{version_string} for review?")
+    print(f"[release 5/6] Fully submit v{version_string} for review?")
     if confirm(f"Submit v{version_string} to Apple for review now?"):
         confirm_review_submission(client, submission_id)
         print(f"  Submitted v{version_string} for review.")
@@ -721,6 +833,12 @@ def main():
             f"  Left v{version_string} in READY FOR REVIEW. "
             "Submit it from App Store Connect when you're ready."
         )
+    print()
+
+    # Tag last of all: the release is now fully prepared (and maybe submitted),
+    # so the tag marks a meaningful, finished state rather than a mid-flight one.
+    print(f"[release 6/6] Tagging git as {version_string}...")
+    tag_release(version_string)
 
 
 if __name__ == "__main__":

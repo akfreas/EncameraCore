@@ -16,3 +16,7 @@ DerivedData/
 # App Store Connect API Keys (private)
 **/*.p8
 **/credentials.yml
+
+# Release driver: per-machine cache of the last-pushed App Store strings hash
+# (lets release.py skip re-translating unchanged metadata)
+**/scripts/.last_localized.hash
