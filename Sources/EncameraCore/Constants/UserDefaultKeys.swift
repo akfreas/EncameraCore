@@ -39,6 +39,7 @@ public enum UserDefaultKey {
     case gridZoomLevel
     case gridSortOption
     case showHiddenAlbumsInCameraPicker
+    case loopVideos
     case hasCompletedFirstLockout
     case hasBeenShownHideAlbumTutorial
     case keyBackupPromptLastShown
@@ -126,6 +127,7 @@ public enum UserDefaultKey {
              .selectedPhotoResolution,
              .selectedVideoQuality,
              .showHiddenAlbumsInCameraPicker,
+             .loopVideos,
              .keyMigration,
              .passphraseMigration,
              .passwordHashMigration,

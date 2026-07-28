@@ -1887,6 +1887,8 @@ public enum L10n {
     public static let hiddenAlbums = L10n.tr("Localizable", "Settings.HiddenAlbums", fallback: "Hidden Albums")
     /// Import Key Phrase
     public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
+    /// Loop Videos
+    public static let loopVideos = L10n.tr("Localizable", "Settings.LoopVideos", fallback: "Loop Videos")
     /// Purchases restored!
     public static let purchasesRestored = L10n.tr("Localizable", "Settings.PurchasesRestored", fallback: "Purchases restored!")
     /// Any valid purchases you made have been restored.

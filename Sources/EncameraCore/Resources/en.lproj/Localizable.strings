@@ -629,6 +629,7 @@
 "Settings.HiddenAlbumsModal.Subtitle" = "Access them by creating a new album with the exact same name";
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ ALBUMS";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "Hidden Albums in Camera";
+"Settings.LoopVideos" = "Loop Videos";
 "MediaSelectionTray.SelectMedia" = "Select Media";
 "MediaSelectionTray.ItemSelected" = "Selected";
 "MediaSelectionTray.MoveMedia" = "Move";
