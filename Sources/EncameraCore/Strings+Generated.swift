@@ -846,6 +846,10 @@ public enum L10n {
     public static func importPartialSkipToast(_ p1: Any, _ p2: Any, _ p3: Any, _ p4: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.ImportPartialSkipToast", String(describing: p1), String(describing: p2), String(describing: p3), String(describing: p4), fallback: "Imported %@ of %@ files. %@ skipped (%@).")
     }
+    /// could not be downloaded from iCloud
+    public static let importReasonAssetDownloadFailed = L10n.tr("Localizable", "AlbumDetailView.ImportReasonAssetDownloadFailed", fallback: "could not be downloaded from iCloud")
+    /// no longer shared with Encamera
+    public static let importReasonAssetNoLongerShared = L10n.tr("Localizable", "AlbumDetailView.ImportReasonAssetNoLongerShared", fallback: "no longer shared with Encamera")
     /// file could not be read
     public static let importReasonReadError = L10n.tr("Localizable", "AlbumDetailView.ImportReasonReadError", fallback: "file could not be read")
     /// could not be converted
@@ -1144,6 +1148,24 @@ public enum L10n {
     public static let add = L10n.tr("Localizable", "CustomPhotoPicker.Add", fallback: "Add")
     /// All Photos
     public static let allPhotos = L10n.tr("Localizable", "CustomPhotoPicker.AllPhotos", fallback: "All Photos")
+    /// Open Settings
+    public static let emptyDeniedButton = L10n.tr("Localizable", "CustomPhotoPicker.EmptyDeniedButton", fallback: "Open Settings")
+    /// Encamera needs access to your photo library to import photos. You can turn it on in Settings.
+    public static let emptyDeniedMessage = L10n.tr("Localizable", "CustomPhotoPicker.EmptyDeniedMessage", fallback: "Encamera needs access to your photo library to import photos. You can turn it on in Settings.")
+    /// Photo access is off
+    public static let emptyDeniedTitle = L10n.tr("Localizable", "CustomPhotoPicker.EmptyDeniedTitle", fallback: "Photo access is off")
+    /// Show All Photos
+    public static let emptyFilteredButton = L10n.tr("Localizable", "CustomPhotoPicker.EmptyFilteredButton", fallback: "Show All Photos")
+    /// No photos in your library match this filter.
+    public static let emptyFilteredMessage = L10n.tr("Localizable", "CustomPhotoPicker.EmptyFilteredMessage", fallback: "No photos in your library match this filter.")
+    /// Nothing to show here
+    public static let emptyFilteredTitle = L10n.tr("Localizable", "CustomPhotoPicker.EmptyFilteredTitle", fallback: "Nothing to show here")
+    /// Select More Photos
+    public static let emptyLimitedButton = L10n.tr("Localizable", "CustomPhotoPicker.EmptyLimitedButton", fallback: "Select More Photos")
+    /// Encamera can only see the photos you chose to share. Select more to import them.
+    public static let emptyLimitedMessage = L10n.tr("Localizable", "CustomPhotoPicker.EmptyLimitedMessage", fallback: "Encamera can only see the photos you chose to share. Select more to import them.")
+    /// Only your selected photos
+    public static let emptyLimitedTitle = L10n.tr("Localizable", "CustomPhotoPicker.EmptyLimitedTitle", fallback: "Only your selected photos")
     /// Please grant full access to your photo library to use swipe selection. You can change this in Settings.
     public static let grantAccessMessage = L10n.tr("Localizable", "CustomPhotoPicker.GrantAccessMessage", fallback: "Please grant full access to your photo library to use swipe selection. You can change this in Settings.")
     /// Limited access. Tap here to select more photos or grant full access.
@@ -1752,37 +1774,21 @@ public enum L10n {
     /// ./Encamera/MediaImport/PendingImportView.swift - Pending Import
     public static let title = L10n.tr("Localizable", "PendingImport.Title", fallback: "Import Media")
   }
-  public enum PhotoPickerWrapper {
-    /// Continue with Limited Access
-    public static let continueLimited = L10n.tr("Localizable", "PhotoPickerWrapper.ContinueLimited", fallback: "Continue with Limited Access")
-    /// Enable Swipe Selection
-    public static let enableSwipeSelection = L10n.tr("Localizable", "PhotoPickerWrapper.EnableSwipeSelection", fallback: "Enable Swipe Selection")
-    /// Faster Import
-    public static let fasterImport = L10n.tr("Localizable", "PhotoPickerWrapper.FasterImport", fallback: "Faster Import")
-    /// Import photos much more quickly
-    public static let fasterImportDescription = L10n.tr("Localizable", "PhotoPickerWrapper.FasterImportDescription", fallback: "Import photos much more quickly")
-    /// Grant Access
-    public static let grantAccess = L10n.tr("Localizable", "PhotoPickerWrapper.GrantAccess", fallback: "Grant Access")
-    /// Grant full access to your photos to enable swipe-to-select multiple photos at once!
-    public static let grantAccessDescription = L10n.tr("Localizable", "PhotoPickerWrapper.GrantAccessDescription", fallback: "Grant full access to your photos to enable swipe-to-select multiple photos at once!")
-    /// Grant Full Access
-    public static let grantFullAccess = L10n.tr("Localizable", "PhotoPickerWrapper.GrantFullAccess", fallback: "Grant Full Access")
-    /// Not Now
-    public static let notNow = L10n.tr("Localizable", "PhotoPickerWrapper.NotNow", fallback: "Not Now")
-    /// Your photos stay encrypted and private
-    public static let privacyDescription = L10n.tr("Localizable", "PhotoPickerWrapper.PrivacyDescription", fallback: "Your photos stay encrypted and private")
-    /// Privacy First
-    public static let privacyFirst = L10n.tr("Localizable", "PhotoPickerWrapper.PrivacyFirst", fallback: "Privacy First")
-    /// Select multiple photos with a single swipe
-    public static let swipeDescription = L10n.tr("Localizable", "PhotoPickerWrapper.SwipeDescription", fallback: "Select multiple photos with a single swipe")
-    /// Swipe to Select
-    public static let swipeToSelect = L10n.tr("Localizable", "PhotoPickerWrapper.SwipeToSelect", fallback: "Swipe to Select")
-    /// You currently have limited photo access. Grant full access to enable swipe-to-select multiple photos at once, making importing much faster!
-    public static let upgradeMessage = L10n.tr("Localizable", "PhotoPickerWrapper.UpgradeMessage", fallback: "You currently have limited photo access. Grant full access to enable swipe-to-select multiple photos at once, making importing much faster!")
-    /// ./Encamera/Components/PhotoPickerWrapper.swift
-    public static let upgradeTitle = L10n.tr("Localizable", "PhotoPickerWrapper.UpgradeTitle", fallback: "Upgrade to Full Photo Access")
-    /// Upgrade to Full Access
-    public static let upgradeToFullAccess = L10n.tr("Localizable", "PhotoPickerWrapper.UpgradeToFullAccess", fallback: "Upgrade to Full Access")
+  public enum PhotoDeletion {
+    /// Nothing was deleted from your photo library.
+    public static let cancelledMessage = L10n.tr("Localizable", "PhotoDeletion.CancelledMessage", fallback: "Nothing was deleted from your photo library.")
+    /// Couldn't delete from your photo library: %@
+    public static func failedMessage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "PhotoDeletion.FailedMessage", String(describing: p1), fallback: "Couldn't delete from your photo library: %@")
+    }
+    /// Those photos could not be found in your photo library. They may no longer be shared with Encamera.
+    public static let notFoundMessage = L10n.tr("Localizable", "PhotoDeletion.NotFoundMessage", fallback: "Those photos could not be found in your photo library. They may no longer be shared with Encamera.")
+    /// ./Encamera/Utils/PhotoDeletionManager.swift
+    public static let outcomeTitle = L10n.tr("Localizable", "PhotoDeletion.OutcomeTitle", fallback: "Delete from Photos")
+    /// Deleted %@ from your photo library. %@ could not be found — they may no longer be shared with Encamera.
+    public static func partialMessage(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "PhotoDeletion.PartialMessage", String(describing: p1), String(describing: p2), fallback: "Deleted %@ from your photo library. %@ could not be found — they may no longer be shared with Encamera.")
+    }
   }
   public enum PostPurchaseView {
     /// Maybe Later

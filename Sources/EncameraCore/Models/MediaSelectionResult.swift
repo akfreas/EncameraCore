@@ -41,6 +41,13 @@ public enum MediaSelectionResult {
                 options.version = .current
                 
                 PHImageManager.default().requestImageDataAndOrientation(for: asset, options: options) { data, _, _, info in
+                    guard let data else {
+                        // Reporting `(nil, nil)` told the caller the load succeeded and
+                        // produced nothing, which is how an un-shared asset used to look
+                        // identical to a corrupt one.
+                        completion(nil, BackgroundImportError.fromPhotoKitInfo(info))
+                        return
+                    }
                     completion(data, nil)
                 }
                 return Progress()
@@ -61,7 +68,9 @@ public enum MediaSelectionResult {
                 
                 PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, _, info in
                     guard let urlAsset = avAsset as? AVURLAsset else {
-                        completion(nil, false, NSError(domain: "MediaSelectionResult", code: -1))
+                        // `info` distinguishes an un-shared asset from a failed iCloud
+                        // download; the old opaque -1 error distinguished nothing.
+                        completion(nil, false, BackgroundImportError.fromPhotoKitInfo(info))
                         return
                     }
                     

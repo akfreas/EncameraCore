@@ -17,10 +17,19 @@ public enum ImportSkipReason: String, Sendable, CaseIterable {
     case transcodeFailed = "transcode_failed"
     /// The file could not be read or otherwise failed during save.
     case readError = "read_error"
+    /// The photo library will not hand over the asset. Under limited access this is
+    /// what un-sharing a photo between selection and import looks like.
+    case assetNoLongerShared = "asset_no_longer_shared"
+    /// The asset is in iCloud and could not be downloaded.
+    case assetDownloadFailed = "asset_download_failed"
 
     /// Classifies an error thrown during normalization or import into a coarse reason.
     public init(error: Error) {
         switch error {
+        case BackgroundImportError.assetUnavailable:
+            self = .assetNoLongerShared
+        case BackgroundImportError.assetDownloadFailed:
+            self = .assetDownloadFailed
         case let transcoderError as MediaTranscoderError:
             switch transcoderError {
             case .unsupportedType:
@@ -46,6 +55,10 @@ public enum ImportSkipReason: String, Sendable, CaseIterable {
             return L10n.AlbumDetailView.importReasonTranscodeFailed
         case .readError:
             return L10n.AlbumDetailView.importReasonReadError
+        case .assetNoLongerShared:
+            return L10n.AlbumDetailView.importReasonAssetNoLongerShared
+        case .assetDownloadFailed:
+            return L10n.AlbumDetailView.importReasonAssetDownloadFailed
         }
     }
 }

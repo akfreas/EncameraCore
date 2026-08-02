@@ -184,6 +184,8 @@
 "AlbumDetailView.ImportReasonUnsupportedFormat" = "unsupported format";
 "AlbumDetailView.ImportReasonTranscodeFailed" = "could not be converted";
 "AlbumDetailView.ImportReasonReadError" = "file could not be read";
+"AlbumDetailView.ImportReasonAssetNoLongerShared" = "no longer shared with Encamera";
+"AlbumDetailView.ImportReasonAssetDownloadFailed" = "could not be downloaded from iCloud";
 "OK" = "OK";
 /* ./Encamera/KeyManagement/AlbumCell.swift */
 "Active" = "Active";
@@ -858,23 +860,23 @@
 "CustomPhotoPicker.Selected" = "%@ Selected";
 "CustomPhotoPicker.AllPhotos" = "All Photos";
 "CustomPhotoPicker.LoadingMore" = "Loading more photos...";
+"CustomPhotoPicker.EmptyLimitedTitle" = "Only your selected photos";
+"CustomPhotoPicker.EmptyLimitedMessage" = "Encamera can only see the photos you chose to share. Select more to import them.";
+"CustomPhotoPicker.EmptyLimitedButton" = "Select More Photos";
+"CustomPhotoPicker.EmptyFilteredTitle" = "Nothing to show here";
+"CustomPhotoPicker.EmptyFilteredMessage" = "No photos in your library match this filter.";
+"CustomPhotoPicker.EmptyFilteredButton" = "Show All Photos";
+"CustomPhotoPicker.EmptyDeniedTitle" = "Photo access is off";
+"CustomPhotoPicker.EmptyDeniedMessage" = "Encamera needs access to your photo library to import photos. You can turn it on in Settings.";
+"CustomPhotoPicker.EmptyDeniedButton" = "Open Settings";
 
-/* ./Encamera/Components/PhotoPickerWrapper.swift */
-"PhotoPickerWrapper.UpgradeTitle" = "Upgrade to Full Photo Access";
-"PhotoPickerWrapper.ContinueLimited" = "Continue with Limited Access";
-"PhotoPickerWrapper.GrantFullAccess" = "Grant Full Access";
-"PhotoPickerWrapper.UpgradeMessage" = "You currently have limited photo access. Grant full access to enable swipe-to-select multiple photos at once, making importing much faster!";
-"PhotoPickerWrapper.EnableSwipeSelection" = "Enable Swipe Selection";
-"PhotoPickerWrapper.GrantAccessDescription" = "Grant full access to your photos to enable swipe-to-select multiple photos at once!";
-"PhotoPickerWrapper.SwipeToSelect" = "Swipe to Select";
-"PhotoPickerWrapper.SwipeDescription" = "Select multiple photos with a single swipe";
-"PhotoPickerWrapper.FasterImport" = "Faster Import";
-"PhotoPickerWrapper.FasterImportDescription" = "Import photos much more quickly";
-"PhotoPickerWrapper.PrivacyFirst" = "Privacy First";
-"PhotoPickerWrapper.PrivacyDescription" = "Your photos stay encrypted and private";
-"PhotoPickerWrapper.UpgradeToFullAccess" = "Upgrade to Full Access";
-"PhotoPickerWrapper.GrantAccess" = "Grant Access";
-"PhotoPickerWrapper.NotNow" = "Not Now";
+/* ./Encamera/Utils/PhotoDeletionManager.swift */
+"PhotoDeletion.OutcomeTitle" = "Delete from Photos";
+"PhotoDeletion.CancelledMessage" = "Nothing was deleted from your photo library.";
+"PhotoDeletion.PartialMessage" = "Deleted %@ from your photo library. %@ could not be found — they may no longer be shared with Encamera.";
+"PhotoDeletion.NotFoundMessage" = "Those photos could not be found in your photo library. They may no longer be shared with Encamera.";
+"PhotoDeletion.FailedMessage" = "Couldn't delete from your photo library: %@";
+
 
 /* ./Encamera/AuthenticationView/AuthenticationView.swift */
 "AuthenticationView.TooManyAttempts" = "Too many attempts";

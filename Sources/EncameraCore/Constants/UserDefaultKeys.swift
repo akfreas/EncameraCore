@@ -45,7 +45,6 @@ public enum UserDefaultKey {
     case keyBackupPromptLastShown
     case promotionalBannerInteractions
     case dismissedBanners
-    case hasSeenPhotoAccessUpgradePrompt
     case showPaywallOnAppear
     case selectedPhotoResolution
     case selectedVideoQuality
@@ -62,8 +61,6 @@ public enum UserDefaultKey {
             return "featureToggle_\(feature)"
         case .dismissedBanners:
             return "com.encamera.dismissedBanners"
-        case .hasSeenPhotoAccessUpgradePrompt:
-            return "HasSeenPhotoAccessUpgradePrompt"
         case .keyMigration:
             return "keyMigration"
         case .passphraseMigration:
@@ -122,7 +119,6 @@ public enum UserDefaultKey {
              .keyBackupPromptLastShown,
              .promotionalBannerInteractions,
              .dismissedBanners,
-             .hasSeenPhotoAccessUpgradePrompt,
              .showPaywallOnAppear,
              .selectedPhotoResolution,
              .selectedVideoQuality,

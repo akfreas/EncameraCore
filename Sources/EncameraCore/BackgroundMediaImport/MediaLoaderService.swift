@@ -224,7 +224,9 @@ public class MediaLoaderService: DebugPrintable {
                 
                 PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, _, info in
                     guard let urlAsset = avAsset as? AVURLAsset else {
-                        continuation.resume(throwing: BackgroundImportError.mismatchedType)
+                        // No asset back means PhotoKit refused, not that the type was
+                        // wrong; `info` says which refusal it was.
+                        continuation.resume(throwing: BackgroundImportError.fromPhotoKitInfo(info))
                         return
                     }
                     
@@ -250,7 +252,7 @@ public class MediaLoaderService: DebugPrintable {
                 
                 PHImageManager.default().requestImageDataAndOrientation(for: asset, options: options) { data, _, _, info in
                     guard let data = data else {
-                        continuation.resume(throwing: BackgroundImportError.mismatchedType)
+                        continuation.resume(throwing: BackgroundImportError.fromPhotoKitInfo(info))
                         return
                     }
                     
