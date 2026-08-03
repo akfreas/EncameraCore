@@ -16,9 +16,10 @@ public class DemoKeyManager: KeyManager {
         
     }
     
-    public var passcodeType: PasscodeType {
-        return .pinCode(length: AppConstants.defaultPinCodeLength)
-    }
+    /// Settable so previews and tests can stand up a biometrics-only account
+    /// (`.none`), which is the configuration the real KeychainManager reports
+    /// whenever no password hash exists.
+    public var passcodeType: PasscodeType = .pinCode(length: AppConstants.defaultPinCodeLength)
 
 
     public func clearPassword() throws {

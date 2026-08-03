@@ -1044,6 +1044,8 @@ public enum L10n {
     }
   }
   public enum AuthenticationView {
+    /// Encamera can't be unlocked
+    public static let cannotUnlock = L10n.tr("Localizable", "AuthenticationView.CannotUnlock", fallback: "Encamera can't be unlocked")
     /// Forgot Password? Reset App
     public static let forgotPassword = L10n.tr("Localizable", "AuthenticationView.ForgotPassword", fallback: "Forgot Password? Reset App")
     /// You can retry your password in %@
@@ -1052,6 +1054,8 @@ public enum L10n {
     }
     /// ./Encamera/AuthenticationView/AuthenticationView.swift
     public static let tooManyAttempts = L10n.tr("Localizable", "AuthenticationView.TooManyAttempts", fallback: "Too many attempts")
+    /// Try Again
+    public static let tryAgain = L10n.tr("Localizable", "AuthenticationView.TryAgain", fallback: "Try Again")
   }
   public enum BackgroundTaskProgress {
     /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Index Build
@@ -1094,6 +1098,34 @@ public enum L10n {
     public static let perWeek = L10n.tr("Localizable", "BillingFrequency.PerWeek", fallback: "per week")
     /// per year
     public static let perYear = L10n.tr("Localizable", "BillingFrequency.PerYear", fallback: "per year")
+  }
+  public enum BiometricAvailability {
+    /// Shown when biometrics is the only way into the app and it cannot run.
+    public static let genericName = L10n.tr("Localizable", "BiometricAvailability.GenericName", fallback: "Biometric unlock")
+    public enum CannotUnlock {
+      /// %@ is turned off for Encamera. Turn it back on in Settings > Encamera, then try again.
+      public static func deniedBySystemSettings(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.DeniedBySystemSettings", String(describing: p1), fallback: "%@ is turned off for Encamera. Turn it back on in Settings > Encamera, then try again.")
+      }
+      /// %@ is locked after too many failed attempts. Lock your device and unlock it with your device passcode, then try again.
+      public static func lockedOut(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.LockedOut", String(describing: p1), fallback: "%@ is locked after too many failed attempts. Lock your device and unlock it with your device passcode, then try again.")
+      }
+      /// This device has no biometric unlock, and this account has no passcode.
+      public static let noHardware = L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NoHardware", fallback: "This device has no biometric unlock, and this account has no passcode.")
+      /// %@ hasn't been turned on for Encamera on this device, and this account has no passcode.
+      public static func notEnabled(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NotEnabled", String(describing: p1), fallback: "%@ hasn't been turned on for Encamera on this device, and this account has no passcode.")
+      }
+      /// No face or fingerprint is enrolled on this device. Set one up in Settings, then try again.
+      public static let notEnrolled = L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NotEnrolled", fallback: "No face or fingerprint is enrolled on this device. Set one up in Settings, then try again.")
+      /// This device has no passcode, which turns off Face ID and Touch ID. Set a device passcode in Settings, then try again.
+      public static let passcodeNotSet = L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.PasscodeNotSet", fallback: "This device has no passcode, which turns off Face ID and Touch ID. Set a device passcode in Settings, then try again.")
+      /// Biometric unlock isn't available right now (error %d), and this account has no passcode.
+      public static func unavailable(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.Unavailable", p1, fallback: "Biometric unlock isn't available right now (error %d), and this account has no passcode.")
+      }
+    }
   }
   public enum Cms {
     /// Failed to load promotional banners

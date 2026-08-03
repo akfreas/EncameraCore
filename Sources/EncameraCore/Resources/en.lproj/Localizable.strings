@@ -882,6 +882,18 @@
 "AuthenticationView.TooManyAttempts" = "Too many attempts";
 "AuthenticationView.RetryIn" = "You can retry your password in %@";
 "AuthenticationView.ForgotPassword" = "Forgot Password? Reset App";
+"AuthenticationView.TryAgain" = "Try Again";
+"AuthenticationView.CannotUnlock" = "Encamera can't be unlocked";
+
+/* Shown when biometrics is the only way into the app and it cannot run. */
+"BiometricAvailability.GenericName" = "Biometric unlock";
+"BiometricAvailability.CannotUnlock.NotEnabled" ="%@ hasn't been turned on for Encamera on this device, and this account has no passcode.";
+"BiometricAvailability.CannotUnlock.LockedOut" = "%@ is locked after too many failed attempts. Lock your device and unlock it with your device passcode, then try again.";
+"BiometricAvailability.CannotUnlock.DeniedBySystemSettings" = "%@ is turned off for Encamera. Turn it back on in Settings > Encamera, then try again.";
+"BiometricAvailability.CannotUnlock.NotEnrolled" = "No face or fingerprint is enrolled on this device. Set one up in Settings, then try again.";
+"BiometricAvailability.CannotUnlock.PasscodeNotSet" = "This device has no passcode, which turns off Face ID and Touch ID. Set a device passcode in Settings, then try again.";
+"BiometricAvailability.CannotUnlock.NoHardware" = "This device has no biometric unlock, and this account has no passcode.";
+"BiometricAvailability.CannotUnlock.Unavailable" = "Biometric unlock isn't available right now (error %d), and this account has no passcode.";
 
 /* ./Encamera/Settings/SettingsView.swift */
 "SettingsView.UnknownError" = "Unknown error";

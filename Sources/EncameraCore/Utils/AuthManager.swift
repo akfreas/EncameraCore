@@ -74,6 +74,43 @@ struct AuthenticationPolicy: Codable {
     static var defaultPolicy: AuthenticationPolicy {
         return AuthenticationPolicy(preferredAuthenticationMethod: .password, authenticationExpirySeconds: 60)
     }
+
+    /// The biometry this state refers to, when the probe could tell. Lockout
+    /// and per-app denial do not carry one, so callers that know the device's
+    /// biometry type pass it to `cannotUnlockMessage(biometryName:)`.
+    public var method: AuthenticationMethod? {
+        guard case .available(let method) = self else { return nil }
+        return method
+    }
+
+    /// Why the app cannot be unlocked, for the lock screen of an account with
+    /// no passcode. Every case answers, because a user staring at a screen
+    /// that will not open needs to know whether to lock and unlock the phone,
+    /// visit Settings, or give up and erase.
+    ///
+    /// `biometryName` is what to call the biometry in the sentence; the states
+    /// that do not carry a method take it from the caller, which can still ask
+    /// the device.
+    public func cannotUnlockMessage(biometryName: String = L10n.BiometricAvailability.genericName) -> String {
+        switch self {
+        case .available(let method):
+            // Usable hardware, but not switched on for Encamera on this
+            // device — the per-device consent has not been answered here.
+            return L10n.BiometricAvailability.CannotUnlock.notEnabled(method.nameForMethod)
+        case .lockedOut:
+            return L10n.BiometricAvailability.CannotUnlock.lockedOut(biometryName)
+        case .deniedBySystemSettings:
+            return L10n.BiometricAvailability.CannotUnlock.deniedBySystemSettings(biometryName)
+        case .notEnrolled:
+            return L10n.BiometricAvailability.CannotUnlock.notEnrolled
+        case .passcodeNotSet:
+            return L10n.BiometricAvailability.CannotUnlock.passcodeNotSet
+        case .noHardware:
+            return L10n.BiometricAvailability.CannotUnlock.noHardware
+        case .unavailable(let code):
+            return L10n.BiometricAvailability.CannotUnlock.unavailable(code)
+        }
+    }
 }
 
 public protocol AuthManager {
