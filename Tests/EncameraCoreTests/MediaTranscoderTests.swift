@@ -17,11 +17,19 @@ final class MediaTranscoderTests: XCTestCase {
 
     private let transcoder = MediaTranscoder()
 
+    /// Fixtures ship in whichever bundle built this target, and the two layouts
+    /// differ: SwiftPM nests them under `Fixtures/` in the module bundle, while
+    /// the Xcode test target copies them flat into the test bundle. `Bundle.module`
+    /// here resolves to EncameraCore's own resource bundle — which holds the
+    /// strings, not these — so look through both rather than pin one.
     private func fixture(_ name: String, _ ext: String) throws -> URL {
-        try XCTUnwrap(
+        let testBundle = Bundle(for: type(of: self))
+        let candidates = [
             Bundle.module.url(forResource: name, withExtension: ext, subdirectory: "Fixtures"),
-            "Missing fixture \(name).\(ext)"
-        )
+            testBundle.url(forResource: name, withExtension: ext, subdirectory: "Fixtures"),
+            testBundle.url(forResource: name, withExtension: ext)
+        ]
+        return try XCTUnwrap(candidates.compactMap { $0 }.first, "Missing fixture \(name).\(ext)")
     }
 
     // MARK: - Pass-through
