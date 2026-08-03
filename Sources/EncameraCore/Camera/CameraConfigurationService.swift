@@ -74,7 +74,14 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     var delegate: CameraConfigurationServicableDelegate?
     private var movieOutput: AVCaptureMovieFileOutput?
     private let photoOutput = AVCapturePhotoOutput()
-    private var videoDeviceInput: AVCaptureDeviceInput?
+    private var videoDeviceInput: AVCaptureDeviceInput? {
+        didSet {
+            let device = videoDeviceInput?.device
+            Task { @MainActor in
+                await delegate?.didUpdate(videoDevice: device)
+            }
+        }
+    }
     private let zoomService = ZoomService()
     private let deviceTypes: [AVCaptureDevice.DeviceType] = [
         .builtInTripleCamera,
@@ -100,6 +107,19 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
 
     public func currentRotationAngle() -> CGFloat {
         model.rotationAngle
+    }
+
+    /// The angle the capture connection was actually left at by the most recent
+    /// capture, read back off the connection. Diagnostic only — the on-device
+    /// orientation suite asserts it against the camera's own horizon-level
+    /// angle, which is the check that would have caught ENC-15.
+    public private(set) var lastAppliedCaptureAngle: CGFloat?
+
+    /// The camera currently feeding the session, for anything that starts
+    /// observing after the session was configured and so missed
+    /// `didUpdate(videoDevice:)`.
+    public func currentVideoDevice() -> AVCaptureDevice? {
+        videoDeviceInput?.device
     }
 
     public func configure() async {
@@ -404,8 +424,11 @@ extension CameraConfigurationService {
         }
         let connection = videoOutput.connection(with: .video)
         let angle = captureRotationAngle ?? model.rotationAngle
-        if let connection, connection.isVideoRotationAngleSupported(angle) {
-            connection.videoRotationAngle = angle
+        if let connection {
+            if connection.isVideoRotationAngleSupported(angle) {
+                connection.videoRotationAngle = angle
+            }
+            lastAppliedCaptureAngle = connection.videoRotationAngle
         }
 
         return AsyncVideoCaptureProcessor(videoCaptureOutput: videoOutput)
@@ -419,9 +442,14 @@ extension CameraConfigurationService {
         }
 
         let angle = captureRotationAngle ?? model.rotationAngle
-        if let photoOutputConnection = self.photoOutput.connection(with: .video),
-           photoOutputConnection.isVideoRotationAngleSupported(angle) {
-            photoOutputConnection.videoRotationAngle = angle
+        if let photoOutputConnection = self.photoOutput.connection(with: .video) {
+            if photoOutputConnection.isVideoRotationAngleSupported(angle) {
+                photoOutputConnection.videoRotationAngle = angle
+            }
+            // Read back rather than assume: a connection handed an unsupported
+            // angle keeps its previous one and raises nothing, so the requested
+            // angle is not evidence of the angle the photo was taken at.
+            lastAppliedCaptureAngle = photoOutputConnection.videoRotationAngle
         }
         configurePhotoOutput()
 
