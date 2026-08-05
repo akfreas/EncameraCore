@@ -3,7 +3,7 @@
 Release driver for the iOS app. Runs nine preflight gates against App Store Connect, Xcode Cloud and the local repo, then walks the manual ASC steps (localize → attach build → set release type → stage for review → submit → tag).
 
 ```bash
-python release.py [--credentials PATH] [--skip-preflights] [--dry-run]
+python release.py [--credentials PATH] [--skip-preflights] [--dry-run] [--interactive] [--force-localize] [--build-timeout MINUTES]
 ```
 
 ## Setup
@@ -48,10 +48,20 @@ The script auto-detects the release version by querying ASC for the latest non-l
 | 5 | Every `.lproj` directory has every key from `en.lproj/Localizable.strings` | Strings have drifted. Run `scripts/string_diff.py` to translate the missing keys, commit, then re-run. |
 | 6 | `project.yml` `marketing_version` == the editable ASC version == a VALID TestFlight build | The version being released doesn't line up across the repo, ASC and TestFlight. Reconcile them before releasing. |
 | 7 | No TestFlight builds for the release version are in `processingState=PROCESSING` | A build is still being processed by Apple. Wait for it to finish (poll TestFlight or `expire_testflight_builds.py --dry-run` to inspect), then re-run. |
-| 8 | Neither Xcode Cloud workflow ("Build for TestFlight", "Build Release for App Store") has a `PENDING`/`RUNNING` run | A build is mid-flight and whatever it uploads would supersede the build about to be attached. Wait for it, or cancel it. |
-| 9 | The build that will ship was produced by the "Build Release for App Store" workflow, from the commit on HEAD | See below — this is the provenance gate. |
+| 8 | The "Build for TestFlight" Xcode Cloud workflow has no `PENDING`/`RUNNING` run | A build is mid-flight on the general workflow and whatever it uploads would supersede the build about to be attached. Wait for it, or cancel it. |
+| 9 | The build that will ship was produced by the "Build Release for App Store" workflow, from the commit on HEAD | See below — this is the provenance gate, and the only one that offers to fix itself. |
 
-**Gate 9 — provenance.** The build the release attaches is simply the newest `VALID` TestFlight build for the version, and TestFlight cannot tell you where a build came from: one archived off a feature branch by "Build for TestFlight" (which starts from *any* branch) looks identical there. So provenance is checked at the source. "Build Release for App Store" (`ADD12807-AE85-4814-88C2-F580FFE0C39D`) is manual-start with its source pinned to the `release` branch, and the gate requires that its latest run succeeded, that the run archived the exact commit on HEAD, and that the build that run produced *is* the build that will be attached. Together those mean the binary going to Apple was built from this branch, at this commit, by the one workflow that can't build anything else. Failing it means starting that workflow on `release` and waiting for the upload — a build from any other workflow will not do.
+**Gate 9 — provenance.** The build the release attaches is simply the newest `VALID` TestFlight build for the version, and TestFlight cannot tell you where a build came from: one archived off a feature branch by "Build for TestFlight" (which starts from *any* branch) looks identical there. So provenance is checked at the source. "Build Release for App Store" (`ADD12807-AE85-4814-88C2-F580FFE0C39D`) is manual-start with its source pinned to the `release` branch, and the gate requires that its latest run succeeded, that the run archived the exact commit on HEAD, and that the build that run produced *is* the build that will be attached. Together those mean the binary going to Apple was built from this branch, at this commit, by the one workflow that can't build anything else.
+
+The release workflow is deliberately absent from gate 8, because gate 9 owns its state and can do something better than refuse:
+
+- **A run is already building HEAD** — offers to wait for it rather than start a duplicate.
+- **Anything else fixable by building HEAD** (the last run failed or was canceled, built an older commit, produced no build, or another workflow's build is newer on TestFlight) — offers to start "Build Release for App Store" on `release` and wait.
+- **Not fixable by building** (git can't resolve HEAD) — fails outright.
+
+On "yes" it starts the run, polls until the archive finishes, polls again until Apple has processed the upload into a `VALID` TestFlight build, then **re-runs the provenance check against the new build** and continues the release from there. The offer is not the proof — the re-check is. Ctrl-C during the wait is safe: the cloud build carries on, and re-running the script picks it back up. `--build-timeout` (default 60 minutes, applied to the archive and to processing separately) bounds each wait; `--dry-run` reports the offer it would make and exits non-zero without starting anything.
+
+Xcode Cloud builds a *reference*, not a sha — it archives the tip of `release` at the moment the run starts. Gate 3 has already proven local `release` and `origin/release` are the same commit, so that tip is HEAD, and the post-build re-check confirms it rather than trusting it.
 
 `--skip-preflights` bypasses all nine. Use sparingly — these gates exist to catch the exact mistakes that have shipped broken releases in the past.
 
