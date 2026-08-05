@@ -130,6 +130,48 @@ class CiBuildRun:
 
 
 @dataclass
+class ScmRepository:
+    id: str
+    repository_name: str
+    owner_name: str
+    http_clone_url: Optional[str]
+    ssh_clone_url: Optional[str]
+    last_accessed_date: Optional[str]
+
+    @classmethod
+    def from_api(cls, data: dict) -> "ScmRepository":
+        attrs = data.get("attributes", {}) or {}
+        return cls(
+            id=data["id"],
+            repository_name=attrs.get("repositoryName", ""),
+            owner_name=attrs.get("ownerName", ""),
+            http_clone_url=attrs.get("httpCloneUrl"),
+            ssh_clone_url=attrs.get("sshCloneUrl"),
+            last_accessed_date=attrs.get("lastAccessedDate"),
+        )
+
+
+@dataclass
+class ScmGitReference:
+    id: str
+    name: str
+    canonical_name: str
+    kind: str
+    is_deleted: bool
+
+    @classmethod
+    def from_api(cls, data: dict) -> "ScmGitReference":
+        attrs = data.get("attributes", {}) or {}
+        return cls(
+            id=data["id"],
+            name=attrs.get("name", ""),
+            canonical_name=attrs.get("canonicalName", ""),
+            kind=attrs.get("kind", ""),
+            is_deleted=bool(attrs.get("isDeleted", False)),
+        )
+
+
+@dataclass
 class CiBuildAction:
     id: str
     name: str
