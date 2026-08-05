@@ -14,8 +14,9 @@ Preflights (cheap/local checks first, network calls last):
   6. The version we're targeting lines up everywhere: project.yml
      marketing_version == the editable ASC version == a VALID TestFlight build.
   7. No TestFlight builds for the release version are still PROCESSING.
-  8. No active (PENDING/RUNNING) build runs on the "Build for TestFlight"
-     Xcode Cloud workflow.
+  8. No active (PENDING/RUNNING) build runs on either Xcode Cloud workflow.
+  9. The build that will ship came from the "Build Release for App Store"
+     Xcode Cloud workflow, built from the exact commit on HEAD.
 
 Release steps (after preflights pass):
   1. Run the Localizer (push translated metadata to ASC) — skipped when the
@@ -63,7 +64,10 @@ try:
         set_version_release_type,
     )
     from asc.testflight import list_builds_for_version, list_builds_with_versions
-    from asc.xcode_cloud.build_runs import list_build_runs_for_workflow
+    from asc.xcode_cloud.build_runs import (
+        list_build_runs_for_workflow,
+        list_builds_for_build_run,
+    )
 except ImportError:
     print("Missing required package 'asc'. Install with: pip install -e scripts/asc")
     sys.exit(1)
@@ -84,10 +88,23 @@ LOCALIZATION_DIR = SCRIPT_DIR / "app_store_localization"
 # skipped (nothing changed since the last successful push). See EncameraCore/.gitignore.
 LOCALIZED_HASH_FILE = SCRIPT_DIR / ".last_localized.hash"
 
-# Xcode Cloud "Build for TestFlight" workflow — must be idle before we cut a
+# Xcode Cloud "Build for TestFlight" workflow — starts from ANY branch, so its
+# output proves nothing about provenance. It only has to be idle before we cut a
 # release, otherwise the build we're about to attach may be superseded by
 # whatever is mid-flight.
 TESTFLIGHT_WORKFLOW_ID = "0fe065ac-1630-4bd4-9158-c43af076cbd9"
+
+# Xcode Cloud "Build Release for App Store" workflow — manual start, with its
+# source pinned to the `release` branch. That pin is the whole point: a build
+# that came out of THIS workflow is the only kind we can prove was archived from
+# release and nothing else, so it's the only kind we're willing to ship.
+RELEASE_WORKFLOW_ID = "ADD12807-AE85-4814-88C2-F580FFE0C39D"
+
+# (label, id) for every workflow that must be idle before we cut a release.
+XCODE_CLOUD_WORKFLOWS = (
+    ("Build for TestFlight", TESTFLIGHT_WORKFLOW_ID),
+    ("Build Release for App Store", RELEASE_WORKFLOW_ID),
+)
 ACTIVE_BUILD_PROGRESS = {"PENDING", "RUNNING"}
 
 # Git branch releases are cut from; local must match origin/<RELEASE_BRANCH>.
@@ -189,6 +206,65 @@ def resolve_credentials_path(arg_path):
 
 
 # --- preflights ---------------------------------------------------------------
+
+
+def git_head_sha():
+    """Return the full SHA on HEAD, or None if git can't resolve it."""
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"  git rev-parse HEAD failed: {result.stderr.strip()}")
+        return None
+    return result.stdout.strip()
+
+
+def commits_since(sha):
+    """Number of commits on HEAD after ``sha``, or None if ``sha`` isn't an ancestor.
+
+    Lets a provenance mismatch say *how* it's wrong: "the build is N commits
+    behind HEAD" (someone committed after building) reads very differently from
+    "the build isn't on this branch at all" (it was archived from somewhere else).
+    """
+    ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", sha, "HEAD"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if ancestor.returncode != 0:
+        return None
+    count = subprocess.run(
+        ["git", "rev-list", "--count", f"{sha}..HEAD"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if count.returncode != 0:
+        return None
+    return int(count.stdout.strip())
+
+
+def newest_valid_build(client, app_id, version_string):
+    """The VALID TestFlight build for ``version_string`` with the latest uploadedDate.
+
+    This is the build :func:`select_and_attach_build` attaches to the App Store
+    version — i.e. the one that actually ships. Every check about "the build
+    that will ship" must be made against exactly this build, so it lives in one
+    place rather than being re-derived (and allowed to drift) per caller.
+    """
+    valid = list_builds_for_version(
+        client, app_id, version_string, processing_state="VALID"
+    )
+    if not valid:
+        return None
+    return max(valid, key=lambda b: b.get("attributes", {}).get("uploadedDate") or "")
 
 
 def preflight_on_release_branch():
@@ -371,10 +447,8 @@ def preflight_target_version_matches(client, app_id, version_string, marketing_v
     else:
         print(f"  project.yml marketing_version {marketing_version} matches ASC version")
 
-    valid = list_builds_for_version(
-        client, app_id, version_string, processing_state="VALID"
-    )
-    if not valid:
+    newest = newest_valid_build(client, app_id, version_string)
+    if newest is None:
         print(
             f"  MISMATCH: no VALID TestFlight build found for v{version_string}. "
             "The version on TestFlight does not match the version being released — "
@@ -394,9 +468,6 @@ def preflight_target_version_matches(client, app_id, version_string, marketing_v
                 print(f"    v{v} ({state})")
         ok = False
     else:
-        newest = max(
-            valid, key=lambda b: b.get("attributes", {}).get("uploadedDate") or ""
-        )
         attrs = newest.get("attributes", {})
         print(
             f"  VALID TestFlight build for v{version_string}: "
@@ -420,25 +491,133 @@ def preflight_no_pending_builds(client, app_id, version_string):
     return True
 
 
-def preflight_no_active_xcode_cloud_builds(client, workflow_id):
-    """True if the given Xcode Cloud workflow has no PENDING/RUNNING build runs.
+def preflight_no_active_xcode_cloud_builds(client, workflows):
+    """True if none of ``workflows`` has a PENDING/RUNNING build run.
 
-    Pulls the most recent runs (sorted by -number) and flags any whose
-    executionProgress is still in :data:`ACTIVE_BUILD_PROGRESS`. A small limit
-    is enough because completed runs are interleaved by start time, not by
-    completion — the newest active run will always be near the top.
+    ``workflows`` is a sequence of (label, workflow_id). Pulls the most recent
+    runs of each (sorted by -number) and flags any whose executionProgress is
+    still in :data:`ACTIVE_BUILD_PROGRESS`. A small limit is enough because
+    completed runs are interleaved by start time, not by completion — the newest
+    active run will always be near the top.
     """
-    runs = list_build_runs_for_workflow(client, workflow_id, limit=20)
-    active = [r for r in runs if r.execution_progress in ACTIVE_BUILD_PROGRESS]
-    if active:
-        print(f"  {len(active)} active build run(s) on workflow {workflow_id}:")
-        for r in active:
-            print(
-                f"    #{r.number} {r.execution_progress} "
-                f"started={r.started_date or '-'} sha={(r.source_commit_sha or '')[:8]}"
-            )
+    ok = True
+    for label, workflow_id in workflows:
+        runs = list_build_runs_for_workflow(client, workflow_id, limit=20)
+        active = [r for r in runs if r.execution_progress in ACTIVE_BUILD_PROGRESS]
+        if active:
+            print(f"  {len(active)} active build run(s) on '{label}':")
+            for r in active:
+                print(
+                    f"    #{r.number} {r.execution_progress} "
+                    f"started={r.started_date or '-'} sha={(r.source_commit_sha or '')[:8]}"
+                )
+            ok = False
+        else:
+            print(f"  '{label}' is idle")
+    return ok
+
+
+def preflight_shipping_build_from_release_workflow(
+    client, app_id, version_string, workflow_id=RELEASE_WORKFLOW_ID
+):
+    """True if the build that will ship came from the release workflow, off HEAD.
+
+    The build the release attaches is whatever TestFlight shows as the newest
+    VALID build for the version — and TestFlight cannot tell you where a build
+    came from. A build archived from a feature branch by the general "Build for
+    TestFlight" workflow looks identical there. So the provenance is checked at
+    the source instead:
+
+      1. The latest run on ``workflow_id`` succeeded (it's manual-start and
+         source-pinned to the release branch, so its output is branch-proof).
+      2. That run archived the exact commit on HEAD — nothing built, then
+         committed over.
+      3. The build that run produced IS the build that will be attached.
+
+    All three together mean the binary going to Apple was built from this branch,
+    at this commit, by the one workflow that can't build anything else.
+    """
+    runs = list_build_runs_for_workflow(client, workflow_id, limit=5)
+    if not runs:
+        print(f"  no build runs found on workflow {workflow_id}")
         return False
-    return True
+
+    run = runs[0]
+    subject = (run.source_commit_message or "").splitlines()
+    print(
+        f"  latest run: #{run.number} {run.execution_progress}"
+        f"/{run.completion_status or '-'} "
+        f"sha={(run.source_commit_sha or '?')[:8]} "
+        f"({subject[0][:60] if subject else 'no commit message'})"
+    )
+
+    if run.execution_progress != "COMPLETE" or run.completion_status != "SUCCEEDED":
+        print(
+            f"  MISMATCH: the latest 'Build Release for App Store' run did not succeed "
+            f"(progress={run.execution_progress}, status={run.completion_status or '-'}). "
+            "Start that workflow on the release branch and let it finish before releasing."
+        )
+        return False
+
+    ok = True
+
+    head_sha = git_head_sha()
+    run_sha = run.source_commit_sha or ""
+    if head_sha is None:
+        # git_head_sha already printed why.
+        ok = False
+    elif run_sha.lower() != head_sha.lower():
+        behind = commits_since(run_sha) if run_sha else None
+        if behind is None:
+            print(
+                f"  MISMATCH: run #{run.number} was built from {run_sha[:8] or '?'}, "
+                f"which is not an ancestor of HEAD ({head_sha[:8]}) — that build came "
+                "from a different line of history, not this branch."
+            )
+        else:
+            print(
+                f"  MISMATCH: run #{run.number} was built from {run_sha[:8]}, "
+                f"{behind} commit(s) behind HEAD ({head_sha[:8]}). The binary does not "
+                "contain what's on this branch — re-run the release workflow on HEAD."
+            )
+        ok = False
+    else:
+        print(f"  built from HEAD ({head_sha[:8]})")
+
+    shipping = newest_valid_build(client, app_id, version_string)
+    if shipping is None:
+        print(
+            f"  MISMATCH: no VALID TestFlight build for v{version_string} to check "
+            "the release-workflow build against."
+        )
+        return False
+
+    shipping_id = shipping["id"]
+    shipping_number = shipping.get("attributes", {}).get("version", "?")
+    run_builds = list_builds_for_build_run(client, run.id)
+    if not run_builds:
+        print(
+            f"  MISMATCH: run #{run.number} succeeded but produced no App Store build, "
+            f"so TestFlight build {shipping_number} came from somewhere else."
+        )
+        ok = False
+    elif shipping_id not in {b.id for b in run_builds}:
+        produced = ", ".join(f"{b.version} (id={b.id})" for b in run_builds)
+        print(
+            f"  MISMATCH: the build that would ship — {shipping_number} "
+            f"(id={shipping_id}, uploaded {shipping.get('attributes', {}).get('uploadedDate')}) "
+            f"— is not what the release workflow produced [{produced}]. It was built by "
+            "another workflow (and possibly another branch). Re-run 'Build Release for "
+            "App Store' on release so its build is the newest one on TestFlight."
+        )
+        ok = False
+    else:
+        print(
+            f"  TestFlight build {shipping_number} came from release-workflow run "
+            f"#{run.number} — it is the build that will be attached"
+        )
+
+    return ok
 
 
 # --- release steps ------------------------------------------------------------
@@ -515,18 +694,11 @@ def select_and_attach_build(
     client, app_id, version_id, version_string, *,
     current_build_id=None, dry_run=False, interactive=False,
 ):
-    valid = list_builds_for_version(
-        client, app_id, version_string, processing_state="VALID"
-    )
-    if not valid:
+    latest = newest_valid_build(client, app_id, version_string)
+    if latest is None:
         print(f"  No VALID builds for v{version_string} — cannot proceed.")
         sys.exit(1)
 
-    valid.sort(
-        key=lambda b: b.get("attributes", {}).get("uploadedDate") or "",
-        reverse=True,
-    )
-    latest = valid[0]
     build_id = latest["id"]
     build_number = latest.get("attributes", {}).get("version", "?")
     uploaded = latest.get("attributes", {}).get("uploadedDate", "?")
@@ -626,7 +798,7 @@ def main():
     print()
 
     if not args.skip_preflights:
-        print(f"[1/8] On the {RELEASE_BRANCH} branch?")
+        print(f"[1/9] On the {RELEASE_BRANCH} branch?")
         if not preflight_on_release_branch():
             print(
                 f"  FAIL: releases must be cut from {RELEASE_BRANCH}. "
@@ -637,7 +809,7 @@ def main():
         print("  OK")
         print()
 
-        print("[2/8] Working tree clean (no staged or unstaged changes)?")
+        print("[2/9] Working tree clean (no staged or unstaged changes)?")
         if not preflight_clean_tree():
             print(
                 "  FAIL: working tree has uncommitted changes. Commit or stash them "
@@ -647,7 +819,7 @@ def main():
         print("  OK")
         print()
 
-        print(f"[3/8] Local {RELEASE_BRANCH} matches {ORIGIN_RELEASE_BRANCH}?")
+        print(f"[3/9] Local {RELEASE_BRANCH} matches {ORIGIN_RELEASE_BRANCH}?")
         if not preflight_local_release_matches_remote():
             print(
                 f"  FAIL: local {RELEASE_BRANCH} has diverged from {ORIGIN_RELEASE_BRANCH}. "
@@ -657,7 +829,7 @@ def main():
         print("  OK")
         print()
 
-        print(f"[4/8] app_store.yml changed since tag {last_tag}?")
+        print(f"[4/9] app_store.yml changed since tag {last_tag}?")
         yml_changed = preflight_app_store_yml_changed(APP_STORE_YML, last_tag)
         if yml_changed is None:
             print("  FAIL: could not run git diff — check REPO_ROOT and tag validity.")
@@ -672,7 +844,7 @@ def main():
         print("  OK")
         print()
 
-        print("[5/8] All .lproj files in sync with en.lproj?")
+        print("[5/9] All .lproj files in sync with en.lproj?")
         if not preflight_strings_in_sync(EN_LPROJ):
             print(
                 "  FAIL: missing translations. Run scripts/string_diff.py to "
@@ -712,7 +884,7 @@ def main():
     if not args.skip_preflights:
         marketing_version = read_marketing_version()
         print(
-            f"[6/8] Target version matches everywhere "
+            f"[6/9] Target version matches everywhere "
             f"(project.yml {marketing_version or '?'} == ASC {version_string} == a VALID build)?"
         )
         if not preflight_target_version_matches(
@@ -727,7 +899,7 @@ def main():
         print("  OK")
         print()
 
-        print(f"[7/8] No PROCESSING TestFlight builds for v{version_string}?")
+        print(f"[7/9] No PROCESSING TestFlight builds for v{version_string}?")
         if not preflight_no_pending_builds(client, app_id, version_string):
             print(
                 "  FAIL: there are TestFlight builds still being processed by Apple. "
@@ -737,11 +909,29 @@ def main():
         print("  OK")
         print()
 
-        print("[8/8] No active build runs on the TestFlight Xcode Cloud workflow?")
-        if not preflight_no_active_xcode_cloud_builds(client, TESTFLIGHT_WORKFLOW_ID):
+        print("[8/9] No active build runs on the Xcode Cloud workflows?")
+        if not preflight_no_active_xcode_cloud_builds(client, XCODE_CLOUD_WORKFLOWS):
             print(
-                "  FAIL: an Xcode Cloud build is still running on the TestFlight "
-                "workflow. Wait for it to finish (or cancel it) before releasing."
+                "  FAIL: an Xcode Cloud build is still running. Wait for it to finish "
+                "(or cancel it) before releasing — whatever it uploads would supersede "
+                "the build we're about to attach."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+
+        print(
+            "[9/9] Does the build that will ship come from 'Build Release for "
+            "App Store', built off HEAD?"
+        )
+        if not preflight_shipping_build_from_release_workflow(
+            client, app_id, version_string
+        ):
+            print(
+                "  FAIL: cannot prove the shipping build was archived from this branch "
+                "at this commit by the release workflow. Start 'Build Release for App "
+                f"Store' (workflow {RELEASE_WORKFLOW_ID}) on {RELEASE_BRANCH}, wait for "
+                "it to upload, and re-run."
             )
             sys.exit(1)
         print("  OK")

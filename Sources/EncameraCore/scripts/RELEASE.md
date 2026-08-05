@@ -1,6 +1,6 @@
 # release.py
 
-Release driver for the iOS app. Runs three preflight gates against App Store Connect and the local repo, then walks the manual ASC steps (localize → tag → attach build → set release type → submit).
+Release driver for the iOS app. Runs nine preflight gates against App Store Connect, Xcode Cloud and the local repo, then walks the manual ASC steps (localize → attach build → set release type → stage for review → submit → tag).
 
 ```bash
 python release.py [--credentials PATH] [--skip-preflights] [--dry-run]
@@ -41,13 +41,19 @@ The script auto-detects the release version by querying ASC for the latest non-l
 
 | # | Check | Failure means |
 |---|---|---|
-| 1 | `git rev-parse --abbrev-ref HEAD` equals `main` | Releases must be cut from main. Merge your branch and switch to main, then re-run. |
+| 1 | `git rev-parse --abbrev-ref HEAD` equals `release` | Releases must be cut from the release branch. Check it out, then re-run. |
 | 2 | `git diff --quiet` and `git diff --cached --quiet` both pass (no staged or unstaged changes to tracked files; untracked files are tolerated) | The working tree is dirty. Commit or stash your changes — the release tag must capture exactly what's on HEAD. |
-| 3 | `git diff <last_tag> -- app_store.yml` produces non-empty output | "What's new" wasn't updated. Edit `scripts/app_store_localization/app_store.yml`, commit, and re-run. |
-| 4 | Every `.lproj` directory has every key from `en.lproj/Localizable.strings` | Strings have drifted. Run `scripts/string_diff.py` to translate the missing keys, commit, then re-run. |
-| 5 | No TestFlight builds for the release version are in `processingState=PROCESSING` | A build is still being processed by Apple. Wait for it to finish (poll TestFlight or `expire_testflight_builds.py --dry-run` to inspect), then re-run. |
+| 3 | Local `release` is at the same commit as `origin/release` (after `git fetch origin release`) | Local has diverged from origin. Push or pull so they match — the tag must point at what's on origin. |
+| 4 | `git diff <last_tag> -- app_store.yml` produces non-empty output | "What's new" wasn't updated. Edit `scripts/app_store_localization/app_store.yml`, commit, and re-run. |
+| 5 | Every `.lproj` directory has every key from `en.lproj/Localizable.strings` | Strings have drifted. Run `scripts/string_diff.py` to translate the missing keys, commit, then re-run. |
+| 6 | `project.yml` `marketing_version` == the editable ASC version == a VALID TestFlight build | The version being released doesn't line up across the repo, ASC and TestFlight. Reconcile them before releasing. |
+| 7 | No TestFlight builds for the release version are in `processingState=PROCESSING` | A build is still being processed by Apple. Wait for it to finish (poll TestFlight or `expire_testflight_builds.py --dry-run` to inspect), then re-run. |
+| 8 | Neither Xcode Cloud workflow ("Build for TestFlight", "Build Release for App Store") has a `PENDING`/`RUNNING` run | A build is mid-flight and whatever it uploads would supersede the build about to be attached. Wait for it, or cancel it. |
+| 9 | The build that will ship was produced by the "Build Release for App Store" workflow, from the commit on HEAD | See below — this is the provenance gate. |
 
-`--skip-preflights` bypasses all three. Use sparingly — these gates exist to catch the exact mistakes that have shipped broken releases in the past.
+**Gate 9 — provenance.** The build the release attaches is simply the newest `VALID` TestFlight build for the version, and TestFlight cannot tell you where a build came from: one archived off a feature branch by "Build for TestFlight" (which starts from *any* branch) looks identical there. So provenance is checked at the source. "Build Release for App Store" (`ADD12807-AE85-4814-88C2-F580FFE0C39D`) is manual-start with its source pinned to the `release` branch, and the gate requires that its latest run succeeded, that the run archived the exact commit on HEAD, and that the build that run produced *is* the build that will be attached. Together those mean the binary going to Apple was built from this branch, at this commit, by the one workflow that can't build anything else. Failing it means starting that workflow on `release` and waiting for the upload — a build from any other workflow will not do.
+
+`--skip-preflights` bypasses all nine. Use sparingly — these gates exist to catch the exact mistakes that have shipped broken releases in the past.
 
 ### Release steps (run sequentially, fail fast)
 
@@ -74,8 +80,21 @@ Example output:
   5. submit version <id> for review
 ```
 
+## Before you run it: `pre-release-smoke.sh`
+
+`release.py` gates on the state of ASC and the repo, not on whether the app works. `pre-release-smoke.sh` is the test gate that belongs before it — it runs every automated suite this repo has on this machine, including the on-device suites that skip themselves everywhere else:
+
+```bash
+EncameraCore/Sources/EncameraCore/scripts/pre-release-smoke.sh          # everything
+EncameraCore/Sources/EncameraCore/scripts/pre-release-smoke.sh --list   # the phases
+EncameraCore/Sources/EncameraCore/scripts/pre-release-smoke.sh --skip-device  # simulator only
+```
+
+The console shows only passes and failures (xcpretty); full xcodebuild logs, JUnit reports and `.xcresult` bundles land under the gitignored `build/pre-release-smoke/run-<timestamp>/`. It exits non-zero if any suite fails **or runs zero tests** — a phase that executes nothing is treated as a failure, because that is how a mis-wired scheme and a wholly-skipped device suite both present themselves. Attach the handset (unlocked, Auto-Lock Never) before a full run, or the device phases are reported as unmet.
+
 ## Related
 
+- `pre-release-smoke.sh` — run every suite locally before starting a release.
 - `app_store_localization/localize.py` — `Localizer` class invoked by step 1.
 - `string_diff.py` — translates missing keys; preflight 2 leans on `get_localization_status` from this script.
 - `asc/` — App Store Connect API client. The release-relevant helpers (`find_editable_version`, `set_version_release_type`, `list_builds_for_version`, `set_build_for_version`, `submit_for_review`) live in `asc.releases` and `asc.testflight`. See `asc/AGENTS.md` before adding new ASC functionality here.
