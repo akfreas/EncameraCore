@@ -17,6 +17,7 @@ from asc.xcode_cloud import (
     environments as xc_environments,
     issues as xc_issues,
     products as xc_products,
+    scm as xc_scm,
     test_results as xc_test_results,
     workflows as xc_workflows,
 )
@@ -394,13 +395,35 @@ def list_ci_build_run_builds(build_run_id: str) -> list[dict]:
 
 
 @mcp.tool()
+def list_ci_git_references(
+    workflow_id: Optional[str] = None,
+    repository_id: Optional[str] = None,
+    kind: Optional[str] = None,
+) -> list[dict]:
+    """List the branches and tags a workflow (or repository) can build.
+
+    Pass workflow_id to resolve the repository automatically, or repository_id
+    directly. kind filters to BRANCH or TAG. Deleted refs are omitted. The
+    returned id is the source_branch_or_tag_id that start_ci_build_run wants."""
+    client = _get_client()
+    if repository_id is None:
+        if workflow_id is None:
+            raise ValueError("Provide either workflow_id or repository_id")
+        repo = xc_scm.get_repository_for_workflow(client, workflow_id)
+        if repo is None:
+            return []
+        repository_id = repo.id
+    return [asdict(r) for r in xc_scm.list_git_references(client, repository_id, kind=kind)]
+
+
+@mcp.tool()
 def start_ci_build_run(
     workflow_id: str,
     source_branch_or_tag_id: Optional[str] = None,
     pull_request_id: Optional[str] = None,
 ) -> dict:
     """Start a new build run for a workflow. Supply exactly one of
-    source_branch_or_tag_id (from scmGitReferences) or pull_request_id
+    source_branch_or_tag_id (from list_ci_git_references) or pull_request_id
     (from scmPullRequests), unless the workflow is fully manual."""
     return asdict(xc_build_runs.start_build_run(
         _get_client(), workflow_id, source_branch_or_tag_id, pull_request_id,
