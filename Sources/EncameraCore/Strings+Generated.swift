@@ -204,7 +204,7 @@ public enum L10n {
     return L10n.tr("Localizable", "Decryption error: %@", String(describing: p1), fallback: "Decryption error: %@. Please update the app to the latest version if you haven't already.")
   }
   /// ./EncameraCore/Constants/AppConstants.swift
-  public static let defaultAlbumName = L10n.tr("Localizable", "DefaultAlbumName", fallback: "My Album")
+  public static let defaultAlbumName = L10n.tr("Localizable", "DefaultAlbumName", fallback: "Default Album")
   /// Delete
   public static let delete = L10n.tr("Localizable", "Delete", fallback: "Delete")
   /// Delete Album?
