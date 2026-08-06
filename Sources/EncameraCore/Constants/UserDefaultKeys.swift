@@ -73,6 +73,12 @@ public enum UserDefaultKey {
     /// (offline / transient error). Written AFTER the defaults wipe so it survives
     /// it; the app retries the cloud wipe on launch until it succeeds.
     case pendingCloudDataWipe
+    /// Which typeface `EncameraFont` renders body text in. Debug-only, driven by
+    /// the Font Configuration screen behind the `showFontConfig` toggle.
+    case fontFamily
+    /// Points added to every body-text `EncameraFont` size. Debug-only, same
+    /// screen; unset means the shipped default.
+    case fontSizeOffset
 
     var rawValue: String {
         switch self {
@@ -166,7 +172,11 @@ public enum UserDefaultKey {
              // A debug tunable measured against one device's free space and network;
              // syncing it would push one phone's experiment onto every other.
              .iCloudDriveMigrationBatchSize,
-             .pendingCloudDataWipe:
+             .pendingCloudDataWipe,
+             // A typography experiment run against one device's screen. Syncing
+             // it would push one phone's experiment onto every other.
+             .fontFamily,
+             .fontSizeOffset:
             return false
         }
     }
