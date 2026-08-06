@@ -8,7 +8,7 @@
 
 
 /* ./EncameraCore/Constants/AppConstants.swift */
-"DefaultAlbumName" = "My Album";
+"DefaultAlbumName" = "Default Album";
 /* ./EncameraCore/Utils/KeyManager.swift */
 "Could not delete keychain items." = "Could not delete keychain items.";
 "Not authenticated for this operation." = "Not authenticated for this operation.";
