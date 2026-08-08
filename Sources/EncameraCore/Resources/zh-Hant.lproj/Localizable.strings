@@ -902,3 +902,5 @@ Encamera！";
 "CustomPhotoPicker.EmptyDeniedButton" = "打開設定";
 "BiometricAvailability.CannotUnlock.Unavailable" = "目前無法使用生物辨識解鎖（錯誤 %d），且此帳戶未設定密碼。";
 "PhotoDeletion.FailedMessage" = "無法從您的相簿刪除：%@";
+"CustomPhotoPicker.LimitedAccessSubtitle" = "選擇更多媒體或授予完整存取權限";
+"CustomPhotoPicker.LimitedAccessTitle" = "有限存取";

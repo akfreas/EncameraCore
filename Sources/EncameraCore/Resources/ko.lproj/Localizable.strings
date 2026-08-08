@@ -893,3 +893,5 @@
 "CustomPhotoPicker.EmptyDeniedButton" = "설정 열기";
 "BiometricAvailability.CannotUnlock.Unavailable" = "현재 생체 인식 잠금 해제가 불가능합니다(오류 %d). 이 계정에는 비밀번호가 설정되어 있지 않습니다.";
 "PhotoDeletion.FailedMessage" = "사진 라이브러리에서 삭제할 수 없습니다: %@";
+"CustomPhotoPicker.LimitedAccessSubtitle" = "더 많은 미디어를 선택하거나 전체 접근 권한을 허용하세요";
+"CustomPhotoPicker.LimitedAccessTitle" = "제한된 접근";

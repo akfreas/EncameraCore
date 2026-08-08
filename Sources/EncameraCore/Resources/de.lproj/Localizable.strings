@@ -1024,3 +1024,5 @@
 "CustomPhotoPicker.EmptyDeniedButton" = "Einstellungen öffnen";
 "BiometricAvailability.CannotUnlock.Unavailable" = "Die biometrische Entsperrung ist momentan nicht verfügbar (Fehler %d), und dieses Konto hat keinen Passcode.";
 "PhotoDeletion.FailedMessage" = "Konnte nicht aus deiner Fotomediathek gelöscht werden: %@";
+"CustomPhotoPicker.LimitedAccessSubtitle" = "Wählen Sie weitere Medien aus oder gewähren Sie vollen Zugriff";
+"CustomPhotoPicker.LimitedAccessTitle" = "Eingeschränkter Zugriff";

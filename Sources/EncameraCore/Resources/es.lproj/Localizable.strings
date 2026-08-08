@@ -1023,3 +1023,5 @@
 "CustomPhotoPicker.EmptyDeniedButton" = "Abrir configuración";
 "BiometricAvailability.CannotUnlock.Unavailable" = "La autenticación biométrica no está disponible en este momento (error %d), y esta cuenta no tiene un código de acceso.";
 "PhotoDeletion.FailedMessage" = "No se pudo eliminar de tu biblioteca de fotos: %@";
+"CustomPhotoPicker.LimitedAccessSubtitle" = "Selecciona más medios o concede acceso completo";
+"CustomPhotoPicker.LimitedAccessTitle" = "Acceso limitado";

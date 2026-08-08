@@ -905,3 +905,5 @@
 "CustomPhotoPicker.EmptyDeniedButton" = "設定を開く";
 "BiometricAvailability.CannotUnlock.Unavailable" = "現在は生体認証によるロック解除が利用できません（エラー%d）。このアカウントにはパスコードが設定されていません。";
 "PhotoDeletion.FailedMessage" = "写真ライブラリから削除できませんでした：%@";
+"CustomPhotoPicker.LimitedAccessSubtitle" = "さらにメディアを選択するか、フルアクセスを許可してください";
+"CustomPhotoPicker.LimitedAccessTitle" = "アクセスが制限されています";

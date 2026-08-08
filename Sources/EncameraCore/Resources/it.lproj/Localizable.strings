@@ -880,3 +880,5 @@ album";
 "CustomPhotoPicker.EmptyDeniedButton" = "Apri Impostazioni";
 "BiometricAvailability.CannotUnlock.Unavailable" = "Lo sblocco biometrico non è disponibile al momento (errore %d) e questo account non ha un codice di accesso.";
 "PhotoDeletion.FailedMessage" = "Impossibile eliminare dalla tua libreria fotografica: %@";
+"CustomPhotoPicker.LimitedAccessSubtitle" = "Seleziona altri media o concedi l'accesso completo";
+"CustomPhotoPicker.LimitedAccessTitle" = "Accesso limitato";

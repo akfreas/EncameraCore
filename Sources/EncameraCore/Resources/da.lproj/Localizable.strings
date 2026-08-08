@@ -876,3 +876,5 @@ Encamera!";
 "CustomPhotoPicker.EmptyDeniedButton" = "Åbn indstillinger";
 "BiometricAvailability.CannotUnlock.Unavailable" = "Biometrisk oplåsning er ikke tilgængelig lige nu (fejl %d), og denne konto har ingen adgangskode.";
 "PhotoDeletion.FailedMessage" = "Kunne ikke slette fra dit fotobibliotek: %@";
+"CustomPhotoPicker.LimitedAccessSubtitle" = "Vælg mere medie eller giv fuld adgang";
+"CustomPhotoPicker.LimitedAccessTitle" = "Begrænset adgang";

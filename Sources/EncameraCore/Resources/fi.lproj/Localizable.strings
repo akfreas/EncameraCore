@@ -904,3 +904,5 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 "CustomPhotoPicker.EmptyDeniedButton" = "Avaa asetukset";
 "BiometricAvailability.CannotUnlock.Unavailable" = "Biometrinen avaus ei ole tällä hetkellä käytettävissä (virhe %d), eikä tällä tilillä ole pääkoodia.";
 "PhotoDeletion.FailedMessage" = "Kuvakirjastostasi ei voitu poistaa: %@";
+"CustomPhotoPicker.LimitedAccessSubtitle" = "Valitse lisää mediaa tai myönnä täysi käyttöoikeus";
+"CustomPhotoPicker.LimitedAccessTitle" = "Rajoitettu käyttöoikeus";

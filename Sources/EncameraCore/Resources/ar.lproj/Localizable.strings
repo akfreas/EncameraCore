@@ -874,3 +874,5 @@
 "CustomPhotoPicker.EmptyDeniedButton" = "افتح الإعدادات";
 "BiometricAvailability.CannotUnlock.Unavailable" = "ميزة الفتح بالبصمة غير متوفرة حالياً (خطأ %d)، ولا يوجد رمز مرور لهذا الحساب.";
 "PhotoDeletion.FailedMessage" = "تعذر الحذف من مكتبة الصور الخاصة بك: %@";
+"CustomPhotoPicker.LimitedAccessSubtitle" = "حدد المزيد من الوسائط أو امنح حق الوصول الكامل";
+"CustomPhotoPicker.LimitedAccessTitle" = "وصول محدود";

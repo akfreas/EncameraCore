@@ -889,3 +889,5 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "CustomPhotoPicker.EmptyDeniedButton" = "Deschide Setări";
 "BiometricAvailability.CannotUnlock.Unavailable" = "Deblocarea biometrică nu este disponibilă în acest moment (eroare %d), iar acest cont nu are un cod de acces.";
 "PhotoDeletion.FailedMessage" = "Nu s-a putut șterge din biblioteca ta foto: %@";
+"CustomPhotoPicker.LimitedAccessSubtitle" = "Selectează mai multe fișiere media sau acordă acces complet";
+"CustomPhotoPicker.LimitedAccessTitle" = "Acces limitat";
