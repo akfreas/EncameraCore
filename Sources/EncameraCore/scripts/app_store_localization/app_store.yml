@@ -90,10 +90,16 @@ listing:
     Join us on Discord! Find the link to our Discord community in the settings view!
 
     New in this update:
+       Loop Videos: a new setting that replays a video automatically in the viewer instead of stopping at the end
+       More ways to take a photo: the shutter now also fires from the Action button, Camera Control, EarPods and the Apple Watch camera remote, alongside the volume buttons (iOS 17.2 and later)
        Zoom while recording: adjust the zoom level during video recording without interrupting your clip
        Refreshed camera controls: updated icons for the controls at the top of the camera view
 
     Bug fixes:
+       Your music keeps playing: opening Encamera no longer interrupts audio from other apps
+       Correct orientation in landscape: front camera selfies and the viewfinder are no longer upside down when you hold your phone sideways
+       The lock screen always gives you a way in: if Face ID can't be used, the screen now explains why and offers a retry instead of showing an empty welcome screen
+       Selected Photos access: choosing "Select Photos..." no longer crashes the picker, your albums and permissions refresh as soon as you change the selection, and imports and deletions tell you what actually happened instead of failing silently
        Steadier video recording: switching lenses, toggling the flash, or changing settings no longer interrupts or corrupts a recording in progress, and recording errors are surfaced instead of quietly saving a cut-off clip
        Hidden album privacy in the camera: hidden albums no longer show a photo thumbnail in the camera, and it can no longer be tapped to open them
        Deleted hidden albums no longer linger in the hidden-albums list in Settings

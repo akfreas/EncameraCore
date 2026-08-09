@@ -1324,16 +1324,18 @@ public enum L10n {
     public static let emptyFilteredMessage = L10n.tr("Localizable", "CustomPhotoPicker.EmptyFilteredMessage", fallback: "No photos in your library match this filter.")
     /// Nothing to show here
     public static let emptyFilteredTitle = L10n.tr("Localizable", "CustomPhotoPicker.EmptyFilteredTitle", fallback: "Nothing to show here")
-    /// Select More Photos
-    public static let emptyLimitedButton = L10n.tr("Localizable", "CustomPhotoPicker.EmptyLimitedButton", fallback: "Select More Photos")
-    /// Encamera can only see the photos you chose to share. Select more to import them.
-    public static let emptyLimitedMessage = L10n.tr("Localizable", "CustomPhotoPicker.EmptyLimitedMessage", fallback: "Encamera can only see the photos you chose to share. Select more to import them.")
-    /// Only your selected photos
-    public static let emptyLimitedTitle = L10n.tr("Localizable", "CustomPhotoPicker.EmptyLimitedTitle", fallback: "Only your selected photos")
+    /// Select media
+    public static let emptyLimitedButton = L10n.tr("Localizable", "CustomPhotoPicker.EmptyLimitedButton", fallback: "Select media")
+    /// Give Encamera access to at least one photo or video.
+    public static let emptyLimitedMessage = L10n.tr("Localizable", "CustomPhotoPicker.EmptyLimitedMessage", fallback: "Give Encamera access to at least one photo or video.")
+    /// No media selected
+    public static let emptyLimitedTitle = L10n.tr("Localizable", "CustomPhotoPicker.EmptyLimitedTitle", fallback: "No media selected")
     /// Please grant full access to your photo library to use swipe selection. You can change this in Settings.
     public static let grantAccessMessage = L10n.tr("Localizable", "CustomPhotoPicker.GrantAccessMessage", fallback: "Please grant full access to your photo library to use swipe selection. You can change this in Settings.")
-    /// Limited access. Tap here to select more photos or grant full access.
-    public static let limitedAccess = L10n.tr("Localizable", "CustomPhotoPicker.LimitedAccess", fallback: "Limited access. Tap here to select more photos or grant full access.")
+    /// Select more media or grant full access
+    public static let limitedAccessSubtitle = L10n.tr("Localizable", "CustomPhotoPicker.LimitedAccessSubtitle", fallback: "Select more media or grant full access")
+    /// Limited access
+    public static let limitedAccessTitle = L10n.tr("Localizable", "CustomPhotoPicker.LimitedAccessTitle", fallback: "Limited access")
     /// Loading more photos...
     public static let loadingMore = L10n.tr("Localizable", "CustomPhotoPicker.LoadingMore", fallback: "Loading more photos...")
     /// Photo Access Required

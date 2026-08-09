@@ -29,6 +29,17 @@ public enum Feature: String, CaseIterable {
         return "feature_" +  rawValue
     }
 
+    /// Cases shown in the feature toggles UI. The test RevenueCat key is a
+    /// simulated-store key the SDK hard-asserts against in release builds, so
+    /// that toggle only appears in DEBUG builds.
+    public static var displayedCases: [Feature] {
+        #if DEBUG
+        return allCases
+        #else
+        return allCases.filter { $0 != .enableTestRevenueCat }
+        #endif
+    }
+
     public var title: String {
         switch self {
         case .debugTracking: return "Debug Tracking"
