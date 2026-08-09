@@ -19,10 +19,7 @@ final class CloudKitMediaStoreTests: XCTestCase {
     private let longLivedMapKey = "cloudkit_longlived_ops_v1"
 
     private func freshDefaults(_ name: String = #function) -> UserDefaults {
-        let suite = "test.cloudkit.store.\(name)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
-        return defaults
+        makeIsolatedDefaults(name)
     }
 
     private func makeStore(account: CKAccountStatus = .available,
@@ -38,15 +35,26 @@ final class CloudKitMediaStoreTests: XCTestCase {
                             albumID: String = "album-hash",
                             mediaType: MediaType = .video,
                             fileURL: URL = URL(fileURLWithPath: "/tmp/enc.blob"),
-                            thumbURL: URL = URL(fileURLWithPath: "/tmp/enc.thumb")) -> CloudKitMediaUpload {
+                            thumbURL: URL = URL(fileURLWithPath: "/tmp/enc.thumb"),
+                            keyFingerprint: String = "") -> CloudKitMediaUpload {
         CloudKitMediaUpload(albumID: albumID,
                             mediaID: mediaID,
                             mediaType: mediaType,
                             createdAt: Date(timeIntervalSince1970: 555),
                             sizeBytes: 4096,
                             encryptedFileURL: fileURL,
-                            encryptedThumbURL: thumbURL)
+                            encryptedThumbURL: thumbURL,
+                            keyFingerprint: keyFingerprint)
     }
+
+    /// Real keys, so assertions use the same fingerprint production writes
+    /// (`PrivateKey.keychainLabel`).
+    private let keyA = PrivateKey(name: "keyA",
+                                  keyBytes: Array(repeating: 0x42, count: 32),
+                                  creationDate: Date(timeIntervalSince1970: 0))
+    private let keyB = PrivateKey(name: "keyB",
+                                  keyBytes: Array(repeating: 0x24, count: 32),
+                                  creationDate: Date(timeIntervalSince1970: 0))
 
     // MARK: - Upload
 
@@ -130,6 +138,170 @@ final class CloudKitMediaStoreTests: XCTestCase {
 
         let meta = try await store.fetchMetadata(albumID: "a1", includeThumbnail: false)
         XCTAssertEqual(meta.map { $0.recordName }, ["m1"])
+    }
+
+    // MARK: - Key fingerprint (ENC-70)
+
+    func testUploadSetsKeyFingerprintOnRecord() async throws {
+        let mock = MockCloudKitDatabase()
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        _ = try await store.upload(makeUpload(keyFingerprint: keyA.keychainLabel), progress: { _ in })
+
+        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
+        XCTAssertEqual(saved[CloudKitSchema.EncMedia.keyFingerprint] as? String, keyA.keychainLabel)
+        XCTAssertNotEqual(keyA.keychainLabel, keyB.keychainLabel,
+                          "The fixture keys must have distinct fingerprints for this to mean anything")
+    }
+
+    /// An unknown key leaves the field absent rather than writing "", so an unstamped
+    /// new record reads the same as a legacy one — both mean "unknown".
+    func testUploadOmitsKeyFingerprintWhenUnknown() async throws {
+        let mock = MockCloudKitDatabase()
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        _ = try await store.upload(makeUpload(keyFingerprint: ""), progress: { _ in })
+
+        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
+        XCTAssertFalse(saved.allKeys().contains(CloudKitSchema.EncMedia.keyFingerprint))
+    }
+
+    /// A record written before the field existed still decodes to full metadata.
+    func testRecordWithoutFingerprintFieldStillLoads() async throws {
+        let mock = MockCloudKitDatabase()
+        mock.stubbedQueryRecords = [CloudKitTestFactory.encMediaRecord(recordName: "legacy", albumID: "a1")]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        let meta = try await store.fetchMetadata(albumID: "a1", includeThumbnail: false)
+        XCTAssertEqual(meta.map { $0.recordName }, ["legacy"])
+        XCTAssertEqual(meta.first?.sizeBytes, 1234)
+    }
+
+    func testFetchFingerprintCensusCountsPerKey() async throws {
+        let mock = MockCloudKitDatabase()
+        mock.stubbedQueryRecords = [
+            CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1", keyFingerprint: keyA.keychainLabel),
+            CloudKitTestFactory.encMediaRecord(recordName: "m2", albumID: "a1", keyFingerprint: keyA.keychainLabel),
+            CloudKitTestFactory.encMediaRecord(recordName: "m3", albumID: "a2", keyFingerprint: keyB.keychainLabel)
+        ]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        let census = try await store.fetchFingerprintCensus()
+        XCTAssertEqual(census, .counted(mediaCount: 3,
+                                        fingerprints: [keyA.keychainLabel: 2, keyB.keychainLabel: 1]))
+    }
+
+    /// Unknown does not become a bucket of its own, and a tombstoned record is not
+    /// media the user still has. `mediaCount: 3` pins "records exist but none of
+    /// them names a key", which the fingerprint map alone cannot express.
+    func testFetchFingerprintCensusSkipsTombstonesAndUnknownRecords() async throws {
+        let mock = MockCloudKitDatabase()
+        mock.stubbedQueryRecords = [
+            CloudKitTestFactory.encMediaRecord(recordName: "live", albumID: "a1", keyFingerprint: keyA.keychainLabel),
+            CloudKitTestFactory.encMediaRecord(recordName: "dead", albumID: "a1",
+                                               deletedAt: Date(), keyFingerprint: keyA.keychainLabel),
+            CloudKitTestFactory.encMediaRecord(recordName: "legacy", albumID: "a1"),
+            CloudKitTestFactory.encMediaRecord(recordName: "blank", albumID: "a1", keyFingerprint: "")
+        ]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        let census = try await store.fetchFingerprintCensus()
+        XCTAssertEqual(census, .counted(mediaCount: 3, fingerprints: [keyA.keychainLabel: 1]))
+    }
+
+    /// Counting downloads no media and issues no save, so no `CKAsset` is rewritten.
+    func testFetchFingerprintCensusFetchesNoAssets() async throws {
+        let mock = MockCloudKitDatabase()
+        mock.stubbedQueryRecords = [
+            CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1", keyFingerprint: keyA.keychainLabel)
+        ]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        _ = try await store.fetchFingerprintCensus()
+
+        let desired = try XCTUnwrap(mock.lastQueryDesiredKeys)
+        XCTAssertFalse(desired.contains(CloudKitSchema.EncMedia.encBlob))
+        XCTAssertFalse(desired.contains(CloudKitSchema.EncMedia.encThumbnail))
+        XCTAssertEqual(mock.fetchCount, 0, "Counting must not fetch records by ID")
+        XCTAssertEqual(mock.saveCount, 0, "Counting must never rewrite a record, and so never an asset")
+    }
+
+    /// A container whose schema cannot answer the query yet (record type or
+    /// `createdAt` index not deployed) degrades to `.indexUnavailable` rather than
+    /// throwing.
+    func testFetchFingerprintCensusDegradesWhenSchemaNotReady() async throws {
+        for code in [CKError.Code.invalidArguments, .unknownItem] {
+            let mock = MockCloudKitDatabase()
+            mock.queryError = CKErrorFactory.error(code)
+            let store = makeStore(adapter: mock, defaults: freshDefaults("degrade-\(code.rawValue)"))
+
+            let census = try await store.fetchFingerprintCensus()
+            XCTAssertEqual(census, .indexUnavailable,
+                           "\(code) must degrade to 'I could not tell', not 'no data' and not a throw")
+        }
+    }
+
+    /// A real I/O failure still surfaces rather than degrading.
+    func testFetchFingerprintCensusStillThrowsOnRealFailure() async {
+        let mock = MockCloudKitDatabase()
+        mock.queryError = CKErrorFactory.error(.quotaExceeded)
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        do {
+            _ = try await store.fetchFingerprintCensus()
+            XCTFail("Expected the quota error to propagate")
+        } catch let error as CloudKitMediaStoreError {
+            guard case .quotaExceeded = error else { return XCTFail("Wrong case: \(error)") }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testSaveAlbumSetsKeyFingerprint() async throws {
+        let mock = MockCloudKitDatabase()
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        try await store.saveAlbum(CloudKitAlbumUpload(albumID: "album-hash",
+                                                      encName: "cipher",
+                                                      createdAt: Date(timeIntervalSince1970: 100),
+                                                      isHidden: false,
+                                                      keyFingerprint: keyA.keychainLabel))
+
+        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
+        XCTAssertEqual(saved.recordType, CloudKitSchema.EncAlbum.recordType)
+        XCTAssertEqual(saved[CloudKitSchema.EncAlbum.keyFingerprint] as? String, keyA.keychainLabel)
+    }
+
+    /// A caller with no fingerprint to offer must not clear one an earlier save
+    /// established — absent stays absent, present stays present.
+    func testSaveAlbumOmitsKeyFingerprintWhenUnknown() async throws {
+        let mock = MockCloudKitDatabase()
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        try await store.saveAlbum(CloudKitAlbumUpload(albumID: "album-hash",
+                                                      encName: "cipher",
+                                                      createdAt: Date(timeIntervalSince1970: 100),
+                                                      isHidden: false))
+
+        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
+        XCTAssertFalse(saved.allKeys().contains(CloudKitSchema.EncAlbum.keyFingerprint))
+    }
+
+    /// The album record is the one place the fingerprint survives when an album has
+    /// no live media, so `fetchAllAlbums` must read it back — and a pre-field record
+    /// must come back `nil` ("unknown"), never "".
+    func testFetchAllAlbumsReadsKeyFingerprintBack() async throws {
+        let mock = MockCloudKitDatabase()
+        mock.stubbedQueryRecords = [
+            CloudKitTestFactory.encAlbumRecord(albumID: "stamped", keyFingerprint: keyA.keychainLabel),
+            CloudKitTestFactory.encAlbumRecord(albumID: "legacy")
+        ]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        let albums = try await store.fetchAllAlbums()
+        XCTAssertEqual(albums.first { $0.albumID == "stamped" }?.keyFingerprint, keyA.keychainLabel)
+        let legacy = try XCTUnwrap(albums.first { $0.albumID == "legacy" })
+        XCTAssertNil(legacy.keyFingerprint)
     }
 
     // MARK: - Lazy asset fetch

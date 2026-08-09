@@ -412,7 +412,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                 albumID: albumIDHash,
                 encName: album.encryptedPathComponent,
                 createdAt: album.creationDate,
-                isHidden: albumManager.isAlbumHidden(album)
+                isHidden: albumManager.isAlbumHidden(album),
+                keyFingerprint: album.key.keychainLabel
             ))
             printDebug("run album record ready albumID=\(albumIDHash)")
         } catch {
@@ -505,7 +506,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                       store: store,
                                       coordinator: coordinator,
                                       sourceModel: sourceModel,
-                                      albumIDHash: albumIDHash)
+                                      albumIDHash: albumIDHash,
+                                      keyFingerprint: album.key.keychainLabel)
                 // The stale-verification recovery resets a `verified` item to
                 // `pending` and returns — the only way an item comes back
                 // `pending`. The single-pass loop would then end the run as a
@@ -519,7 +521,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                           store: store,
                                           coordinator: coordinator,
                                           sourceModel: sourceModel,
-                                          albumIDHash: albumIDHash)
+                                          albumIDHash: albumIDHash,
+                                          keyFingerprint: album.key.keychainLabel)
                     if plan.items[index].state == .pending {
                         markFailed(&plan, index,
                                    MigrationError.verificationFailed(recordName: plan.items[index].recordName))
@@ -830,7 +833,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                              store: CloudKitMediaStoring,
                              coordinator: CloudKitSyncCoordinator,
                              sourceModel: DataStorageModel?,
-                             albumIDHash: String) async throws {
+                             albumIDHash: String,
+                             keyFingerprint: String) async throws {
         let item = plan.items[index]
         let encURL = sourceModel?.driveURLForMedia(withID: item.mediaID, type: item.mediaType)
         let previewURL = sourceModel?.previewURLForMedia(withID: item.mediaID)
@@ -899,7 +903,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                 sizeBytes: item.sizeBytes,
                 encryptedFileURL: encURL,
                 encryptedThumbURL: thumbURL,
-                recordName: item.recordName
+                recordName: item.recordName,
+                keyFingerprint: keyFingerprint
             )
             setPhase(.uploading, plan: plan, currentItemName: item.mediaID)
             do {

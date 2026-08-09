@@ -116,6 +116,29 @@ final class CloudKitFileAccessTests: XCTestCase {
         try? FileManager.default.removeItem(at: encURL(for: album, id: id))
     }
 
+    /// Every ordinary capture/import — not just the one-time migration path — must
+    /// stamp the record with the key that encrypted it, so the census can name the
+    /// key a library needs. Guards the `keyFingerprint:` argument at the
+    /// `CloudKitMediaUpload` construction site in `saveSingle`.
+    func testSavedMediaIsStampedWithTheAlbumKeyFingerprint() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+
+        let id = UUID().uuidString
+        _ = try await access.save(media: photo(id: id, data: Data("cleartext".utf8)), metadata: nil, progress: { _ in })
+        await access.drainUploads()
+
+        let upload = try XCTUnwrap(store.uploadedItems.first)
+        XCTAssertEqual(upload.keyFingerprint, album.key.keychainLabel,
+                       "every saved record must name the key that encrypted it")
+        let census = try await store.fetchFingerprintCensus()
+        XCTAssertEqual(census, .counted(mediaCount: 1, fingerprints: [album.key.keychainLabel: 1]),
+                       "so the census can name the key for an ordinary capture")
+
+        try? FileManager.default.removeItem(at: encURL(for: album, id: id))
+    }
+
     // MARK: - Load
 
     func testLoadFetchesLazilyThenDecrypts() async throws {
@@ -605,13 +628,14 @@ final class CloudKitFileAccessTests: XCTestCase {
         CloudKitStoreProvider.makeStore = { _ in InMemoryCloudKitMediaStore() }
         defer { CloudKitStoreProvider.makeStore = prev }
 
-        let suite = "test.cloudkit.albumssync.join"
-        UserDefaults(suiteName: suite)!.removePersistentDomain(forName: suite)
+        // `UserDefaults` is not `Sendable`, so the `@Sendable` factory below builds
+        // its own instance from the suite name.
+        let suite = makeIsolatedSuiteName()
         let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false) { manager in
             CloudKitAlbumReconciler(store: store,
                                     keyManager: manager.keyManager,
                                     albumManager: manager,
-                                    tombstoneQueue: CloudKitAlbumTombstoneQueue(defaults: UserDefaults(suiteName: suite)!))
+                                    tombstoneQueue: CloudKitAlbumTombstoneQueue(defaults: defaults(forSuite: suite)))
         }
 
         let first = Task { await sync.syncAll() }

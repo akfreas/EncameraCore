@@ -16,6 +16,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
         var metadata: CloudKitMediaMetadata
         var blob: Data
         var thumbnail: Data
+        var keyFingerprint: String
     }
 
     private let lock = NSLock()
@@ -49,7 +50,12 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
             schemaVersion: item.schemaVersion, recordChangeTag: tag
         )
         // Keyed by recordName so a Live Photo's two components don't collide.
-        locked { records[item.recordName] = Stored(metadata: metadata, blob: blob, thumbnail: thumb) }
+        locked {
+            records[item.recordName] = Stored(metadata: metadata,
+                                              blob: blob,
+                                              thumbnail: thumb,
+                                              keyFingerprint: item.keyFingerprint)
+        }
         progress(1.0)
         return CloudKitMediaRef(recordName: item.recordName, recordChangeTag: tag)
     }
@@ -107,6 +113,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
             albums[album.albumID] = CloudKitAlbumMetadata(
                 albumID: album.albumID, encName: album.encName, createdAt: album.createdAt,
                 isHidden: album.isHidden, deletedAt: nil, schemaVersion: album.schemaVersion,
+                keyFingerprint: album.keyFingerprint.isEmpty ? nil : album.keyFingerprint,
                 recordChangeTag: tag
             )
         }
@@ -116,12 +123,28 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
         locked { Array(albums.values) }
     }
 
+    /// Always `.counted`: an in-memory store knows its own contents exactly, so an
+    /// empty result really is an empty zone.
+    public func fetchFingerprintCensus() async throws -> CloudKitFingerprintCensus {
+        locked {
+            var counts: [String: Int] = [:]
+            var liveRecords = 0
+            for stored in records.values where stored.metadata.deletedAt == nil {
+                liveRecords += 1
+                guard !stored.keyFingerprint.isEmpty else { continue }
+                counts[stored.keyFingerprint, default: 0] += 1
+            }
+            return .counted(mediaCount: liveRecords, fingerprints: counts)
+        }
+    }
+
     public func tombstoneAlbum(albumID: String) async throws {
         locked {
             if let existing = albums[albumID] {
                 albums[albumID] = CloudKitAlbumMetadata(
                     albumID: existing.albumID, encName: existing.encName, createdAt: existing.createdAt,
                     isHidden: existing.isHidden, deletedAt: Date(), schemaVersion: existing.schemaVersion,
+                    keyFingerprint: existing.keyFingerprint,
                     recordChangeTag: existing.recordChangeTag
                 )
             }

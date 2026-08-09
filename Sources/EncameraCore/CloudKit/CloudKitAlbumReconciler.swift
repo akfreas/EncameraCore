@@ -155,7 +155,8 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             let upload = CloudKitAlbumUpload(albumID: hash,
                                              encName: album.encryptedPathComponent,
                                              createdAt: album.creationDate,
-                                             isHidden: albumManager.isAlbumHidden(album))
+                                             isHidden: albumManager.isAlbumHidden(album),
+                                             keyFingerprint: album.key.keychainLabel)
             printDebug("reconcileAlbums push start albumID=\(hash) isHidden=\(upload.isHidden)")
             do {
                 try await store.saveAlbum(upload)

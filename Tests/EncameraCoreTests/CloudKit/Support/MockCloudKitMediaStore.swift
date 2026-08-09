@@ -34,6 +34,12 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     private var _uploadCalls: [String] = []
     private var _uploadedItems: [CloudKitMediaUpload] = []
     var uploadedItems: [CloudKitMediaUpload] { locked { _uploadedItems } }
+    /// Records this mock believes made it onto the server and are not tombstoned,
+    /// keyed by record name. Written only after `upload` clears its failure
+    /// injections, and removed by `delete` / `tombstone` / `tombstoneAlbum` — so it
+    /// models the live-record set the real store's census queries. `_uploadedItems`
+    /// is a log of attempts and does neither.
+    private var _liveRecords: [String: CloudKitMediaUpload] = [:]
     /// Blob bytes read at upload time, keyed by record name — the moment CloudKit
     /// would read the file. The holding-folder copy is deleted once the upload
     /// completes, so asserting on the file afterwards is impossible.
@@ -74,6 +80,8 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
                 failed: [item.recordName: CKErrorFactory.error(.referenceViolation)]
             )
         }
+        // Past every failure injection, so only a record that really "landed" counts.
+        locked { _liveRecords[item.recordName] = item }
         if reflectUploadsInMetadata {
             locked {
                 _reflected.removeAll { $0.recordName == item.recordName }
@@ -150,10 +158,17 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     func delete(recordName: String) async throws {
         locked { _deleteCalls.append(recordName) }
         if let deleteError { throw deleteError }
+        locked { _liveRecords[recordName] = nil }
     }
 
     func tombstone(recordName: String) async throws {
         locked { _tombstoneCalls.append(recordName) }
+        // Honors `deleteError` so a per-record tombstone failure can be injected
+        // through the same seam as `delete`, which also records the call first.
+        if let deleteError { throw deleteError }
+        // A tombstoned record is no longer live, so it leaves the census — matching
+        // the real store, which filters `deletedAt != nil` client-side.
+        locked { _liveRecords[recordName] = nil }
     }
 
     // MARK: Albums (chunk 13)
@@ -175,6 +190,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
             _albums[album.albumID] = CloudKitAlbumMetadata(
                 albumID: album.albumID, encName: album.encName, createdAt: album.createdAt,
                 isHidden: album.isHidden, deletedAt: nil, schemaVersion: album.schemaVersion,
+                keyFingerprint: album.keyFingerprint.isEmpty ? nil : album.keyFingerprint,
                 recordChangeTag: "albumtag")
         }
     }
@@ -190,15 +206,36 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         return locked { Array(_albums.values) }
     }
 
+    /// Counts come from `_liveRecords` — the records this mock believes are actually
+    /// on the server — so a wiped account reports an empty census and
+    /// `fetchBlobCount` stays at 0.
+    func fetchFingerprintCensus() async throws -> CloudKitFingerprintCensus {
+        locked {
+            var counts: [String: Int] = [:]
+            for item in _liveRecords.values where !item.keyFingerprint.isEmpty {
+                counts[item.keyFingerprint, default: 0] += 1
+            }
+            return .counted(mediaCount: _liveRecords.count, fingerprints: counts)
+        }
+    }
+
     func tombstoneAlbum(albumID: String) async throws {
+        if let deleteError {
+            locked { _tombstonedAlbumCalls.append(albumID) }
+            throw deleteError
+        }
         locked {
             _tombstonedAlbumCalls.append(albumID)
             if let existing = _albums[albumID] {
                 _albums[albumID] = CloudKitAlbumMetadata(
                     albumID: existing.albumID, encName: existing.encName, createdAt: existing.createdAt,
                     isHidden: existing.isHidden, deletedAt: Date(), schemaVersion: existing.schemaVersion,
+                    keyFingerprint: existing.keyFingerprint,
                     recordChangeTag: existing.recordChangeTag)
             }
+            // `.deleteSelf` cascades the album tombstone to its media server-side,
+            // so those records stop being live here too.
+            _liveRecords = _liveRecords.filter { $0.value.albumID != albumID }
         }
     }
 

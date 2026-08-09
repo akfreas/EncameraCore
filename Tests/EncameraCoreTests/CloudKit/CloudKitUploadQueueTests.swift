@@ -28,7 +28,8 @@ final class CloudKitUploadQueueTests: XCTestCase {
 
     private func makeUpload(mediaID: String = UUID().uuidString,
                             recordName: String? = nil,
-                            contents: String = "ciphertext") throws -> CloudKitMediaUpload {
+                            contents: String = "ciphertext",
+                            keyFingerprint: String = "") throws -> CloudKitMediaUpload {
         let src = FileManager.default.temporaryDirectory
             .appendingPathComponent("cap-\(UUID().uuidString).photo")
         try Data(contents.utf8).write(to: src)
@@ -39,7 +40,8 @@ final class CloudKitUploadQueueTests: XCTestCase {
                                    sizeBytes: Int64(contents.utf8.count),
                                    encryptedFileURL: src,
                                    encryptedThumbURL: nil,
-                                   recordName: recordName ?? "\(mediaID)#0")
+                                   recordName: recordName ?? "\(mediaID)#0",
+                                   keyFingerprint: keyFingerprint)
     }
 
     // MARK: - Sweep safety
@@ -109,6 +111,52 @@ final class CloudKitUploadQueueTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: quarantined.path), "An orphan is quarantined, not deleted")
         let remaining = await queue.all().map(\.mediaID)
         XCTAssertEqual(remaining, ["KEPT"], "A record whose file vanished is dropped")
+    }
+
+    // MARK: - Manifest compatibility
+
+    /// `keyFingerprint` is Optional precisely so manifests written before the field
+    /// existed keep decoding. This pins that: strip the key from a persisted entry,
+    /// relaunch, and the entry must survive on the strict (not salvage) path — the
+    /// orphan sweep still runs, and the rebuilt upload carries "" (unknown).
+    func testManifestWithoutKeyFingerprintStillDecodes() async throws {
+        let seed = CloudKitUploadQueue(baseDir: baseDir)
+        let queued = try await seed.enqueue(makeUpload(mediaID: "LEGACY", keyFingerprint: "abc123"))
+
+        let manifestURL = baseDir.appendingPathComponent("queue.json")
+        var entries = try JSONSerialization.jsonObject(with: Data(contentsOf: manifestURL)) as! [[String: Any]]
+        entries[0].removeValue(forKey: "keyFingerprint")
+        try JSONSerialization.data(withJSONObject: entries).write(to: manifestURL)
+
+        let relaunched = CloudKitUploadQueue(baseDir: baseDir)
+        let item = try XCTUnwrap(await relaunched.next(), "A pre-field entry must keep decoding")
+        XCTAssertEqual(item.recordName, "LEGACY#0")
+        XCTAssertNil(item.keyFingerprint)
+        let rebuilt = await relaunched.rebuild(item, thumbURL: nil)
+        XCTAssertEqual(rebuilt.keyFingerprint, "", "A legacy entry uploads as 'unknown', exactly as it did before the field")
+
+        // The manifest counted as healthy: an unclaimed file is quarantined, which
+        // the unreadable-manifest path would refuse to do.
+        let albumDir = queued.encryptedFileURL.deletingLastPathComponent()
+        let orphan = albumDir.appendingPathComponent("orphan.photo")
+        try Data("stray".utf8).write(to: orphan)
+        await relaunched.sweep()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: orphan.path),
+                       "A manifest missing only the optional field must not count as unreadable")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: queued.encryptedFileURL.path))
+    }
+
+    /// The doc comment's claim on `keyFingerprint` — "carried across a relaunch so a
+    /// retried upload still stamps `EncMedia.keyFingerprint`" — proven end to end.
+    func testKeyFingerprintSurvivesRelaunch() async throws {
+        let seed = CloudKitUploadQueue(baseDir: baseDir)
+        try await seed.enqueue(makeUpload(mediaID: "STAMPED", keyFingerprint: "abc123"))
+
+        let relaunched = CloudKitUploadQueue(baseDir: baseDir)
+        let item = try XCTUnwrap(await relaunched.next())
+        let rebuilt = await relaunched.rebuild(item, thumbURL: nil)
+        XCTAssertEqual(rebuilt.keyFingerprint, "abc123",
+                       "A retried upload after relaunch must still stamp the record")
     }
 
     // MARK: - Lifecycle
