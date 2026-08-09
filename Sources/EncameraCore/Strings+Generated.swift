@@ -1706,6 +1706,8 @@ public enum L10n {
     public static let duration = L10n.tr("Localizable", "MediaInfo.Duration", fallback: "Duration")
     /// Encrypted
     public static let encrypted = L10n.tr("Localizable", "MediaInfo.Encrypted", fallback: "Encrypted")
+    /// File Name
+    public static let filename = L10n.tr("Localizable", "MediaInfo.Filename", fallback: "File Name")
     /// Frame Rate
     public static let frameRate = L10n.tr("Localizable", "MediaInfo.FrameRate", fallback: "Frame Rate")
     /// Key Fingerprint

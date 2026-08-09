@@ -541,6 +541,11 @@ public class MediaImportHandler: DebugPrintable {
         if let firstMedia = mediaGroup.first, let url = firstMedia.url {
             let extractor = MediaMetadataExtractor()
             metadata = await extractor.extractMetadata(from: url, mediaType: firstMedia.mediaType)
+            // The entry point knows the real source name; it wins over whatever
+            // the extractor derived from the (possibly temp) URL.
+            if let originalFilename = firstMedia.originalFilename {
+                metadata?.originalFilename = originalFilename
+            }
         }
         
         try await importSingleItem(

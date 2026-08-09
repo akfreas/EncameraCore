@@ -25,11 +25,22 @@ public struct MediaMetadataExtractor {
     /// Extracts metadata from a PHAsset
     /// - Parameter asset: The Photos framework asset
     /// - Returns: Populated EncryptedFileMetadata
+    /// The Photos-recorded filename (e.g. `IMG_1234.HEIC`) of the asset's
+    /// primary resource — the still photo or video, not adjustments or the
+    /// Live Photo's paired video.
+    public static func primaryResourceFilename(for asset: PHAsset) -> String? {
+        let resources = PHAssetResource.assetResources(for: asset)
+        let primaryTypes: [PHAssetResourceType] = [.photo, .video, .fullSizePhoto]
+        let primary = resources.first { primaryTypes.contains($0.type) } ?? resources.first
+        return primary?.originalFilename
+    }
+
     public func extractMetadata(from asset: PHAsset) async -> EncryptedFileMetadata {
         var metadata = EncryptedFileMetadata()
-        
+
         // Store the PHAsset identifier for import tracking
         metadata.sourceAssetIdentifier = asset.localIdentifier
+        metadata.originalFilename = Self.primaryResourceFilename(for: asset)
         
         // Core dates
         metadata.captureDate = asset.creationDate
@@ -161,7 +172,11 @@ public struct MediaMetadataExtractor {
         var metadata = EncryptedFileMetadata()
         metadata.encryptionDate = Date()
         metadata.originalExtension = url.pathExtension.lowercased()
+        // Temp copies are named exactly UUID().uuidString + extension; recording
+        // those would persist garbage, so only keep names with non-UUID stems
+        // (same rule the UI applies via displayFilename).
         metadata.originalFilename = url.lastPathComponent
+        metadata.originalFilename = metadata.displayFilename
         
         // Get file attributes
         if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) {

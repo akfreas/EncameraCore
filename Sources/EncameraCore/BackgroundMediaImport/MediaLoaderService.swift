@@ -102,7 +102,10 @@ public class MediaLoaderService: DebugPrintable {
         case .phAsset(let asset):
             let media = try await loadMediaFromAsset(asset)
             // Extract metadata from the PHAsset
-            let metadata = await metadataExtractor.extractMetadata(from: asset)
+            var metadata = await metadataExtractor.extractMetadata(from: asset)
+            if let originalFilename = media.compactMap(\.originalFilename).first {
+                metadata.originalFilename = originalFilename
+            }
             return LoadedMediaItem(media: media, metadata: metadata, assetIdentifier: asset.localIdentifier)
             
         case .phPickerResult(let pickerResult):
@@ -119,6 +122,9 @@ public class MediaLoaderService: DebugPrintable {
             // If we couldn't get PHAsset metadata, extract from the file URL
             if metadata == nil, let firstMedia = media.first, let url = firstMedia.url {
                 metadata = await metadataExtractor.extractMetadata(from: url, mediaType: firstMedia.mediaType)
+            }
+            if let originalFilename = media.compactMap(\.originalFilename).first {
+                metadata?.originalFilename = originalFilename
             }
             return LoadedMediaItem(media: media, metadata: metadata, assetIdentifier: pickerResult.assetIdentifier)
         }
@@ -147,36 +153,46 @@ public class MediaLoaderService: DebugPrintable {
     private func loadMedia(result: PHPickerResult) async throws -> CleartextMedia {
         let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
         let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
-        
-        let url: URL? = try await withCheckedThrowingContinuation { continuation in
+        let suggestedName = result.itemProvider.suggestedName
+
+        let loaded: (url: URL, originalFilename: String)? = try await withCheckedThrowingContinuation { continuation in
             result.itemProvider.loadFileRepresentation(forTypeIdentifier: preferredType) { url, error in
                 guard let url = url else {
                     debugPrint("Error loading file representation: \(String(describing: error))")
                     continuation.resume(returning: nil)
                     return
                 }
-                
+
+                // The provider URL still carries the original filename; the copy
+                // below renames to a UUID temp name, so capture it now.
+                let originalFilename = url.lastPathComponent
                 // Use helper to copy file
                 let fileName = NSUUID().uuidString + (isVideo ? ".mov" : ".jpeg")
                 let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
-                
+
                 do {
                     try FileManager.default.copyItem(at: url, to: destinationURL)
                     debugPrint("File copied to: \(destinationURL)")
-                    continuation.resume(returning: destinationURL)
+                    continuation.resume(returning: (destinationURL, originalFilename))
                 } catch {
                     debugPrint("Error copying file: \(error)")
                     continuation.resume(throwing: error)
                 }
             }
         }
-        
-        guard let url = url else {
+
+        guard let loaded = loaded else {
             printDebug("Error loading file representation, url is nil")
             throw BackgroundImportError.mismatchedType
         }
-        
-        return CleartextMedia(source: url, mediaType: isVideo ? .video : .photo, id: UUID().uuidString)
+
+        let originalFilename = loaded.originalFilename.isEmpty ? suggestedName : loaded.originalFilename
+        return CleartextMedia(
+            source: loaded.url,
+            mediaType: isVideo ? .video : .photo,
+            id: UUID().uuidString,
+            originalFilename: originalFilename
+        )
     }
     
     private func loadLivePhoto(result: PHPickerResult) async throws -> [CleartextMedia] {
@@ -214,6 +230,7 @@ public class MediaLoaderService: DebugPrintable {
     private func loadRegularMediaFromAsset(_ asset: PHAsset) async throws -> CleartextMedia {
         let isVideo = asset.mediaType == .video
         let id = UUID().uuidString
+        let originalFilename = MediaMetadataExtractor.primaryResourceFilename(for: asset)
         
         if isVideo {
             // Handle video
@@ -235,7 +252,7 @@ public class MediaLoaderService: DebugPrintable {
                     
                     do {
                         try FileManager.default.copyItem(at: urlAsset.url, to: destinationURL)
-                        let media = CleartextMedia(source: destinationURL, mediaType: .video, id: id)
+                        let media = CleartextMedia(source: destinationURL, mediaType: .video, id: id, originalFilename: originalFilename)
                         continuation.resume(returning: media)
                     } catch {
                         continuation.resume(throwing: error)
@@ -261,7 +278,7 @@ public class MediaLoaderService: DebugPrintable {
                     
                     do {
                         try data.write(to: destinationURL)
-                        let media = CleartextMedia(source: destinationURL, mediaType: .photo, id: id)
+                        let media = CleartextMedia(source: destinationURL, mediaType: .photo, id: id, originalFilename: originalFilename)
                         continuation.resume(returning: media)
                     } catch {
                         continuation.resume(throwing: error)
@@ -304,10 +321,13 @@ public class MediaLoaderService: DebugPrintable {
             }
             
             try await PHAssetResourceManager.default().writeData(for: resource, toFile: fileURL, options: options)
+            // Only the still-photo component carries the name — it drives the
+            // group's metadata, and the paired video must not overwrite it.
             let media = CleartextMedia(
                 source: fileURL,
                 mediaType: mediaType,
-                id: id
+                id: id,
+                originalFilename: resource.type == .photo ? resource.originalFilename : nil
             )
             cleartextMediaArray.append(media)
         }
