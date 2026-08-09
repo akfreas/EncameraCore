@@ -32,14 +32,12 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                      isHidden: isHidden,
                                      deletedAt: deleted ? Date() : nil,
                                      schemaVersion: CloudKitSchema.currentSchemaVersion,
+                                     keyFingerprint: key.keychainLabel,
                                      recordChangeTag: "tag")
     }
 
     private func freshTombstoneQueue(_ name: String = #function) -> CloudKitAlbumTombstoneQueue {
-        let suite = "test.cloudkit.tombstonequeue.\(name)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
-        return CloudKitAlbumTombstoneQueue(defaults: defaults)
+        CloudKitAlbumTombstoneQueue(defaults: makeIsolatedDefaults(name))
     }
 
     private func makeReconciler(store: CloudKitMediaStoring,
@@ -92,6 +90,8 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         XCTAssertEqual(lockedOut, 0)
         let expectedHash = SyncedStoreEncryptionHandler.keyedHash("OnlyHere", keyBytes: key.keyBytes)!
         XCTAssertEqual(store.savedAlbumCalls.map { $0.albumID }, [expectedHash])
+        XCTAssertEqual(store.savedAlbumCalls.first?.keyFingerprint, key.keychainLabel,
+                       "the self-heal push must stamp the album with the key that encrypts it")
     }
 
     func test_reconcile_reportsLockedOutWhenKeyMissing() async {

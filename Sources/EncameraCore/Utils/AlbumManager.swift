@@ -294,7 +294,8 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         let upload = CloudKitAlbumUpload(albumID: hash,
                                          encName: album.encryptedPathComponent,
                                          createdAt: album.creationDate,
-                                         isHidden: isAlbumHidden(album))
+                                         isHidden: isAlbumHidden(album),
+                                         keyFingerprint: album.key.keychainLabel)
         let store = CloudKitStoreProvider.makeStore(hash)
         Task { try? await store.saveAlbum(upload) }
     }

@@ -116,6 +116,16 @@ public struct EncryptedFileMetadata: Codable, Equatable, Sendable {
     public var primaryDate: Date? {
         return captureDate ?? encryptionDate
     }
+
+    /// `originalFilename` suitable for display: historical imports recorded
+    /// UUID-named temp copies (`UUID().uuidString + "." + ext`), which are
+    /// meaningless to the user, so those are suppressed.
+    public var displayFilename: String? {
+        guard let originalFilename else { return nil }
+        let stem = (originalFilename as NSString).deletingPathExtension
+        guard UUID(uuidString: stem) == nil else { return nil }
+        return originalFilename
+    }
     
     /// Aspect ratio if dimensions are available
     public var aspectRatio: Double? {

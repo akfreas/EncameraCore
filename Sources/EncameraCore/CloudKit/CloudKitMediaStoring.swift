@@ -31,6 +31,11 @@ public struct CloudKitMediaUpload: Sendable {
     /// the whole record — so the eager thumbnail is simply omitted in that case.
     public let encryptedThumbURL: URL?
     public let schemaVersion: Int64
+    /// `PrivateKey.keychainLabel` of the key that produced `encryptedFileURL` —
+    /// lowercase hex of the full 16-byte fingerprint. Empty means "unknown"; the
+    /// record is then written without the field (see
+    /// `CloudKitSchema.EncMedia.keyFingerprint`).
+    public let keyFingerprint: String
 
     public init(albumID: String,
                 mediaID: String,
@@ -40,7 +45,9 @@ public struct CloudKitMediaUpload: Sendable {
                 encryptedFileURL: URL,
                 encryptedThumbURL: URL?,
                 recordName: String? = nil,
+                keyFingerprint: String = "",
                 schemaVersion: Int64 = CloudKitSchema.currentSchemaVersion) {
+        self.keyFingerprint = keyFingerprint
         self.albumID = albumID
         self.mediaID = mediaID
         self.recordName = recordName ?? mediaID
@@ -109,12 +116,17 @@ public struct CloudKitAlbumUpload: Sendable {
     public let createdAt: Date
     public let isHidden: Bool
     public let schemaVersion: Int64
+    /// `PrivateKey.keychainLabel` of the album's key. Empty means "unknown" and the
+    /// field is then left off the record entirely.
+    public let keyFingerprint: String
 
     public init(albumID: String,
                 encName: String,
                 createdAt: Date,
                 isHidden: Bool,
+                keyFingerprint: String = "",
                 schemaVersion: Int64 = CloudKitSchema.currentSchemaVersion) {
+        self.keyFingerprint = keyFingerprint
         self.albumID = albumID
         self.encName = encName
         self.createdAt = createdAt
@@ -132,6 +144,11 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
     public let isHidden: Bool
     public let deletedAt: Date?
     public let schemaVersion: Int64
+    /// `EncAlbum.keyFingerprint` as read back from the record — the key this
+    /// album's media is encrypted under, answerable even when the album has no
+    /// live media. `nil` means the record predates the field ("unknown", never
+    /// "no key").
+    public let keyFingerprint: String?
     public let recordChangeTag: String?
 
     public init(albumID: String,
@@ -140,6 +157,7 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
                 isHidden: Bool,
                 deletedAt: Date?,
                 schemaVersion: Int64,
+                keyFingerprint: String?,
                 recordChangeTag: String?) {
         self.albumID = albumID
         self.encName = encName
@@ -147,6 +165,7 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
         self.isHidden = isHidden
         self.deletedAt = deletedAt
         self.schemaVersion = schemaVersion
+        self.keyFingerprint = keyFingerprint
         self.recordChangeTag = recordChangeTag
     }
 }
@@ -215,6 +234,20 @@ public protocol CloudKitMediaStoring: Sendable {
     /// per-album media change-token cursor.
     func fetchAllAlbums() async throws -> [CloudKitAlbumMetadata]
 
+    /// A zone-wide census of live (non-tombstoned) `EncMedia` records: how many there
+    /// are, and how many name each key fingerprint. A metadata-only query over the
+    /// indexed `keyFingerprint` field — it must not fetch a blob or a thumbnail.
+    ///
+    /// Records written before the field existed are absent from `fingerprints`:
+    /// missing means "unknown", not "no key", and the caller falls back to the
+    /// existing `KeyDiscovery` sweep for them. `mediaCount` still counts them, so
+    /// "records exist but none names a key" stays distinguishable from "no records
+    /// at all".
+    ///
+    /// Returns `.indexUnavailable` rather than throwing when the field is not yet
+    /// queryable server-side.
+    func fetchFingerprintCensus() async throws -> CloudKitFingerprintCensus
+
     /// Soft-delete an album (set `deletedAt`). `.deleteSelf` references on its media
     /// cascade server-side; the per-media tombstone path remains the cross-device
     /// backstop. No-op if the album record is absent.
@@ -257,3 +290,24 @@ public protocol CloudKitMediaStoring: Sendable {
     /// Whether the CloudKit account is usable (else the caller stays local-only).
     func accountAvailable() async -> Bool
 }
+
+// MARK: - Fingerprint census
+
+/// The outcome of the zone-wide `keyFingerprint` query, keeping "queried
+/// successfully, genuinely zero" separate from "the index is not available, so
+/// this signal tells you nothing".
+public enum CloudKitFingerprintCensus: Sendable, Equatable {
+    /// The query ran. `mediaCount` is every live `EncMedia` record in the zone;
+    /// `fingerprints` maps fingerprint hex -> count for the subset that names a
+    /// key. `mediaCount` can exceed the summed fingerprint counts when records
+    /// predate the field, so `.counted(mediaCount: 0, fingerprints: [:])` means
+    /// the account genuinely has no CloudKit media.
+    case counted(mediaCount: Int, fingerprints: [String: Int])
+
+    /// The server schema cannot answer the census query yet — the `EncMedia`
+    /// record type or its `createdAt` index has not been deployed to this
+    /// container (see ENC-70). Carries no information in either direction;
+    /// callers must treat it as unresolved, never as "no data".
+    case indexUnavailable
+}
+

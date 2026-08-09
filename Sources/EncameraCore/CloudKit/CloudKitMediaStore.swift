@@ -143,6 +143,11 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         record[CloudKitSchema.EncMedia.sizeBytes] = item.sizeBytes as CKRecordValue
         record[CloudKitSchema.EncMedia.creationDevice] = DeviceIdentity.currentID(defaults: defaults) as CKRecordValue
         record[CloudKitSchema.EncMedia.schemaVersion] = item.schemaVersion as CKRecordValue
+        // Written only when known, so absent keeps meaning "unknown" rather than
+        // becoming an empty bucket in the fingerprint index.
+        if !item.keyFingerprint.isEmpty {
+            record[CloudKitSchema.EncMedia.keyFingerprint] = item.keyFingerprint as CKRecordValue
+        }
         if let thumbnailURL {
             record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: thumbnailURL)
         }
@@ -174,6 +179,11 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             record[CloudKitSchema.EncAlbum.isHidden] = Int64(album.isHidden ? 1 : 0) as CKRecordValue
             record[CloudKitSchema.EncAlbum.deletedAt] = nil          // revive on re-create
             record[CloudKitSchema.EncAlbum.schemaVersion] = album.schemaVersion as CKRecordValue
+            // Same "only when known" rule as EncMedia, so a caller without a
+            // fingerprint does not clear one an earlier save established.
+            if !album.keyFingerprint.isEmpty {
+                record[CloudKitSchema.EncAlbum.keyFingerprint] = album.keyFingerprint as CKRecordValue
+            }
             _ = try await adapter.save(records: [record],
                                        savePolicy: .ifServerRecordUnchanged,
                                        perRecordProgress: { _, _ in })
@@ -192,6 +202,59 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         } catch {
             throw mapAndRecord(error)
         }
+    }
+
+    /// See `CloudKitMediaStoring.fetchFingerprintCensus()`. Asset-free by
+    /// construction: `desiredKeys` names only the fingerprint and the tombstone
+    /// marker, so neither `encBlob` nor `encThumbnail` is ever transferred.
+    ///
+    /// The predicate filters on `createdAt` (matching every record — uploads always
+    /// set it) instead of `NSPredicate(value: true)` deliberately: a `true` predicate
+    /// resolves through the system `recordName` index, which the deploy runbook never
+    /// prescribes for `EncMedia`, whereas `createdAt` is Queryable in every deployed
+    /// container. `keyFingerprint` itself needs no index — it is only retrieved via
+    /// `desiredKeys`, never filtered on.
+    public func fetchFingerprintCensus() async throws -> CloudKitFingerprintCensus {
+        let desiredKeys = [CloudKitSchema.EncMedia.keyFingerprint,
+                           CloudKitSchema.EncMedia.deletedAt]
+        do {
+            let records = try await adapter.query(recordType: CloudKitSchema.EncMedia.recordType,
+                                                  predicate: NSPredicate(format: "%K > %@",
+                                                                         CloudKitSchema.EncMedia.createdAt,
+                                                                         Date.distantPast as NSDate),
+                                                  zoneID: zoneID,
+                                                  desiredKeys: desiredKeys)
+            var counts: [String: Int] = [:]
+            var liveRecords = 0
+            for record in records {
+                // Tombstones are filtered client-side, as everywhere else in this file.
+                guard record[CloudKitSchema.EncMedia.deletedAt] as? Date == nil else { continue }
+                liveRecords += 1
+                guard let fingerprint = record[CloudKitSchema.EncMedia.keyFingerprint] as? String,
+                      !fingerprint.isEmpty else { continue }   // pre-field record: unknown, not counted
+                counts[fingerprint, default: 0] += 1
+            }
+            printDebug("fetchFingerprintCensus ok records=\(records.count) live=\(liveRecords) fingerprints=\(counts.count)")
+            return .counted(mediaCount: liveRecords, fingerprints: counts)
+        } catch {
+            let mapped = mapAndRecord(error)
+            // A container whose schema predates the `createdAt` index — or the
+            // `EncMedia` record type itself — cannot answer the query. Both degrade
+            // to "unresolved" rather than an error.
+            if Self.isSchemaNotReady(error) {
+                printDebug("fetchFingerprintCensus degraded — schema cannot answer the census query yet; index unavailable (raw=\(error))")
+                return .indexUnavailable
+            }
+            throw mapped
+        }
+    }
+
+    /// True when the failure means "the server schema does not know this field/type
+    /// yet" rather than a real I/O failure. CloudKit reports an unindexed field as
+    /// `.invalidArguments` and an unknown record type as `.unknownItem`.
+    private static func isSchemaNotReady(_ error: Error) -> Bool {
+        guard let ckError = error as? CKError else { return false }
+        return ckError.code == .invalidArguments || ckError.code == .unknownItem
     }
 
     public func tombstoneAlbum(albumID: String) async throws {
@@ -218,12 +281,15 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         let isHidden = ((record[CloudKitSchema.EncAlbum.isHidden] as? Int64) ?? 0) != 0
         let deletedAt = record[CloudKitSchema.EncAlbum.deletedAt] as? Date
         let schemaVersion = (record[CloudKitSchema.EncAlbum.schemaVersion] as? Int64) ?? CloudKitSchema.currentSchemaVersion
+        // Absent stays nil ("unknown"), matching the write side's "only when known" rule.
+        let keyFingerprint = record[CloudKitSchema.EncAlbum.keyFingerprint] as? String
         return CloudKitAlbumMetadata(albumID: record.recordID.recordName,
                                      encName: encName,
                                      createdAt: createdAt,
                                      isHidden: isHidden,
                                      deletedAt: deletedAt,
                                      schemaVersion: schemaVersion,
+                                     keyFingerprint: keyFingerprint,
                                      recordChangeTag: record.recordChangeTag)
     }
 

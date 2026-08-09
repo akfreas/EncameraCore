@@ -38,6 +38,11 @@ public struct CloudKitPendingUpload: Codable, Sendable, Equatable {
     /// stops resolving after a restore (the same reason `CloudKitBlobCache`
     /// stores `relativePath`).
     public let fileName: String
+    /// Fingerprint of the key this record was encrypted under, carried across a
+    /// relaunch so a retried upload still stamps `EncMedia.keyFingerprint`.
+    /// Optional because manifests written before the field existed must keep
+    /// decoding — those items upload as "unknown", exactly as they did then.
+    public let keyFingerprint: String?
 
     public var queuedAt: Date
     public var attempts: Int
@@ -185,6 +190,7 @@ public actor CloudKitUploadQueue: DebugPrintable {
             createdAt: upload.createdAt,
             sizeBytes: upload.sizeBytes,
             fileName: fileName,
+            keyFingerprint: upload.keyFingerprint,
             queuedAt: Date(),
             attempts: 0,
             lastError: nil,
@@ -209,7 +215,8 @@ public actor CloudKitUploadQueue: DebugPrintable {
             sizeBytes: item.sizeBytes,
             encryptedFileURL: fileURL(for: item),
             encryptedThumbURL: thumbURL,
-            recordName: item.recordName
+            recordName: item.recordName,
+            keyFingerprint: item.keyFingerprint ?? ""
         )
     }
 

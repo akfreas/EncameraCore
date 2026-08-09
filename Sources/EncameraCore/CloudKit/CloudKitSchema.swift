@@ -56,6 +56,17 @@ public enum CloudKitSchema {
         /// `parent` is set to the same reference for future record sharing. The
         /// plaintext `albumID` field above is retained as the queryable join key.
         public static let albumRef       = "albumRef"         // CKRecord.Reference(.deleteSelf)
+        /// Lowercase hex of the 16-byte `KeyFingerprint` of the key this record's
+        /// ciphertext was encrypted under — i.e. `PrivateKey.keychainLabel`. Needs no
+        /// index: the census retrieves it via `desiredKeys` on a `createdAt`-filtered
+        /// query and never filters on it. The fingerprint is a domain-separated
+        /// BLAKE2b hash of the key bytes, so it discloses no key material and nothing
+        /// about the plaintext.
+        ///
+        /// Absent or empty means "unknown", never "no key": records written before
+        /// this field existed carry no value and are not backfilled, so readers must
+        /// fall back to the `KeyDiscovery` sweep rather than fail.
+        public static let keyFingerprint = "keyFingerprint"   // String
     }
 
     /// The album record. Makes CloudKit the authoritative, cross-device source of
@@ -75,6 +86,11 @@ public enum CloudKitSchema {
         public static let isHidden       = "isHidden"         // Int64 (0/1)
         public static let deletedAt      = "deletedAt"        // Date? (tombstone)
         public static let schemaVersion  = "schemaVersion"    // Int64
+        /// The fingerprint of the key this album's media is encrypted under — the same
+        /// value as `EncMedia.keyFingerprint`, recorded once per album so the key an
+        /// album needs can be named without reading a media record. Same "absent means
+        /// unknown" contract as above.
+        public static let keyFingerprint = "keyFingerprint"   // String
     }
 
     /// Bumped when the record layout changes; written to `schemaVersion`.

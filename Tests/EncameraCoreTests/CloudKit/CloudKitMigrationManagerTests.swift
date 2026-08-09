@@ -334,6 +334,30 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         XCTAssertEqual(store.uploadCalls.count, 2)
     }
 
+    // MARK: - Key fingerprint
+
+    func testMigratedMediaIsStampedWithTheAlbumKeyFingerprint() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer { cleanup(album) }
+
+        _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .completed)
+        XCTAssertEqual(store.uploadedItems.count, 2)
+        for upload in store.uploadedItems {
+            XCTAssertEqual(upload.keyFingerprint, album.key.keychainLabel,
+                           "every migrated record must name the key that encrypted it")
+        }
+        XCTAssertEqual(store.savedAlbumCalls.first?.keyFingerprint, album.key.keychainLabel,
+                       "and the album record agrees with its media")
+        let census = try await store.fetchFingerprintCensus()
+        XCTAssertEqual(census, .counted(mediaCount: 2, fingerprints: [album.key.keychainLabel: 2]),
+                       "so the census can name the key for the whole migrated library")
+    }
+
     func testSaveAlbumFailureFailsFastWithoutUploading() async throws {
         // If the album record cannot be created, every upload would fail with the
         // same reference violation — the run must fail fast with the real reason

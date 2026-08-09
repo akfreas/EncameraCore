@@ -36,6 +36,9 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     private let album: Album
     private let albumIDHash: String
     private let keyBytes: [UInt8]
+    /// Fingerprint of the album key every record this instance writes is encrypted
+    /// under, stamped onto each upload.
+    private let keyFingerprint: String
     private let store: CloudKitMediaStoring
     private let coordinator: CloudKitSyncCoordinator
     private let directoryModel: DataStorageModel
@@ -104,6 +107,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     public init(album: Album, albumManager: AlbumManaging, store: CloudKitMediaStoring? = nil) async {
         self.album = album
         self.keyBytes = album.key.keyBytes
+        self.keyFingerprint = album.key.keychainLabel
         let albumIDHash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) ?? album.id
         self.albumIDHash = albumIDHash
         let resolvedStore = store ?? CloudKitStoreProvider.makeStore(albumIDHash)
@@ -275,7 +279,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             sizeBytes: size,
             encryptedFileURL: encURL,
             encryptedThumbURL: thumbURL,
-            recordName: Self.componentRecordName(mediaID: item.id, type: item.mediaType)
+            recordName: Self.componentRecordName(mediaID: item.id, type: item.mediaType),
+            keyFingerprint: keyFingerprint
         )
         // 4. Hand the ciphertext to the durable holding folder. This MOVES the
         // file out of the album's cache directory, which lives under

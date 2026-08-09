@@ -31,12 +31,9 @@ final class CloudKitFoundationsTests: XCTestCase {
     }
 
     // A throwaway, isolated defaults suite so the persisted "zone created" flag
-    // never leaks between tests or into the app group.
+    // never leaks between tests, into the app group, or across runs.
     private func freshDefaults(_ name: String = #function) -> UserDefaults {
-        let suite = "test.cloudkit.foundations.\(name)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
-        return defaults
+        makeIsolatedDefaults(name)
     }
 
     private func makeKeyedHandler(keyBytes: [UInt8]) -> SyncedStoreEncryptionHandler {
