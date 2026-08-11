@@ -45,14 +45,24 @@ public protocol CloudKitDatabaseAdapter: AnyObject {
 
     func delete(recordIDs: [CKRecord.ID]) async throws -> [CKRecord.ID]
 
+    /// `qualityOfService` is a real throughput knob for asset transfers, not just a
+    /// scheduling hint: raising it from `.userInitiated` to `.userInteractive` is
+    /// widely reported to speed up `CKAsset` downloads several-fold. Callers that
+    /// pull an asset a user is waiting on should ask for `.userInteractive`;
+    /// background bookkeeping fetches should leave the default alone so they do not
+    /// compete with it.
     func fetch(recordIDs: [CKRecord.ID],
                desiredKeys: [CKRecord.FieldKey]?,
+               qualityOfService: QualityOfService,
                perRecordProgress: @escaping (CKRecord.ID, Double) -> Void) async throws -> [CKRecord.ID: CKRecord]
 
+    /// Same `qualityOfService` contract as `fetch`: raise it when `desiredKeys`
+    /// names an asset field, leave the default for index-only queries.
     func query(recordType: String,
                predicate: NSPredicate,
                zoneID: CKRecordZone.ID,
-               desiredKeys: [CKRecord.FieldKey]?) async throws -> [CKRecord]
+               desiredKeys: [CKRecord.FieldKey]?,
+               qualityOfService: QualityOfService) async throws -> [CKRecord]
 
     func fetchZoneChanges(zoneID: CKRecordZone.ID,
                           since token: CKServerChangeToken?,
@@ -61,6 +71,32 @@ public protocol CloudKitDatabaseAdapter: AnyObject {
     func saveSubscription(_ subscription: CKSubscription) async throws
 
     func cancelAll()
+}
+
+public extension CloudKitDatabaseAdapter {
+    /// Default-QoS overload. A protocol requirement cannot carry a default argument,
+    /// so the many metadata/bookkeeping call sites get one here and only the asset
+    /// paths have to name a quality of service.
+    func fetch(recordIDs: [CKRecord.ID],
+               desiredKeys: [CKRecord.FieldKey]?,
+               perRecordProgress: @escaping (CKRecord.ID, Double) -> Void) async throws -> [CKRecord.ID: CKRecord] {
+        try await fetch(recordIDs: recordIDs,
+                        desiredKeys: desiredKeys,
+                        qualityOfService: .userInitiated,
+                        perRecordProgress: perRecordProgress)
+    }
+
+    /// Default-QoS overload of `query`, for the same reason.
+    func query(recordType: String,
+               predicate: NSPredicate,
+               zoneID: CKRecordZone.ID,
+               desiredKeys: [CKRecord.FieldKey]?) async throws -> [CKRecord] {
+        try await query(recordType: recordType,
+                        predicate: predicate,
+                        zoneID: zoneID,
+                        desiredKeys: desiredKeys,
+                        qualityOfService: .userInitiated)
+    }
 }
 
 // MARK: - Production implementation
@@ -180,10 +216,11 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
     /// the retry silently attached to it).
     public func fetch(recordIDs: [CKRecord.ID],
                       desiredKeys: [CKRecord.FieldKey]?,
+                      qualityOfService: QualityOfService,
                       perRecordProgress: @escaping (CKRecord.ID, Double) -> Void) async throws -> [CKRecord.ID: CKRecord] {
         let operation = CKFetchRecordsOperation(recordIDs: recordIDs)
         operation.desiredKeys = desiredKeys
-        operation.qualityOfService = .userInitiated
+        operation.qualityOfService = qualityOfService
 
         return try await Self.runCancellable(operation) { continuation in
             var fetched: [CKRecord.ID: CKRecord] = [:]
@@ -228,7 +265,8 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
     public func query(recordType: String,
                       predicate: NSPredicate,
                       zoneID: CKRecordZone.ID,
-                      desiredKeys: [CKRecord.FieldKey]?) async throws -> [CKRecord] {
+                      desiredKeys: [CKRecord.FieldKey]?,
+                      qualityOfService: QualityOfService) async throws -> [CKRecord] {
         var all: [CKRecord] = []
         var cursor: CKQueryOperation.Cursor?
         repeat {
@@ -236,6 +274,7 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
                                                   predicate: predicate,
                                                   zoneID: zoneID,
                                                   desiredKeys: desiredKeys,
+                                                  qualityOfService: qualityOfService,
                                                   cursor: cursor)
             all.append(contentsOf: page)
             cursor = next
@@ -247,6 +286,7 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
                           predicate: NSPredicate,
                           zoneID: CKRecordZone.ID,
                           desiredKeys: [CKRecord.FieldKey]?,
+                          qualityOfService: QualityOfService,
                           cursor: CKQueryOperation.Cursor?) async throws -> ([CKRecord], CKQueryOperation.Cursor?) {
         try await withCheckedThrowingContinuation { continuation in
             let operation: CKQueryOperation
@@ -257,7 +297,7 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
             }
             operation.zoneID = zoneID
             operation.desiredKeys = desiredKeys
-            operation.qualityOfService = .userInitiated
+            operation.qualityOfService = qualityOfService
 
             var records: [CKRecord] = []
             operation.recordMatchedBlock = { _, result in

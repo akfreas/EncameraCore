@@ -332,6 +332,57 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(mock.lastFetchDesiredKeys, [CloudKitSchema.EncMedia.encBlob])
     }
 
+    /// Asset transfers run in the top QoS band — CloudKit moves them markedly
+    /// faster there, and something on screen is always waiting on one.
+    func testAssetFetchesRunAtUserInteractiveQoS() async throws {
+        let temp = FileManager.default.temporaryDirectory.appendingPathComponent("ck-temp-\(UUID()).bin")
+        try Data("ciphertext".utf8).write(to: temp)
+        defer { try? FileManager.default.removeItem(at: temp) }
+
+        let record = CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1")
+        record[CloudKitSchema.EncMedia.encBlob] = CKAsset(fileURL: temp)
+        record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: temp)
+
+        let mock = MockCloudKitDatabase()
+        mock.stubbedFetchRecords = [CloudKitTestFactory.recordID("m1"): record]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        let dest = FileManager.default.temporaryDirectory.appendingPathComponent("ck-dest-\(UUID()).bin")
+        defer { try? FileManager.default.removeItem(at: dest) }
+
+        try await store.fetchBlob(recordName: "m1", to: dest, progress: { _ in })
+        XCTAssertEqual(mock.lastFetchQualityOfService, .userInteractive)
+
+        try await store.fetchThumbnail(recordName: "m1", to: dest)
+        XCTAssertEqual(mock.lastFetchQualityOfService, .userInteractive)
+    }
+
+    /// The elevated band is reserved for asset transfers: bookkeeping fetches stay
+    /// at the default so they do not compete with a download the user is watching.
+    func testNonAssetFetchesStayAtDefaultQoS() async throws {
+        let record = CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1")
+        let mock = MockCloudKitDatabase()
+        mock.stubbedFetchRecords = [CloudKitTestFactory.recordID("m1"): record]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        _ = try await store.fetchRecordMetadata(recordName: "m1")
+        XCTAssertEqual(mock.lastFetchQualityOfService, .userInitiated)
+    }
+
+    /// The eager-thumbnail query is an asset transfer too, so it gets the same
+    /// treatment — but only when the thumbnail is actually requested.
+    func testMetadataQueryRaisesQoSOnlyForEagerThumbnails() async throws {
+        let mock = MockCloudKitDatabase()
+        mock.stubbedQueryRecords = [CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1")]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        _ = try await store.fetchMetadata(albumID: "a1", includeThumbnail: false)
+        XCTAssertEqual(mock.lastQueryQualityOfService, .userInitiated)
+
+        _ = try await store.fetchMetadata(albumID: "a1", includeThumbnail: true)
+        XCTAssertEqual(mock.lastQueryQualityOfService, .userInteractive)
+    }
+
     // MARK: - Delete / tombstone
 
     func testDeleteIsAtomicSingleOp() async throws {

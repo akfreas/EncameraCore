@@ -302,10 +302,14 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
 
         let predicate = NSPredicate(format: "%K == %@", CloudKitSchema.EncMedia.albumID, albumID)
         do {
+            // Asking for the thumbnail turns this from an index query into an asset
+            // transfer, so it gets the same top QoS band as `fetchAsset`. Without the
+            // thumbnail there is nothing bulky to move and the default is right.
             let records = try await adapter.query(recordType: CloudKitSchema.EncMedia.recordType,
                                                   predicate: predicate,
                                                   zoneID: zoneID,
-                                                  desiredKeys: desiredKeys)
+                                                  desiredKeys: desiredKeys,
+                                                  qualityOfService: includeThumbnail ? .userInteractive : .userInitiated)
             // Tombstoned records are filtered client-side (server nil-predicates are unreliable).
             return records.compactMap(metadata(from:)).filter { $0.deletedAt == nil }
         } catch {
@@ -369,8 +373,15 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                             progress: @escaping @Sendable (Double) -> Void) async throws {
         let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         do {
+            // `.userInteractive` rather than the default `.userInitiated`: a blob or
+            // thumbnail is always fetched because something on screen is waiting for
+            // it, and CloudKit transfers assets markedly faster at the top QoS band —
+            // reports of 5-10x on the same 100-200KB asset are common. Paired with the
+            // single-key `desiredKeys` below, which keeps the transfer to just this
+            // asset (a blob fetch never drags the thumbnail along, or vice versa).
             let records = try await adapter.fetch(recordIDs: [recordID],
                                                   desiredKeys: [assetKey],
+                                                  qualityOfService: .userInteractive,
                                                   perRecordProgress: { _, fraction in progress(fraction) })
             guard let record = records[recordID],
                   let asset = record[assetKey] as? CKAsset,

@@ -32,6 +32,8 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
     private(set) var lastSavePolicy: CKModifyRecordsOperation.RecordSavePolicy?
     private(set) var lastQueryDesiredKeys: [CKRecord.FieldKey]?
     private(set) var lastFetchDesiredKeys: [CKRecord.FieldKey]?
+    private(set) var lastFetchQualityOfService: QualityOfService?
+    private(set) var lastQueryQualityOfService: QualityOfService?
     private(set) var cancelAllCalled = false
 
     private(set) var saveCount = 0
@@ -73,9 +75,11 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
 
     func fetch(recordIDs: [CKRecord.ID],
                desiredKeys: [CKRecord.FieldKey]?,
+               qualityOfService: QualityOfService,
                perRecordProgress: @escaping (CKRecord.ID, Double) -> Void) async throws -> [CKRecord.ID: CKRecord] {
         fetchCount += 1
         lastFetchDesiredKeys = desiredKeys
+        lastFetchQualityOfService = qualityOfService
         for recordID in recordIDs {
             for value in fetchProgressValues { perRecordProgress(recordID, value) }
         }
@@ -90,8 +94,10 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
     func query(recordType: String,
                predicate: NSPredicate,
                zoneID: CKRecordZone.ID,
-               desiredKeys: [CKRecord.FieldKey]?) async throws -> [CKRecord] {
+               desiredKeys: [CKRecord.FieldKey]?,
+               qualityOfService: QualityOfService) async throws -> [CKRecord] {
         lastQueryDesiredKeys = desiredKeys
+        lastQueryQualityOfService = qualityOfService
         if let queryError { throw queryError }
         return stubbedQueryRecords
     }
