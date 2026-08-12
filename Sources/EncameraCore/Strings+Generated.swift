@@ -812,6 +812,10 @@ public enum L10n {
     public static let albumHiddenToast = L10n.tr("Localizable", "AlbumDetailView.AlbumHiddenToast", fallback: "Album is now hidden")
     /// Album is now visible
     public static let albumUnhiddenToast = L10n.tr("Localizable", "AlbumDetailView.AlbumUnhiddenToast", fallback: "Album is now visible")
+    /// Capture
+    public static let captureButton = L10n.tr("Localizable", "AlbumDetailView.CaptureButton", fallback: "Capture")
+    /// Take photo
+    public static let captureButtonAccessibilityLabel = L10n.tr("Localizable", "AlbumDetailView.CaptureButtonAccessibilityLabel", fallback: "Take photo")
     /// Clear Filters
     public static let clearFilters = L10n.tr("Localizable", "AlbumDetailView.ClearFilters", fallback: "Clear Filters")
     /// Confirm Delete
@@ -824,16 +828,26 @@ public enum L10n {
     public static func deleteSelectedMedia(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.DeleteSelectedMedia", String(describing: p1), String(describing: p2), fallback: "Do you want to delete %@ %@?")
     }
+    /// Disable Cover
+    public static let disableCover = L10n.tr("Localizable", "AlbumDetailView.DisableCover", fallback: "Disable Cover")
+    /// Enable Cover
+    public static let enableCover = L10n.tr("Localizable", "AlbumDetailView.EnableCover", fallback: "Enable Cover")
     /// Plural format key: "%#@file_count@ on %2$@"
     public static func fileCountOnLocation(_ p1: Int, _ p2: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.FileCountOnLocation", p1, String(describing: p2), fallback: "Plural format key: \"%#@file_count@ on %2$@\"")
     }
+    /// Filter
+    public static let filterButton = L10n.tr("Localizable", "AlbumDetailView.FilterButton", fallback: "Filter")
+    /// Sort and filter
+    public static let filterButtonAccessibilityLabel = L10n.tr("Localizable", "AlbumDetailView.FilterButtonAccessibilityLabel", fallback: "Sort and filter")
     /// Are you sure you want to hide this album? You MUST remember the name of this album to access it again.
     public static let hideAlbumAlertMessage = L10n.tr("Localizable", "AlbumDetailView.HideAlbumAlertMessage", fallback: "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.")
     /// Hide this album?
     public static let hideAlbumAlertTitle = L10n.tr("Localizable", "AlbumDetailView.HideAlbumAlertTitle", fallback: "Hide this album?")
     /// Hide Album
     public static let hideAlbumMenuItem = L10n.tr("Localizable", "AlbumDetailView.HideAlbumMenuItem", fallback: "Hide Album")
+    /// Hide
+    public static let hideAlbumRowTitle = L10n.tr("Localizable", "AlbumDetailView.HideAlbumRowTitle", fallback: "Hide")
     /// Import Pictures
     public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Pictures")
     /// None of the selected files could be imported (%@).
@@ -856,6 +870,10 @@ public enum L10n {
     public static let importReasonTranscodeFailed = L10n.tr("Localizable", "AlbumDetailView.ImportReasonTranscodeFailed", fallback: "could not be converted")
     /// unsupported format
     public static let importReasonUnsupportedFormat = L10n.tr("Localizable", "AlbumDetailView.ImportReasonUnsupportedFormat", fallback: "unsupported format")
+    /// Import
+    public static let importToolbarButton = L10n.tr("Localizable", "AlbumDetailView.ImportToolbarButton", fallback: "Import")
+    /// Import from Photos
+    public static let importToolbarButtonAccessibilityLabel = L10n.tr("Localizable", "AlbumDetailView.ImportToolbarButtonAccessibilityLabel", fallback: "Import from Photos")
     /// Leave the app open and connected to WiFi for best results.
     public static let largeImportWarningMessage = L10n.tr("Localizable", "AlbumDetailView.LargeImportWarningMessage", fallback: "Leave the app open and connected to WiFi for best results.")
     /// For Faster Imports
@@ -908,6 +926,14 @@ public enum L10n {
     public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Default to Latest Image")
     /// Select Media
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select Media")
+    /// this device
+    public static let storageLocationThisDevice = L10n.tr("Localizable", "AlbumDetailView.StorageLocationThisDevice", fallback: "this device")
+    /// Saved on %@
+    public static func storageMenuSubtitle(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.StorageMenuSubtitle", String(describing: p1), fallback: "Saved on %@")
+    }
+    /// Unhide
+    public static let unhideAlbumRowTitle = L10n.tr("Localizable", "AlbumDetailView.UnhideAlbumRowTitle", fallback: "Unhide")
     public enum SortFilter {
       /// Sort & Filter
       public static let dateAddedNewest = L10n.tr("Localizable", "AlbumDetailView.SortFilter.DateAddedNewest", fallback: "Date Added: Newest First")

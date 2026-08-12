@@ -187,6 +187,18 @@
 "AlbumDetailView.ImportReasonReadError" = "file could not be read";
 "AlbumDetailView.ImportReasonAssetNoLongerShared" = "no longer shared with Encamera";
 "AlbumDetailView.ImportReasonAssetDownloadFailed" = "could not be downloaded from iCloud";
+"AlbumDetailView.CaptureButton" = "Capture";
+"AlbumDetailView.CaptureButtonAccessibilityLabel" = "Take photo";
+"AlbumDetailView.ImportToolbarButton" = "Import";
+"AlbumDetailView.ImportToolbarButtonAccessibilityLabel" = "Import from Photos";
+"AlbumDetailView.FilterButton" = "Filter";
+"AlbumDetailView.FilterButtonAccessibilityLabel" = "Sort and filter";
+"AlbumDetailView.EnableCover" = "Enable Cover";
+"AlbumDetailView.DisableCover" = "Disable Cover";
+"AlbumDetailView.HideAlbumRowTitle" = "Hide";
+"AlbumDetailView.UnhideAlbumRowTitle" = "Unhide";
+"AlbumDetailView.StorageMenuSubtitle" = "Saved on %@";
+"AlbumDetailView.StorageLocationThisDevice" = "this device";
 "OK" = "OK";
 /* ./Encamera/KeyManagement/AlbumCell.swift */
 "Active" = "Active";
