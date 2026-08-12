@@ -129,7 +129,10 @@ final class CloudKitUploadQueueTests: XCTestCase {
         try JSONSerialization.data(withJSONObject: entries).write(to: manifestURL)
 
         let relaunched = CloudKitUploadQueue(baseDir: baseDir)
-        let item = try XCTUnwrap(await relaunched.next(), "A pre-field entry must keep decoding")
+        // Awaited into a local first: XCTUnwrap takes its expression as an
+        // autoclosure, which cannot carry an `await`.
+        let next = await relaunched.next()
+        let item = try XCTUnwrap(next, "A pre-field entry must keep decoding")
         XCTAssertEqual(item.recordName, "LEGACY#0")
         XCTAssertNil(item.keyFingerprint)
         let rebuilt = await relaunched.rebuild(item, thumbURL: nil)
@@ -153,7 +156,8 @@ final class CloudKitUploadQueueTests: XCTestCase {
         try await seed.enqueue(makeUpload(mediaID: "STAMPED", keyFingerprint: "abc123"))
 
         let relaunched = CloudKitUploadQueue(baseDir: baseDir)
-        let item = try XCTUnwrap(await relaunched.next())
+        let next = await relaunched.next()
+        let item = try XCTUnwrap(next)
         let rebuilt = await relaunched.rebuild(item, thumbURL: nil)
         XCTAssertEqual(rebuilt.keyFingerprint, "abc123",
                        "A retried upload after relaunch must still stamp the record")

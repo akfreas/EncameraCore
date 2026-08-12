@@ -386,6 +386,13 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     /// removing them here would be exactly the account nuke this split exists to
     /// prevent. Turning backup off (or removing the device from iCloud) is the
     /// supported way to clear those.
+    ///
+    /// That consequence is why `ErasureScope.allData` resolves to `.accountWide`:
+    /// with Multi-Device Mode on, every item is synchronizable, so a device-local
+    /// sweep from "Erase All Data" matched nothing and left the key and passcode
+    /// fully intact on a screen that promised to remove them. `.deviceLocal`
+    /// remains correct for `.appData` and for any caller whose user still owns
+    /// another device — it is a real guarantee, just not the one that screen makes.
     public func clearKeychainData(scope: KeyDeletionScope) {
         // The sync predicate every query below shares. Everything about the
         // blast radius of this function follows from this one value.
@@ -451,11 +458,65 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
                 print("Failed to delete backup status flag item: \(backupStatusDeleteStatus)")
             }
 
+            // `com.encamera.multiDeviceState` is written with a hardcoded
+            // `kSecAttrSynchronizable: true`, and a query pinned to
+            // `kSecAttrSynchronizableAny` in the class sweep above does NOT reliably
+            // match an item written that way — so it survived what was supposed to be
+            // a total erase and told the next install "this account has used
+            // Encamera". Deleted explicitly, by account, for the same reason the
+            // backup flag is.
+            let multiDeviceStateQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrAccount as String: KeychainConstants.multiDeviceState,
+                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            ]
+            let multiDeviceStateDeleteStatus = keychainWrapper.secItemDelete(multiDeviceStateQuery as CFDictionary)
+            if multiDeviceStateDeleteStatus != errSecSuccess && multiDeviceStateDeleteStatus != errSecItemNotFound {
+                print("Failed to delete multi-device state item: \(multiDeviceStateDeleteStatus)")
+            }
+
             try? clearPassword()
         }
 
         try? setActiveKey(nil)
         print("Keychain data cleared (scope: \(scope))")
+    }
+
+    /// See `KeyManager.residualKeychainItemNames()`. Queries the same five classes
+    /// the sweep does, with the same widest-match sync predicate, so a survivor the
+    /// sweep should have taken cannot hide from the check that follows it.
+    public func residualKeychainItemNames() -> [String] {
+        let classes: [(secClass: CFString, name: String)] = [
+            (kSecClassGenericPassword, "GenericPassword"),
+            (kSecClassInternetPassword, "InternetPassword"),
+            (kSecClassCertificate, "Certificate"),
+            (kSecClassKey, "Key"),
+            (kSecClassIdentity, "Identity")
+        ]
+
+        var names: [String] = []
+        for entry in classes {
+            let query: [String: Any] = [
+                kSecClass as String: entry.secClass,
+                kSecReturnAttributes as String: true,
+                kSecMatchLimit as String: kSecMatchLimitAll,
+                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            ]
+            var result: CFTypeRef?
+            guard keychainWrapper.secItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+                  let items = result as? [[String: Any]] else { continue }
+            for item in items {
+                // Whichever attribute names the item for this class: generic
+                // passwords carry an account, key items a label or application tag.
+                let name = (item[kSecAttrAccount as String] as? String)
+                    ?? (item[kSecAttrLabel as String] as? String)
+                    ?? (item[kSecAttrService as String] as? String)
+                    ?? (item[kSecAttrApplicationTag as String] as? Data).flatMap { String(data: $0, encoding: .utf8) }
+                    ?? "<unnamed>"
+                names.append("\(entry.name)|\(name)")
+            }
+        }
+        return names.sorted()
     }
 
     /// Removes only this device's non-synchronizable password hash and legacy

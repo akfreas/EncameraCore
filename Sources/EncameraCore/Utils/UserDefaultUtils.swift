@@ -251,8 +251,43 @@ public struct UserDefaultUtils {
         }
     }
 
+    /// Keys still set in any domain this app writes to, excluding the ones the
+    /// system owns. Used to verify an erase actually emptied them.
+    ///
+    /// Reads `persistentDomain(forName:)` rather than `dictionaryRepresentation()`:
+    /// the latter composes the global domain in, so it reports `AppleLanguages` and
+    /// every keyboard preference as though the app had written them. The persistent
+    /// domain is what this app actually owns — but iOS still deposits a handful of
+    /// managed entries there and re-creates some of them immediately after a wipe,
+    /// so those prefixes are filtered out. A key surviving this filter is residue
+    /// the erase was supposed to remove.
+    public static func encameraOwnedKeysStillSet() -> [String] {
+        var keys = Set<String>()
+
+        if let groupDefaults = UserDefaults(suiteName: appGroup),
+           let domain = groupDefaults.persistentDomain(forName: appGroup) {
+            keys.formUnion(domain.keys)
+        }
+        if let bundleID = Bundle.main.bundleIdentifier,
+           let domain = UserDefaults.standard.persistentDomain(forName: bundleID) {
+            keys.formUnion(domain.keys)
+        }
+        keys.formUnion(cloudStore.dictionaryRepresentation.keys)
+
+        return keys.filter { key in
+            !systemOwnedDefaultsPrefixes.contains { key.hasPrefix($0) }
+        }
+    }
+
+    /// Entries iOS writes into an app's own persistent domain. Not ours to delete,
+    /// and several reappear the instant the app touches a text field or a locale.
+    private static let systemOwnedDefaultsPrefixes = [
+        "Apple", "NS", "com.apple.", "AK", "ACD", "PK", "INNext", "MSV", "WebKit",
+        "AddingEmojiKeybord", "shouldShowRSVPDataDetectors"
+    ]
+
     // MARK: - Migration
-    
+
     public static func migrateUserDefaultsToAppGroups() {
         
         // User Defaults - Old

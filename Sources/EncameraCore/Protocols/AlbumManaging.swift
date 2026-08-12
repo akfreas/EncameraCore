@@ -90,6 +90,18 @@ public extension AlbumManaging {
         return cloudKitAlbum
     }
 
+    /// Whether the album's CloudKit discovery marker exists — i.e. whether a
+    /// migration actually finalized. Reads the same artefact
+    /// `finalizeMigrationToCloudKit` writes above and `fetchAlbumsFromSources`
+    /// derives its `.cloudKit` albums from, so it is the one true answer to "did
+    /// this album really move", available to callers outside this module that
+    /// must not report a migration they did not achieve.
+    func hasFinalizedToCloudKit(album: Album) -> Bool {
+        let marker = CloudKitStorageModel.albumsURL
+            .appendingPathComponent(Album.cloudKitTwin(of: album).encryptedPathComponent)
+        return FileManager.default.fileExists(atPath: marker.path)
+    }
+
     /// Default no-op so lightweight test/demo conformers need not implement it.
     func adoptCloudKitAlbum(name: String, key: PrivateKey, createdAt: Date, isHidden: Bool) {}
 }

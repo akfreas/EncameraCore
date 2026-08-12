@@ -22,7 +22,6 @@ public class LaunchCountUtils: DebugPrintable {
     public static func fetchCurrentVersionLaunchCount() -> Int {
 
         let launchCount = UserDefaultUtils.dictionary(forKey: .launchCountKey) as? [String: Int] ?? [String: Int]()
-        printDebug("Launch count: \(launchCount)")
         return launchCount[currentVersion] ?? 0
     }
 

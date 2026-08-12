@@ -36,6 +36,7 @@ final class EraserUtilsTests: XCTestCase {
         func eraseBlobCache() async { steps.append("blobCache") }
         func eraseThumbnails() { steps.append("thumbnails") }
         func eraseTempDirectories() { steps.append("tempDirectories") }
+        func eraseSharedContainerImports() async { steps.append("sharedContainerImports") }
         func eraseKeychain() { steps.append("keychain") }
         func eraseUserDefaults() { steps.append("userDefaults") }
         func recordPendingCloudWipe() { steps.append("pendingCloudWipe") }
@@ -43,7 +44,8 @@ final class EraserUtilsTests: XCTestCase {
 
     private static let allDataSteps = [
         "migrationState", "activeBackendMedia", "allLocalMediaFiles", "mediaIndexes",
-        "blobCache", "thumbnails", "tempDirectories", "keychain", "userDefaults"
+        "blobCache", "thumbnails", "tempDirectories", "sharedContainerImports",
+        "keychain", "userDefaults"
     ]
 
     private func makeUtils(scope: ErasureScope,
@@ -111,9 +113,21 @@ final class EraserUtilsTests: XCTestCase {
         XCTAssertFalse(result.cloudKitDeletionFailed)
         XCTAssertEqual(local.steps,
                        ["migrationState", "mediaIndexes", "blobCache", "thumbnails",
-                        "tempDirectories", "keychain", "userDefaults"],
+                        "tempDirectories", "sharedContainerImports", "keychain", "userDefaults"],
                        "appData sweeps every DERIVED cache but keeps encrypted originals")
         XCTAssertFalse(local.steps.contains("activeBackendMedia"))
         XCTAssertFalse(local.steps.contains("allLocalMediaFiles"))
+    }
+
+    /// The Share Extension hands over DECRYPTED media, so the App Group import
+    /// directory is cleartext on disk. It is swept by both scopes — `.appData`
+    /// preserves encrypted originals, and this is not one of them.
+    func testBothScopesClearTheCleartextSharedContainerImports() async throws {
+        for scope in [ErasureScope.allData, .appData] {
+            let local = RecordingLocalEraser()
+            _ = try await makeUtils(scope: scope, cloud: MockCloudDataEraser(), local: local).erase()
+            XCTAssertTrue(local.steps.contains("sharedContainerImports"),
+                          "\(scope) left the Share Extension's cleartext imports on disk")
+        }
     }
 }

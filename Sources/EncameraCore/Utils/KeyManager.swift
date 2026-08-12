@@ -128,6 +128,20 @@ public protocol KeyManager {
     /// unrecoverable, so a caller has to name the scope it means. The no-argument
     /// `clearKeychainData()` convenience below resolves to `.deviceLocal`.
     func clearKeychainData(scope: KeyDeletionScope)
+    /// Every Encamera-owned keychain item still readable from this device, across
+    /// all item classes and INCLUDING iCloud-synced copies, as `"<class>|<name>"`.
+    ///
+    /// Exists so an erase can be verified rather than assumed. After an
+    /// account-wide sweep this must be empty; anything left is residue the user was
+    /// told had been destroyed.
+    ///
+    /// What this can and cannot prove about tombstones: Security.framework exposes
+    /// no tombstone API, so the only local evidence available is that a
+    /// widest-match query (`kSecAttrSynchronizableAny`) no longer returns the item.
+    /// That the *deletion* replicated to the account's other devices can only be
+    /// observed on another device — `TwoDeviceKeyErasureScopeDeviceTests` is where
+    /// that claim is settled.
+    func residualKeychainItemNames() -> [String]
     func keyWith(name: String) -> PrivateKey?
     @MainActor
     func keyWith(uuid: UUID) -> PrivateKey?

@@ -37,7 +37,12 @@ extension DataStorageModel {
             directoryContents = try FileManager.default.contentsOfDirectory(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys), options: [])
         } catch {
             driveUrl.stopAccessingSecurityScopedResource()
-            print("Error while enumerating files \(driveUrl.path): \(error.localizedDescription)")
+            // Album roots are created lazily by their first writer, so scanning one
+            // that does not exist yet is routine — `fetchAlbumsFromSources()` does it
+            // on every album broadcast. Logging it would drown out real failures.
+            if !Self.isMissingDirectory(error) {
+                print("Error while enumerating files \(driveUrl.path): \(error.localizedDescription)")
+            }
             return []
         }
 
@@ -87,6 +92,13 @@ extension DataStorageModel {
         return filteredContents
     }
 
+
+    /// Whether a filesystem error means the item simply does not exist.
+    static func isMissingDirectory(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        return nsError.domain == NSCocoaErrorDomain
+            && (nsError.code == NSFileReadNoSuchFileError || nsError.code == NSFileNoSuchFileError)
+    }
 
     public static var albumsURL: URL {
         rootURL.appendingPathComponent("albums", isDirectory: true)

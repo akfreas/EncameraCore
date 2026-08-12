@@ -268,6 +268,8 @@ public class DemoKeyManager: KeyManager {
 
     }
 
+    public func residualKeychainItemNames() -> [String] { [] }
+
     func generateNewKey(name: String) throws {
 
     }

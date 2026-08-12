@@ -1640,6 +1640,14 @@ public enum L10n {
     public static let tapToDownload = L10n.tr("Localizable", "ICloudStatus.TapToDownload", fallback: "Tap to download")
   }
   public enum ImportKeyPhrase {
+    public enum Confirm {
+      /// Replace
+      public static let action = L10n.tr("Localizable", "ImportKeyPhrase.Confirm.Action", fallback: "Replace")
+      /// This key phrase will become the one Encamera uses for new media. Your current key phrase is kept, so everything already encrypted with it stays readable.
+      public static let message = L10n.tr("Localizable", "ImportKeyPhrase.Confirm.Message", fallback: "This key phrase will become the one Encamera uses for new media. Your current key phrase is kept, so everything already encrypted with it stays readable.")
+      /// Replace Key Phrase?
+      public static let title = L10n.tr("Localizable", "ImportKeyPhrase.Confirm.Title", fallback: "Replace Key Phrase?")
+    }
     public enum RestartRequired {
       /// After changing your key, the app will restart.
       public static let message = L10n.tr("Localizable", "ImportKeyPhrase.RestartRequired.Message", fallback: "After changing your key, the app will restart.")
@@ -1708,8 +1716,8 @@ public enum L10n {
     public static let duration = L10n.tr("Localizable", "MediaInfo.Duration", fallback: "Duration")
     /// Encrypted
     public static let encrypted = L10n.tr("Localizable", "MediaInfo.Encrypted", fallback: "Encrypted")
-    /// File Name
-    public static let filename = L10n.tr("Localizable", "MediaInfo.Filename", fallback: "File Name")
+    /// Original File Name
+    public static let filename = L10n.tr("Localizable", "MediaInfo.Filename", fallback: "Original File Name")
     /// Frame Rate
     public static let frameRate = L10n.tr("Localizable", "MediaInfo.FrameRate", fallback: "Frame Rate")
     /// Key Fingerprint
@@ -2065,6 +2073,15 @@ public enum L10n {
     public static let copiedToClipboard = L10n.tr("Localizable", "Settings.CopiedToClipboard", fallback: "Copied to clipboard")
     /// Default Storage Option
     public static let defaultStorageOption = L10n.tr("Localizable", "Settings.DefaultStorageOption", fallback: "Default Storage Option")
+    /// Erasing finished, but some of your data is still on this device, so the app has not been reset. Please try again, and contact support if it keeps happening.
+    /// 
+    /// Still present:
+    /// %@
+    public static func eraseIncompleteMessage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "Settings.EraseIncompleteMessage", String(describing: p1), fallback: "Erasing finished, but some of your data is still on this device, so the app has not been reset. Please try again, and contact support if it keeps happening.\n\nStill present:\n%@")
+    }
+    /// Some data could not be erased
+    public static let eraseIncompleteTitle = L10n.tr("Localizable", "Settings.EraseIncompleteTitle", fallback: "Some data could not be erased")
     /// Give Instant Feedback
     public static let giveInstantFeedback = L10n.tr("Localizable", "Settings.GiveInstantFeedback", fallback: "Give Instant Feedback")
     /// Hidden Albums
@@ -2077,6 +2094,10 @@ public enum L10n {
     public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
     /// Loop Videos
     public static let loopVideos = L10n.tr("Localizable", "Settings.LoopVideos", fallback: "Loop Videos")
+    /// iCloud Multi-Device Mode
+    public static let multiDeviceMode = L10n.tr("Localizable", "Settings.MultiDeviceMode", fallback: "iCloud Multi-Device Mode")
+    /// Your key and passcode sync through iCloud Keychain, so Encamera works seamlessly on your other devices. Turning this off removes them from your other devices.
+    public static let multiDeviceModeDescription = L10n.tr("Localizable", "Settings.MultiDeviceModeDescription", fallback: "Your key and passcode sync through iCloud Keychain, so Encamera works seamlessly on your other devices. Turning this off removes them from your other devices.")
     /// Purchases restored!
     public static let purchasesRestored = L10n.tr("Localizable", "Settings.PurchasesRestored", fallback: "Purchases restored!")
     /// Any valid purchases you made have been restored.
@@ -2110,8 +2131,48 @@ public enum L10n {
       public static let disableGenericWarning = L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableGenericWarning", fallback: "Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.")
       /// Turn off iCloud Multi-Device Mode?
       public static let disableTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableTitle", fallback: "Turn off iCloud Multi-Device Mode?")
+      /// Turning off in %d
+      public static func disablingIn(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "Settings.MultiDeviceMode.DisablingIn", p1, fallback: "Turning off in %d")
+      }
+      /// Your iCloud Keychain already holds a different key. This device uses key %1$@, and your iCloud account already has key %2$@. Encamera keeps both keys — neither one is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other key stays available so its photos can still be opened.
+      public static func enableConflictWarning(_ p1: Any, _ p2: Any) -> String {
+        return L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableConflictWarning", String(describing: p1), String(describing: p2), fallback: "Your iCloud Keychain already holds a different key. This device uses key %1$@, and your iCloud account already has key %2$@. Encamera keeps both keys — neither one is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other key stays available so its photos can still be opened.")
+      }
+      /// Your iCloud Keychain already holds other keys. This device uses key %1$@, and your iCloud account already has these keys: %2$@. Encamera keeps every one of them — none is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other keys stay available so their photos can still be opened.
+      public static func enableConflictWarningMultiple(_ p1: Any, _ p2: Any) -> String {
+        return L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableConflictWarningMultiple", String(describing: p1), String(describing: p2), fallback: "Your iCloud Keychain already holds other keys. This device uses key %1$@, and your iCloud account already has these keys: %2$@. Encamera keeps every one of them — none is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other keys stay available so their photos can still be opened.")
+      }
+      /// Your key and passcode will be copied into your iCloud Keychain so your other Apple devices can open your albums. Anyone who can unlock your iCloud account can then reach them.
+      public static let enableSimpleWarning = L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableSimpleWarning", fallback: "Your key and passcode will be copied into your iCloud Keychain so your other Apple devices can open your albums. Anyone who can unlock your iCloud account can then reach them.")
+      /// Turn on iCloud Multi-Device Mode?
+      public static let enableTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableTitle", fallback: "Turn on iCloud Multi-Device Mode?")
+      /// Turning on in %d
+      public static func enablingIn(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "Settings.MultiDeviceMode.EnablingIn", p1, fallback: "Turning on in %d")
+      }
       /// Multi-Device Mode could not be changed. Your key and passcode were left as they were, and the switch has been set back to the real setting.
       public static let flipFailed = L10n.tr("Localizable", "Settings.MultiDeviceMode.FlipFailed", fallback: "Multi-Device Mode could not be changed. Your key and passcode were left as they were, and the switch has been set back to the real setting.")
+      /// Hold to Turn Off
+      public static let holdToDisable = L10n.tr("Localizable", "Settings.MultiDeviceMode.HoldToDisable", fallback: "Hold to Turn Off")
+      /// Hold to Turn On
+      public static let holdToEnable = L10n.tr("Localizable", "Settings.MultiDeviceMode.HoldToEnable", fallback: "Hold to Turn On")
+      /// Move to iCloud
+      public static let migrateAlbumsConfirm = L10n.tr("Localizable", "Settings.MultiDeviceMode.MigrateAlbumsConfirm", fallback: "Move to iCloud")
+      /// These albums are still stored only on this device: %@. Your photos are safe — open an album to try moving it again.
+      public static func migrateAlbumsFailedMessage(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "Settings.MultiDeviceMode.MigrateAlbumsFailedMessage", String(describing: p1), fallback: "These albums are still stored only on this device: %@. Your photos are safe — open an album to try moving it again.")
+      }
+      /// Some albums didn't move
+      public static let migrateAlbumsFailedTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.MigrateAlbumsFailedTitle", fallback: "Some albums didn't move")
+      /// %d of your albums are stored only on this device. Moving them to iCloud lets your other devices see them. You can leave them here and move them later instead.
+      public static func migrateAlbumsMessage(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "Settings.MultiDeviceMode.MigrateAlbumsMessage", p1, fallback: "%d of your albums are stored only on this device. Moving them to iCloud lets your other devices see them. You can leave them here and move them later instead.")
+      }
+      /// Keep on This Device
+      public static let migrateAlbumsSkip = L10n.tr("Localizable", "Settings.MultiDeviceMode.MigrateAlbumsSkip", fallback: "Keep on This Device")
+      /// Move your albums to iCloud?
+      public static let migrateAlbumsTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.MigrateAlbumsTitle", fallback: "Move your albums to iCloud?")
     }
   }
   public enum SettingsView {
