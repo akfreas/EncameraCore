@@ -102,7 +102,7 @@ public enum KeyFingerprintDisplay {
         guard matches.count == 1, let match = matches.first else {
             return hex
         }
-        return "\(hex)"
+        return "\(match.name) (\(hex))"
     }
 }
 
