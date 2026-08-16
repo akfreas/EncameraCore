@@ -210,7 +210,7 @@ extension DataStorageModel {
         return driveURLForMedia(withID: media.id, type: media.mediaType)
     }
 
-    func driveURLForMedia(withID id: String, type: MediaType) -> URL {
+    public func driveURLForMedia(withID id: String, type: MediaType) -> URL {
         let filename = "\(id).\(type.encryptedFileExtension)"
         return baseURL.appendingPathComponent(filename)
     }

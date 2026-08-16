@@ -19,9 +19,29 @@ public enum FileAccessError: Error, ErrorDescribable {
     case iCloudDownloadFailed(status: iCloudFileStatus)
     case iCloudDownloadInProgress(status: iCloudFileStatus)
     case iCloudDownloadTimeout
-    
+    /// The media is intact but no key in this device's library authenticates it
+    /// (ENC-99). Distinct from `missingPrivateKey`, which means this device has
+    /// no key at all, and from a decrypt failure, which means damaged bytes.
+    ///
+    /// `requiredStampPrefix` is the file's own stamp when it carries one; nil
+    /// means the required key is genuinely unknown and must not be named.
+    case missingKeyForMedia(requiredStampPrefix: UInt32?)
+
+    /// The short `54E0-7B52` label for the key this media needs, when known.
+    public var requiredKeyLabel: String? {
+        guard case .missingKeyForMedia(let prefix) = self, let prefix else {
+            return nil
+        }
+        return KeyFingerprint.displayLabel(stampPrefix: prefix)
+    }
+
     public var displayDescription: String {
         switch self {
+        case .missingKeyForMedia:
+            if let label = requiredKeyLabel {
+                return L10n.MissingKey.subtitleWithFingerprint(label)
+            }
+            return L10n.MissingKey.subtitleUnknown
         case .missingDirectoryModel:
             return "Missing directory model"
         case .missingPrivateKey:

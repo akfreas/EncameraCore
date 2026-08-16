@@ -9,11 +9,57 @@ import Foundation
 import Sodium
 
 /// A confirmed answer to "which key encrypted this file?".
-public struct KeyDiscoveryResult {
+public struct KeyDiscoveryResult: Equatable {
     public let key: PrivateKey
     /// True iff the file's stamp slot already held this key's `stampPrefix` —
     /// the stamping integration uses this to decide whether to (re)write the slot.
     public let stampMatched: Bool
+}
+
+/// Why a file did not open, when it did not open.
+///
+/// Splits the single `nil` that `discoverKey` used to return into the two cases
+/// the user needs told apart: "you are missing a key" (actionable — add it) and
+/// "these bytes are not readable media" (not actionable by adding a key).
+/// Sending someone hunting for a key phrase because their file is damaged is its
+/// own harm, so the split is deliberately conservative — see `noKnownKey`.
+///
+/// How far the split actually reaches: damage that breaks the *structure* is
+/// always caught, on every file. Damage confined to the ciphertext body is only
+/// caught on a file that names a key this device holds, because AEAD failure is
+/// the same event for a wrong key and for altered bytes — the file's own claim
+/// about which key wrote it is the only thing that tells them apart. Today that
+/// claim is the in-file stamp, and `DiskFileAccess.shouldStampFile` writes it
+/// for local files only, so an iCloud Drive file (and any local file not opened
+/// since stamping shipped) carries none. Body damage there reports as
+/// `noKnownKey`. Widening this needs a trustworthy required-key record for
+/// non-local files, not a change to the logic below: the key-UUID xattr does not
+/// qualify, since `setKeyUUIDForExistingFiles` speculatively writes the *current*
+/// key onto any file missing one, foreign-key media included.
+public enum KeyDiscoveryOutcome: Equatable {
+
+    /// A stored key authenticated the first ciphertext block.
+    case resolved(KeyDiscoveryResult)
+
+    /// The file parses as encrypted media and has a complete first block, but no
+    /// key in the library authenticates it. The overwhelmingly likely cause is a
+    /// key this device does not hold — though on an unstamped file this is also
+    /// where first-block ciphertext damage lands, since nothing on such a file
+    /// names the key that wrote it.
+    ///
+    /// `requiredStampPrefix` is the file's own stamp when it carries one, for
+    /// display via `KeyFingerprint.displayLabel(stampPrefix:)`. An unstamped file
+    /// yields nil — the required key is genuinely unknown and must not be named.
+    case noKnownKey(requiredStampPrefix: UInt32?)
+
+    /// The bytes are not readable as encrypted media. Either the prologue does
+    /// not parse / the first block is incomplete, or the file's own stamp names a
+    /// key this device holds and that key still fails to authenticate — which the
+    /// AEAD only does when the ciphertext changed under it.
+    ///
+    /// The second half requires a stamp, so it reaches local files only. See the
+    /// note on this enum.
+    case unreadable
 }
 
 public enum KeyDiscovery: DebugPrintable {
@@ -21,6 +67,10 @@ public enum KeyDiscovery: DebugPrintable {
     /// Resolves the key that encrypted the file at `sourceURL`, or nil when no
     /// stored key decrypts it. Never throws; performs no writes (no stamping,
     /// no xattr, no memo — that's the caller's job).
+    ///
+    /// Callers that need to tell "missing key" from "corrupt file" apart should
+    /// use `discoverKeyOutcome` instead; this stays nil-returning so the existing
+    /// open paths, which treat both the same, are unaffected.
     ///
     /// Candidate order: stamp matches → xattr hint → current key → remaining
     /// stored keys, deduplicated by uuid. Every candidate — including the
@@ -39,8 +89,33 @@ public enum KeyDiscovery: DebugPrintable {
         keyManager: KeyManager,
         onAttempt: ((PrivateKey) -> Void)?
     ) async -> KeyDiscoveryResult? {
-        guard let probe = FirstBlockProbe(url: sourceURL) else {
+        guard case .resolved(let result) = await discoverKeyOutcome(for: sourceURL, keyManager: keyManager, onAttempt: onAttempt) else {
             return nil
+        }
+        return result
+    }
+
+    /// The same sweep as `discoverKey`, reporting *why* it failed when it fails.
+    ///
+    /// Same candidate order, same proof (authenticating the first ciphertext
+    /// block), same guarantees: never throws, performs no writes.
+    public static func discoverKeyOutcome(for sourceURL: URL, keyManager: KeyManager) async -> KeyDiscoveryOutcome {
+        await discoverKeyOutcome(for: sourceURL, keyManager: keyManager, onAttempt: nil)
+    }
+
+    static func discoverKeyOutcome(
+        for sourceURL: URL,
+        keyManager: KeyManager,
+        onAttempt: ((PrivateKey) -> Void)?
+    ) async -> KeyDiscoveryOutcome {
+        // A file whose prologue does not parse, whose stream header is short, or
+        // whose first block is incomplete is not "encrypted with a key we lack" —
+        // no key could ever open it. This is the primary corruption signal, and
+        // it is structural rather than cryptographic: it does not depend on which
+        // keys happen to be in the library.
+        guard let probe = FirstBlockProbe(url: sourceURL) else {
+            printDebug("discoverKey UNREADABLE url=\(sourceURL.lastPathComponent) reason=prologueOrBlockUnparseable")
+            return .unreadable
         }
         let storedKeys = (try? keyManager.storedKeys()) ?? []
         let stamp = KeyStampSlot.readStamp(url: sourceURL)
@@ -72,22 +147,74 @@ public enum KeyDiscovery: DebugPrintable {
         for candidate in candidates {
             onAttempt?(candidate)
             if probe.authenticates(keyBytes: candidate.keyBytes) {
-                return KeyDiscoveryResult(key: candidate, stampMatched: stamp != nil && stamp == candidate.stampPrefix)
+                return .resolved(KeyDiscoveryResult(key: candidate, stampMatched: stamp != nil && stamp == candidate.stampPrefix))
             }
         }
-        return nil
+
+        // Nothing authenticated. Second corruption signal, cryptographic rather
+        // than structural: the file's own stamp says "the key that wrote me is
+        // the one with this prefix", we hold such a key, and it was tried above
+        // and rejected. A correct key only fails to authenticate intact
+        // ciphertext if the ciphertext is no longer intact.
+        //
+        // Unstamped files get no such signal and fall through to `.noKnownKey`.
+        // That is every iCloud Drive file today — see the note on
+        // `KeyDiscoveryOutcome`.
+        //
+        // The stamp is a 4-byte prefix, so this misreads a genuine missing-key
+        // case as damage if a foreign key collides with a stored one (~2⁻³² per
+        // pair). That trade is taken deliberately: in the colliding case the
+        // alternative is telling the user to go add a key whose displayed label
+        // matches one they already have, which is a dead end either way.
+        if let stamp, storedKeys.contains(where: { $0.stampPrefix == stamp }) {
+            printDebug("discoverKey UNREADABLE url=\(sourceURL.lastPathComponent) reason=stampedKeyHeldButFailedToAuthenticate")
+            return .unreadable
+        }
+
+        printDebug("discoverKey NO KNOWN KEY url=\(sourceURL.lastPathComponent) stamped=\(stamp != nil) keysTried=\(candidates.count)")
+        return .noKnownKey(requiredStampPrefix: stamp)
     }
 
     /// Whether the candidate key authenticates the first ciphertext block of
     /// the file. This is the unit of verification for all key discovery: a
     /// bounded read (headers + one ~20KB block) and one AEAD op. Any I/O
     /// error, malformed prologue, or short read returns false — never throws.
+    ///
+    /// Collapses `.disproved` and `.indeterminate` into a single false, which is
+    /// right for the discovery sweep (it moves on to the next candidate either
+    /// way) and wrong for anything that reports the result to a user. Those
+    /// callers want `proveFirstBlock`.
     public static func canDecryptFirstBlock(of url: URL, with key: PrivateKey) async -> Bool {
-        guard let probe = FirstBlockProbe(url: url) else {
-            return false
-        }
-        return probe.authenticates(keyBytes: key.keyBytes)
+        await proveFirstBlock(of: url, with: key) == .proved
     }
+
+    /// The same bounded check as `canDecryptFirstBlock`, keeping "this key is
+    /// wrong" and "these bytes could not be read at all" apart.
+    public static func proveFirstBlock(of url: URL, with key: PrivateKey) async -> KeyProofOutcome {
+        guard let probe = FirstBlockProbe(url: url) else {
+            return .indeterminate
+        }
+        return probe.authenticates(keyBytes: key.keyBytes) ? .proved : .disproved
+    }
+}
+
+/// The result of testing one key against one file's first ciphertext block.
+///
+/// The distinction exists because a bare Bool made an unreadable file look like
+/// a wrong key. An iCloud Drive placeholder, a CloudKit blob that is not in the
+/// cache yet, and a damaged prologue all fail to probe — and none of them says
+/// anything about the key that was passed in.
+public enum KeyProofOutcome: Equatable {
+
+    /// The key authenticated the block. Definitive.
+    case proved
+
+    /// The block was read and the key failed to authenticate it. Definitive,
+    /// short of ciphertext damage.
+    case disproved
+
+    /// The block could not be read, so the key was never actually tested.
+    case indeterminate
 }
 
 /// The stream header and first ciphertext block of an encrypted file, read

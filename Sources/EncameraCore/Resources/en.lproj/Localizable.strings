@@ -1159,3 +1159,18 @@
 "CreateAlbumModal.Placeholder" = "Your memories";
 "CreateAlbumModal.CreateAlbum" = "Create Album";
 
+/* ENC-99 - Media encrypted with a key this device does not hold (placeholder copy; design in ENC-103) */
+"MissingKey.Title" = "This photo needs a different key";
+"MissingKey.SubtitleWithFingerprint" = "It was encrypted with key %@, which isn't on this device.";
+"MissingKey.SubtitleUnknown" = "It was encrypted with a key that isn't on this device.";
+"MissingKey.AddKey" = "Add this key";
+"MissingKey.ShortLabel" = "Missing key";
+"MissingKey.LockedAlbums" = "%d album(s) can't be shown because their key isn't on this device.";
+"MissingKey.AddKeyTitle" = "Add a key";
+"MissingKey.AddKeyPrompt" = "Enter the key phrase for key %@. It will only be used to open existing media — new photos keep using this device's key.";
+"MissingKey.AddKeyPromptUnknown" = "Enter the key phrase for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.";
+"MissingKey.WrongKey" = "That key phrase is for key %@, but this media needs key %@.";
+"MissingKey.WrongKeyUnknown" = "That key phrase doesn't open this media.";
+"MissingKey.CouldNotVerify" = "This key phrase couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.";
+"MissingKey.AlreadyHaveKey" = "You already have that key on this device.";
+"MissingKey.Added" = "Key added. Your media should open now.";

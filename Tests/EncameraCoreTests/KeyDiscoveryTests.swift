@@ -209,6 +209,161 @@ final class KeyDiscoveryTests: XCTestCase {
         XCTAssertNil(result)
     }
 
+    /// The failsafe end to end (ENC-97): after a key phrase import replaces the
+    /// current key, the retained key is still in `storedKeys()` and discovery
+    /// sweeps it, so media encrypted under it opens with no user interaction.
+    /// Both keys carry the same display name, exactly as in production.
+    func testMediaFromRetainedKeyStillDiscoverable() async throws {
+        let retained = PrivateKey(name: "encamera_default_key", keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let imported = PrivateKey(name: "encamera_default_key", keyBytes: Array(repeating: 0x24, count: 32), creationDate: Date(timeIntervalSince1970: 1))
+        let url = try await encryptV2Fixture(with: retained, name: "retained-key-media")
+
+        // Post-import state: the imported key is current, the replaced one is
+        // retained decrypt-only in the library.
+        let keyManager = DemoKeyManager(keys: [imported, retained])
+        keyManager.currentKey = imported
+
+        let result = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager)
+        XCTAssertEqual(result?.key.keyBytes, retained.keyBytes, "media under the retained key must still resolve")
+
+        // And it would not without retention.
+        let withoutRetained = DemoKeyManager(keys: [imported])
+        withoutRetained.currentKey = imported
+        let missing = await KeyDiscovery.discoverKey(for: url, keyManager: withoutRetained)
+        XCTAssertNil(missing, "guards the assertion above against passing for the wrong reason")
+    }
+
+    // MARK: - Missing key vs. corruption (ENC-99)
+
+    /// The heart of ENC-99. `testNilWhenNoKeyDecrypts` and
+    /// `testDiscoverKeyNilOnCorruptFile` above both get nil from `discoverKey`;
+    /// the whole point of the outcome API is that they must not be the same
+    /// answer, because one is fixable by adding a key and the other is not.
+    func testMissingKeyIsDistinctFromCorruption() async throws {
+        let keyManager = DemoKeyManager(keys: [keyA, keyB])
+        keyManager.currentKey = keyA
+
+        // Case 1: intact media, encrypted with a key the device does not hold.
+        let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let foreignURL = try await encryptV2Fixture(with: unstoredKey, name: "foreign")
+        let foreignOutcome = await KeyDiscovery.discoverKeyOutcome(for: foreignURL, keyManager: keyManager)
+        XCTAssertEqual(foreignOutcome, .noKnownKey(requiredStampPrefix: nil))
+
+        // Case 2: bytes that are not encrypted media at all.
+        let corruptURL = tempDirectory.appendingPathComponent("corrupt.enc")
+        try Data("garbage".utf8).write(to: corruptURL)
+        let corruptOutcome = await KeyDiscovery.discoverKeyOutcome(for: corruptURL, keyManager: keyManager)
+        XCTAssertEqual(corruptOutcome, .unreadable)
+
+        XCTAssertNotEqual(foreignOutcome, corruptOutcome, "the two nil cases must now be distinguishable")
+
+        // And the nil-returning API is unchanged for both, so existing callers
+        // that don't care about the reason keep their behavior.
+        let foreignLegacy = await KeyDiscovery.discoverKey(for: foreignURL, keyManager: keyManager)
+        let corruptLegacy = await KeyDiscovery.discoverKey(for: corruptURL, keyManager: keyManager)
+        XCTAssertNil(foreignLegacy)
+        XCTAssertNil(corruptLegacy)
+    }
+
+    /// A truncated file — headers intact, first block incomplete — is damage,
+    /// not a missing key. Adding a key would never open it, so telling the user
+    /// to go find one would send them after something that cannot help.
+    func testTruncatedMediaIsUnreadableNotMissingKey() async throws {
+        let url = try await encryptV2Fixture(with: keyA, name: "truncated")
+        let fileData = try Data(contentsOf: url)
+        try fileData.prefix(fileData.count - 40000).write(to: url)
+
+        let keyManager = DemoKeyManager(keys: [keyA, keyB])
+        keyManager.currentKey = keyA
+
+        let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
+        XCTAssertEqual(outcome, .unreadable)
+    }
+
+    /// The cryptographic corruption signal: the file's own stamp names a key we
+    /// hold, and that key still fails to authenticate. A correct key only fails
+    /// on ciphertext that changed, so this is damage rather than a missing key.
+    func testStampedFileWithHeldKeyThatFailsIsUnreadable() async throws {
+        let url = try await encryptV2Fixture(with: keyA, name: "damaged-block")
+        KeyStampSlot.writeStamp(keyA.stampPrefix, url: url)
+
+        // Corrupt bytes inside the first ciphertext block, leaving the prologue,
+        // stream header, block-size field and stamp intact.
+        var fileData = try Data(contentsOf: url)
+        let blockStart = fileData.count - 45000
+        for index in blockStart..<(blockStart + 200) {
+            fileData[index] ^= 0xFF
+        }
+        try fileData.write(to: url)
+
+        let keyManager = DemoKeyManager(keys: [keyA, keyB])
+        keyManager.currentKey = keyA
+
+        let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
+        XCTAssertEqual(outcome, .unreadable, "stamp names a key we hold and it fails: damage, not a missing key")
+    }
+
+    /// The boundary of the cryptographic damage signal, pinned so it is not
+    /// mistaken for a guarantee. The same damaged fixture as
+    /// `testStampedFileWithHeldKeyThatFailsIsUnreadable`, minus the stamp:
+    /// nothing on the file names the key that wrote it, AEAD failure looks
+    /// identical to a wrong key, and the outcome is `noKnownKey`.
+    ///
+    /// This is not a hypothetical shape — `DiskFileAccess.shouldStampFile`
+    /// excludes every iCloud Drive file, so it is the state of all of them.
+    func testUnstampedDamagedBlockIsIndistinguishableFromAMissingKey() async throws {
+        let url = try await encryptV2Fixture(with: keyA, name: "damaged-block-unstamped")
+        XCTAssertNil(KeyStampSlot.readStamp(url: url), "the fixture must carry no stamp")
+
+        var fileData = try Data(contentsOf: url)
+        let blockStart = fileData.count - 45000
+        for index in blockStart..<(blockStart + 200) {
+            fileData[index] ^= 0xFF
+        }
+        try fileData.write(to: url)
+
+        let keyManager = DemoKeyManager(keys: [keyA, keyB])
+        keyManager.currentKey = keyA
+
+        let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
+        XCTAssertEqual(outcome, .noKnownKey(requiredStampPrefix: nil),
+                       "without a stamp there is nothing to tell damage from a foreign key; the split does not reach here")
+    }
+
+    /// The required fingerprint comes from the stamp slot when the file carries
+    /// one, so the UI can name the key the user has to go find.
+    func testRequiredFingerprintReportedFromStamp() async throws {
+        let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let url = try await encryptV2Fixture(with: unstoredKey, name: "stamped-foreign")
+        KeyStampSlot.writeStamp(unstoredKey.stampPrefix, url: url)
+
+        let keyManager = DemoKeyManager(keys: [keyA, keyB])
+        keyManager.currentKey = keyA
+
+        let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
+        XCTAssertEqual(outcome, .noKnownKey(requiredStampPrefix: unstoredKey.stampPrefix))
+
+        // And it renders as the short display label the UI shows.
+        guard case .noKnownKey(let prefix) = outcome, let prefix else {
+            return XCTFail("expected a reported fingerprint")
+        }
+        XCTAssertEqual(KeyFingerprint.displayLabel(stampPrefix: prefix),
+                       KeyFingerprint.displayLabel(stampPrefix: unstoredKey.stampPrefix))
+    }
+
+    /// An unstamped foreign file yields no fingerprint. The required key is
+    /// genuinely unknown and must not be invented.
+    func testUnstampedForeignMediaReportsNoFingerprint() async throws {
+        let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let url = try await encryptV2Fixture(with: unstoredKey, name: "unstamped-foreign")
+
+        let keyManager = DemoKeyManager(keys: [keyA])
+        keyManager.currentKey = keyA
+
+        let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
+        XCTAssertEqual(outcome, .noKnownKey(requiredStampPrefix: nil))
+    }
+
     private static func bytes(fromHex hex: String) -> KeyBytes {
         stride(from: 0, to: hex.count, by: 2).map { offset in
             let start = hex.index(hex.startIndex, offsetBy: offset)

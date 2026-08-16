@@ -105,7 +105,12 @@ final class DiskFileAccessTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: outputURL), plaintext)
     }
 
-    func testDecryptFailsSameAsBeforeWhenNoKeyMatches() async throws {
+    /// Superseded `testDecryptFailsSameAsBeforeWhenNoKeyMatches`, which pinned
+    /// the current-key fallback and the resulting generic `decryptError`. ENC-99
+    /// exists to change exactly that: media needing an absent key must now be
+    /// reported as such so the user can be offered the key, rather than being
+    /// indistinguishable from a damaged file.
+    func testMissingKeyReportedInsteadOfGenericDecryptError() async throws {
         let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let keyManager = DemoKeyManager(keys: [keyA, keyB])
         keyManager.currentKey = keyB
@@ -116,10 +121,119 @@ final class DiskFileAccessTests: XCTestCase {
         do {
             _ = try await diskAccess.loadMediaInMemory(media: encrypted, progress: { _ in })
             XCTFail("Expected decryption to fail")
-        } catch let error as SecretFilesError {
-            guard case .decryptError = error else {
-                return XCTFail("Expected the existing decryptError, got \(error)")
+        } catch let error as FileAccessError {
+            guard case .missingKeyForMedia = error else {
+                return XCTFail("Expected .missingKeyForMedia, got \(error)")
             }
+        }
+    }
+
+    /// The other half of the distinction: a file whose *structure* is broken
+    /// keeps failing through the decrypt path rather than being reported as a
+    /// missing key. This covers the structural signal only — the fixture below
+    /// is 28 bytes, so `FirstBlockProbe.init` gives up at the block-size read.
+    /// Body damage on an unstamped file is a different story, pinned by
+    /// `testUnstampedDamagedBodyIsReportedAsAMissingKey`.
+    func testCorruptFileStillReportsDecryptErrorNotMissingKey() async throws {
+        let keyManager = DemoKeyManager(keys: [keyA, keyB])
+        keyManager.currentKey = keyB
+        let diskAccess = await makeDiskAccess(albumKey: keyB, keyManager: keyManager)
+
+        let encrypted = try await encryptFixture(with: keyB, id: UUID().uuidString)
+        guard case .url(let sourceURL) = encrypted.source else {
+            return XCTFail("fixture must be file-backed")
+        }
+        try Data("not an encrypted file at all".utf8).write(to: sourceURL)
+
+        do {
+            _ = try await diskAccess.loadMediaInMemory(media: encrypted, progress: { _ in })
+            XCTFail("Expected decryption to fail")
+        } catch let error as FileAccessError {
+            XCTFail("A corrupt file must not be reported as a missing key, got \(error)")
+        } catch {
+            // Any non-FileAccessError failure is the pre-existing decrypt path.
+        }
+    }
+
+    /// The gap the split does not close, pinned so a regression here is a
+    /// deliberate choice rather than a surprise. A file with an intact prologue,
+    /// stream header and block-size field, damaged ciphertext, and no stamp —
+    /// the state of every iCloud Drive file, since `shouldStampFile` excludes
+    /// them — reaches the user as a missing key, and they are sent to find a
+    /// phrase that can never open it.
+    ///
+    /// Closing it needs a trustworthy record of the required key for non-local
+    /// files; there is no cryptographic way to separate "wrong key" from
+    /// "altered bytes" from the AEAD failure alone.
+    func testUnstampedDamagedBodyIsReportedAsAMissingKey() async throws {
+        let keyManager = DemoKeyManager(keys: [keyA, keyB])
+        keyManager.currentKey = keyB
+        let diskAccess = await makeDiskAccess(albumKey: keyB, keyManager: keyManager)
+
+        let encrypted = try await encryptFixture(with: keyB, id: UUID().uuidString)
+        let sourceURL = try XCTUnwrap(encrypted.url)
+        XCTAssertNil(KeyStampSlot.readStamp(url: sourceURL), "the fixture must carry no stamp")
+
+        // Flip bytes inside the first ciphertext block, leaving every structural
+        // field readable, so the probe constructs and only the AEAD fails.
+        // Offset 500 clears the prologue, the 24-byte stream header and the
+        // 8-byte block-size field (which together end well below 200) and sits
+        // far inside the ~20KB first block.
+        var fileData = try Data(contentsOf: sourceURL)
+        XCTAssertGreaterThan(fileData.count, 700, "the fixture must be larger than the damaged range")
+        for index in 500..<700 {
+            fileData[index] ^= 0xFF
+        }
+        try fileData.write(to: sourceURL)
+
+        do {
+            _ = try await diskAccess.loadMediaInMemory(media: encrypted, progress: { _ in })
+            XCTFail("Expected decryption to fail")
+        } catch let error as FileAccessError {
+            guard case .missingKeyForMedia(let requiredStampPrefix) = error else {
+                return XCTFail("Expected .missingKeyForMedia, got \(error)")
+            }
+            XCTAssertNil(requiredStampPrefix, "an unstamped file names no key, so none may be shown")
+        }
+    }
+
+    /// The grid's own path, and the one that decides which glyph a user sees.
+    ///
+    /// A thumbnail that needs an absent key must surface as `missingKeyForMedia`,
+    /// not be retried as if it were simply absent. The retry decrypts the same
+    /// media with the same key, so it can only fail — and when the media is not
+    /// on this device it fails through the `.unreadable` current-key fallback
+    /// with a generic error, which is how a CloudKit second device ended up
+    /// showing the generic failure glyph for every locked item on the rig.
+    func testPreviewNeedingAnAbsentKeyReportsMissingKeyNotAGenericFailure() async throws {
+        let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let keyManager = DemoKeyManager(keys: [keyA, keyB])
+        keyManager.currentKey = keyB
+        let diskAccess = await makeDiskAccess(albumKey: keyB, keyManager: keyManager)
+
+        // Media AND its preview both written under a key this device lacks, and
+        // the media itself removed — a device that received only the thumbnail.
+        let encrypted = try await encryptFixture(with: unstoredKey, id: UUID().uuidString)
+        let sourceURL = try XCTUnwrap(encrypted.url)
+        let foreignAccess = await makeDiskAccess(albumKey: unstoredKey, keyManager: keyManager)
+        // Written through `savePreview` rather than `createPreview`: the latter
+        // renders a thumbnail from the bytes, and this fixture's payload is not
+        // a decodable image. What matters here is only that the preview file
+        // exists and is encrypted under the absent key.
+        let thumbnail = CleartextMedia(source: plaintext, mediaType: .preview, id: encrypted.id)
+        _ = try await foreignAccess.savePreview(preview: PreviewModel(thumbnailMedia: thumbnail),
+                                                sourceMedia: encrypted)
+        try FileManager.default.removeItem(at: sourceURL)
+
+        do {
+            _ = try await diskAccess.loadMediaPreview(for: encrypted)
+            XCTFail("Expected the preview load to fail")
+        } catch let error as FileAccessError {
+            guard case .missingKeyForMedia = error else {
+                return XCTFail("Expected .missingKeyForMedia, got \(error)")
+            }
+        } catch {
+            XCTFail("A preview needing an absent key must report a missing key, got \(error)")
         }
     }
 

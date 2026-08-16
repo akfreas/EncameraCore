@@ -541,6 +541,19 @@ extension DiskFileAccess {
             printDebug("loadMediaPreview: Found existing thumbnail", media.id)
             result = try PreviewModel(source: existingPreview)
         } catch {
+            // "The thumbnail needs a key we do not have" is an answer, not a
+            // miss. Regenerating the preview decrypts the SAME media with the
+            // SAME key, so it cannot succeed — and when the media itself is not
+            // on this device (a CloudKit second device, the exact case ENC-99
+            // exists for) `createPreview` fails through the `.unreadable`
+            // current-key fallback and reports a generic `decryptError`, which
+            // destroys the one actionable signal the user could have acted on.
+            // Observed on the rig: every item in a materialized album showed the
+            // generic failure glyph instead of the missing-key state.
+            if case FileAccessError.missingKeyForMedia = error {
+                printDebug("loadMediaPreview: thumbnail needs an absent key for \(media.id)")
+                throw error
+            }
             switch media.mediaType {
             case .photo:
                 printDebug("loadMediaPreview: No thumbnail found for photo with id: \(media.id)")
@@ -747,7 +760,8 @@ extension DiskFileAccess {
             discoveredKeyMemo[mediaID] = nil
         }
 
-        if let discovered = await KeyDiscovery.discoverKey(for: sourceURL, keyManager: keyManager) {
+        switch await KeyDiscovery.discoverKeyOutcome(for: sourceURL, keyManager: keyManager) {
+        case .resolved(let discovered):
             printDebug("resolveKey: Discovered key '\(discovered.key.name)' for file \(mediaID), stampMatched: \(discovered.stampMatched)")
             discoveredKeyMemo[mediaID] = discovered.key.uuid
             if !discovered.stampMatched && shouldStampFile(at: sourceURL) {
@@ -758,12 +772,27 @@ extension DiskFileAccess {
                 KeyStampSlot.writeStamp(discovered.key.stampPrefix, url: sourceURL)
             }
             return (discovered.key, discovered.stampMatched)
+
+        case .noKnownKey(let requiredStampPrefix):
+            // The media is well-formed and simply needs a key we don't have.
+            // Fail loudly here instead of falling back to the current key: that
+            // fallback is what turned "you're missing a key" into an
+            // indistinguishable generic decryptError (ENC-76/ENC-99).
+            printDebug("resolveKey: no known key decrypts \(mediaID), stamped=\(requiredStampPrefix != nil)")
+            throw FileAccessError.missingKeyForMedia(requiredStampPrefix: requiredStampPrefix)
+
+        case .unreadable:
+            // Deliberately preserves the pre-ENC-99 behavior: fall back to the
+            // current key and let the full decrypt fail through the existing
+            // `decryptError` path. `.unreadable` also covers a not-yet-
+            // downloaded iCloud placeholder, whose real error is raised further
+            // up — claiming corruption here would regress that case.
+            guard let currentKey = key else {
+                throw FileAccessError.missingPrivateKey
+            }
+            printDebug("resolveKey: file \(mediaID) is unreadable as encrypted media, falling back to current key")
+            return (currentKey, false)
         }
-        guard let currentKey = key else {
-            throw FileAccessError.missingPrivateKey
-        }
-        printDebug("resolveKey: Discovery found no key for file \(mediaID), falling back to current key")
-        return (currentKey, false)
     }
 
     /// The iCloud Documents root (`iCloudStorageModel.rootURL` without its
@@ -923,6 +952,13 @@ extension DiskFileAccess {
         return cleartextPreview
     }
 
+    /// Deliberately has NO storage-type availability gate. Adding media to an album
+    /// that already exists is permitted for every storage type, including deprecated
+    /// iCloud Drive — the deprecation closes that type to new *albums*, not to writes
+    /// into the ones users already have. Gating this on
+    /// `DataStorageAvailabilityUtil.isStorageTypeAvailable` would silently break
+    /// exactly that case; `ICloudDriveLegacyContractTests` fails if anyone does
+    /// (ENC-106).
     @discardableResult public func save(media: CleartextMedia, metadata: EncryptedFileMetadata? = nil, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
         // Check for task cancellation at the start of save operation
         // This ensures we don't start encryption if the task is already cancelled

@@ -1767,6 +1767,44 @@ public enum L10n {
     /// Select Media
     public static let selectMedia = L10n.tr("Localizable", "MediaSelectionTray.SelectMedia", fallback: "Select Media")
   }
+  public enum MissingKey {
+    /// Key added. Your media should open now.
+    public static let added = L10n.tr("Localizable", "MissingKey.Added", fallback: "Key added. Your media should open now.")
+    /// Add this key
+    public static let addKey = L10n.tr("Localizable", "MissingKey.AddKey", fallback: "Add this key")
+    /// Enter the key phrase for key %@. It will only be used to open existing media — new photos keep using this device's key.
+    public static func addKeyPrompt(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "MissingKey.AddKeyPrompt", String(describing: p1), fallback: "Enter the key phrase for key %@. It will only be used to open existing media — new photos keep using this device's key.")
+    }
+    /// Enter the key phrase for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.
+    public static let addKeyPromptUnknown = L10n.tr("Localizable", "MissingKey.AddKeyPromptUnknown", fallback: "Enter the key phrase for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.")
+    /// Add a key
+    public static let addKeyTitle = L10n.tr("Localizable", "MissingKey.AddKeyTitle", fallback: "Add a key")
+    /// You already have that key on this device.
+    public static let alreadyHaveKey = L10n.tr("Localizable", "MissingKey.AlreadyHaveKey", fallback: "You already have that key on this device.")
+    /// This key phrase couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.
+    public static let couldNotVerify = L10n.tr("Localizable", "MissingKey.CouldNotVerify", fallback: "This key phrase couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.")
+    /// %d album(s) can't be shown because their key isn't on this device.
+    public static func lockedAlbums(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "MissingKey.LockedAlbums", p1, fallback: "%d album(s) can't be shown because their key isn't on this device.")
+    }
+    /// Missing key
+    public static let shortLabel = L10n.tr("Localizable", "MissingKey.ShortLabel", fallback: "Missing key")
+    /// It was encrypted with a key that isn't on this device.
+    public static let subtitleUnknown = L10n.tr("Localizable", "MissingKey.SubtitleUnknown", fallback: "It was encrypted with a key that isn't on this device.")
+    /// It was encrypted with key %@, which isn't on this device.
+    public static func subtitleWithFingerprint(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "MissingKey.SubtitleWithFingerprint", String(describing: p1), fallback: "It was encrypted with key %@, which isn't on this device.")
+    }
+    /// ENC-99 - Media encrypted with a key this device does not hold (placeholder copy; design in ENC-103)
+    public static let title = L10n.tr("Localizable", "MissingKey.Title", fallback: "This photo needs a different key")
+    /// That key phrase is for key %@, but this media needs key %@.
+    public static func wrongKey(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "MissingKey.WrongKey", String(describing: p1), String(describing: p2), fallback: "That key phrase is for key %@, but this media needs key %@.")
+    }
+    /// That key phrase doesn't open this media.
+    public static let wrongKeyUnknown = L10n.tr("Localizable", "MissingKey.WrongKeyUnknown", fallback: "That key phrase doesn't open this media.")
+  }
   public enum Notification {
     /// Unknown notification identifier
     public static let unknownIdentifier = L10n.tr("Localizable", "Notification.UnknownIdentifier", fallback: "Unknown notification identifier")

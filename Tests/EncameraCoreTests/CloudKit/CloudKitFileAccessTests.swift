@@ -631,12 +631,12 @@ final class CloudKitFileAccessTests: XCTestCase {
         // `UserDefaults` is not `Sendable`, so the `@Sendable` factory below builds
         // its own instance from the suite name.
         let suite = makeIsolatedSuiteName()
-        let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false) { manager in
+        let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false, makeReconciler: { manager in
             CloudKitAlbumReconciler(store: store,
                                     keyManager: manager.keyManager,
                                     albumManager: manager,
                                     tombstoneQueue: CloudKitAlbumTombstoneQueue(defaults: defaults(forSuite: suite)))
-        }
+        })
 
         let first = Task { await sync.syncAll() }
         while store.fetchAllAlbumsCount < 1 { await Task.yield() }   // first pass is mid-run, held by the gate
