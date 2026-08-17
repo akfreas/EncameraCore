@@ -60,6 +60,53 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
         return CloudKitMediaRef(recordName: item.recordName, recordChangeTag: tag)
     }
 
+    /// Seeds an album and `mediaCount` live media records directly, as if another
+    /// device had written them. Without this the mock binds an EMPTY zone, so a UI
+    /// test that stubs a probe census of N is driving a delete over nothing: the
+    /// sweep tombstones zero records and passes exactly as it would against a
+    /// coordinator that deleted nothing at all.
+    ///
+    /// `includeAlbumRecord: false` seeds the media with NO album record — the media
+    /// whose `EncAlbum` another device hard-deleted, or that a stale query index has
+    /// not caught up with. `fetchAllAlbums` then enumerates nothing while the census
+    /// still counts the records, which is the shape of the vacuous-success bug.
+    public func seedRecords(albumID: String,
+                            mediaCount: Int,
+                            keyFingerprint: String = "seeded-fingerprint",
+                            includeAlbumRecord: Bool = true) {
+        locked {
+            if includeAlbumRecord {
+                albums[albumID] = CloudKitAlbumMetadata(
+                    albumID: albumID, encName: "enc-\(albumID)", createdAt: Date(),
+                    isHidden: false, deletedAt: nil,
+                    schemaVersion: CloudKitSchema.currentSchemaVersion,
+                    keyFingerprint: keyFingerprint,
+                    recordChangeTag: "albumtag-\(albumID)"
+                )
+            }
+            for index in 0..<mediaCount {
+                let recordName = "\(albumID)-seeded-\(index)"
+                let metadata = CloudKitMediaMetadata(
+                    recordName: recordName, albumID: albumID, mediaID: recordName,
+                    mediaType: .photo, createdAt: Date(), sizeBytes: 1,
+                    creationDeviceID: "seeded-device", deletedAt: nil,
+                    schemaVersion: CloudKitSchema.currentSchemaVersion,
+                    recordChangeTag: "tag-\(recordName)"
+                )
+                records[recordName] = Stored(metadata: metadata,
+                                             blob: Data(),
+                                             thumbnail: Data(),
+                                             keyFingerprint: keyFingerprint)
+            }
+        }
+    }
+
+    /// Record names the zone still holds live, so a test can assert what a delete
+    /// actually removed rather than inferring it from navigation.
+    public var liveRecordNames: [String] {
+        locked { records.values.filter { $0.metadata.deletedAt == nil }.map(\.metadata.recordName).sorted() }
+    }
+
     public func fetchMetadata(albumID: String, includeThumbnail: Bool) async throws -> [CloudKitMediaMetadata] {
         locked { records.values.map { $0.metadata }.filter { $0.albumID == albumID && $0.deletedAt == nil } }
     }

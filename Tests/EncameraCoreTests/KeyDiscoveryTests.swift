@@ -388,4 +388,91 @@ final class KeyDiscoveryTests: XCTestCase {
         let result = await KeyDiscovery.canDecryptFirstBlock(of: url, with: keyA)
         XCTAssertTrue(result)
     }
+
+    // MARK: - Probe-read stamp equivalence
+
+    /// `FirstBlockProbe` parses the stamp out of the block-size field it already
+    /// reads, so discovery no longer re-opens the file via
+    /// `KeyStampSlot.readStamp`. The two must agree on every shape of file, or
+    /// the stamp-based routing and the corruption/missing-key split shift
+    /// underneath us.
+    func testProbeStampMatchesKeyStampSlotForStampedAndUnstamped() async throws {
+        for (label, makeURL) in [
+            ("v2", { try await self.encryptV2Fixture(with: self.keyA, name: "probe-stamp-v2") }),
+            ("v1", { try await self.encryptV1Fixture(with: self.keyA, name: "probe-stamp-v1") })
+        ] as [(String, () async throws -> URL)] {
+            let url = try await makeURL()
+
+            // Unstamped: both must report nil, not 0.
+            XCTAssertNil(KeyStampSlot.readStamp(url: url), "\(label) precondition: fixture starts unstamped")
+            XCTAssertNil(FirstBlockProbe(url: url)?.stamp, "\(label) probe must report an unstamped file as nil")
+
+            // Stamped: both must report the same value.
+            KeyStampSlot.writeStamp(keyA.stampPrefix, url: url)
+            XCTAssertEqual(FirstBlockProbe(url: url)?.stamp,
+                           KeyStampSlot.readStamp(url: url),
+                           "\(label) probe stamp must equal KeyStampSlot.readStamp")
+            XCTAssertEqual(FirstBlockProbe(url: url)?.stamp, keyA.stampPrefix,
+                           "\(label) probe stamp must be the value that was written")
+
+            // A stamp is not allowed to disturb the block the AEAD reads.
+            let stillDecrypts = await KeyDiscovery.canDecryptFirstBlock(of: url, with: keyA)
+            XCTAssertTrue(stillDecrypts, "\(label) stamping must not corrupt the first block")
+        }
+    }
+
+    /// An injected snapshot must produce the same outcome as letting discovery
+    /// query the key manager itself — that equivalence is the whole basis for
+    /// hoisting the keychain read out of the per-image loop.
+    func testInjectedStoredKeysSnapshotMatchesSelfQuery() async throws {
+        let keyC = PrivateKey(name: "keyC", keyBytes: Array(repeating: 0x77, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let url = try await encryptV2Fixture(with: keyB, name: "snapshot-equiv")
+        let keyManager = DemoKeyManager(keys: [keyA, keyB, keyC])
+        keyManager.currentKey = keyA
+
+        let selfQueried = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
+        let injected = await KeyDiscovery.discoverKeyOutcome(for: url,
+                                                            keyManager: keyManager,
+                                                            storedKeysSnapshot: try keyManager.storedKeys())
+        XCTAssertEqual(selfQueried, injected)
+        guard case .resolved(let resolved) = injected else {
+            return XCTFail("expected the encrypting key to be discovered, got \(injected)")
+        }
+        XCTAssertEqual(resolved.key.uuid, keyB.uuid)
+    }
+
+    /// A snapshot that omits the encrypting key must report the missing-key
+    /// outcome rather than silently falling back to a fresh keychain read.
+    func testInjectedSnapshotIsAuthoritativeOverKeyManager() async throws {
+        let url = try await encryptV2Fixture(with: keyB, name: "snapshot-authoritative")
+        let keyManager = DemoKeyManager(keys: [keyA, keyB])
+        keyManager.currentKey = keyA
+
+        let outcome = await KeyDiscovery.discoverKeyOutcome(for: url,
+                                                           keyManager: keyManager,
+                                                           storedKeysSnapshot: [keyA])
+        guard case .noKnownKey = outcome else {
+            return XCTFail("a snapshot without the encrypting key must report noKnownKey, got \(outcome)")
+        }
+    }
+
+    /// The xattr hint must be tried BEFORE the current key. Isolated here by
+    /// naming a key that is not the current one, so attempt order is the only
+    /// thing that can distinguish the hint being honored from the sweep
+    /// stumbling onto the right key anyway. This replaces the call-count proxy
+    /// `DiskFileAccessTests` used before discovery stopped resolving the hint
+    /// through `keyManager.keyWith(uuid:)`.
+    func testXattrHintOrderedBeforeCurrentKey() async throws {
+        let keyC = PrivateKey(name: "keyC", keyBytes: Array(repeating: 0x77, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let url = try await encryptV2Fixture(with: keyC, name: "xattr-order")
+        try ExtendedAttributesUtil.setKeyUUID(keyB.uuid, for: url)
+
+        let keyManager = DemoKeyManager(keys: [keyA, keyB, keyC])
+        keyManager.currentKey = keyA
+
+        let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
+        XCTAssertEqual(attempts.first, "keyB", "the xattr-named key must be tried first, ahead of the current key")
+        XCTAssertEqual(attempts, ["keyB", "keyA", "keyC"])
+        XCTAssertEqual(result?.key, keyC)
+    }
 }

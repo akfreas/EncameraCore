@@ -40,6 +40,16 @@ public struct UserDefaultUtils {
     }
     
     private static var defaultsSubject: PassthroughSubject = PassthroughSubject<(UserDefaultKey, Any?), Never>()
+
+    private static var iCloudKeysChangedSubject = PassthroughSubject<[String], Never>()
+
+    /// Emits the raw key strings that changed in NSUbiquitousKeyValueStore due
+    /// to an external change (another device wrote them). Compare against
+    /// `UserDefaultKey.rawValue` — e.g. "onboardingState" — to react to a
+    /// specific key arriving.
+    public static var iCloudKeysChangedPublisher: AnyPublisher<[String], Never> {
+        iCloudKeysChangedSubject.eraseToAnyPublisher()
+    }
     
     // MARK: - Initialization
     
@@ -99,12 +109,15 @@ public struct UserDefaultUtils {
                 if let value = cloudStore.object(forKey: keyString) {
                     defaults.set(value, forKey: keyString)
                     print("[UserDefaultUtils] Synced from iCloud: \(keyString)")
-                    
+
                     // Notify observers about the change
                     // Note: We can't reconstruct the full UserDefaultKey enum from string easily
                     // So we'll send a generic notification
                     defaultsSubject.send((UserDefaultKey.savedSettings, value)) // Placeholder
                 }
+            }
+            if !changedKeys.isEmpty {
+                iCloudKeysChangedSubject.send(changedKeys)
             }
         }
     }

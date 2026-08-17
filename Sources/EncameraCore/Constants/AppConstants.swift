@@ -25,6 +25,13 @@ public enum AppConstants {
     public static let lockoutTime: TimeInterval = 300
     public static let maxCharacterAlbumName = 20
 
+    /// How long a fresh install quietly polls for iCloud Keychain credential
+    /// arrival before committing to onboarding. Hidden behind the splash screen.
+    public static let keychainRestoreQuietGrace: TimeInterval = 2.5
+    /// How long the explicit "Restoring from iCloud…" screen polls before
+    /// falling back to onboarding.
+    public static let keychainRestoreWaitTimeout: TimeInterval = 20
+
     // Legacy accessors (prefer URLs enum)
     public static let appStoreURL = URLs.appStore.rawValue
     public static let widgetVimeoLink = URLs.widgetTutorialVideo.url

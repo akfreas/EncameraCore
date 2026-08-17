@@ -6,6 +6,7 @@
 
 */
 
+
 /* ./EncameraCore/Constants/AppConstants.swift */
 "DefaultAlbumName" = "Default Album";
 /* ./EncameraCore/Utils/KeyManager.swift */
@@ -48,6 +49,7 @@
 "StorageType.SaveToICloud" = "Save to iCloud";
 "ChangePasscode" = "Change Passcode";
 
+/* Encamera App */
 /* ./Encamera/CameraView/CameraView.swift */
 "Missing camera access" = "Missing camera access";
 "OpenSettings" = "Open Settings";
@@ -105,6 +107,8 @@
 "See the photos that belong to a key by tapping the " = "See the photos that belong to a key by tapping the ";
 " icon on the top left of the screen." = " icon on the top left of the screen.";
 "ConfirmStorage" = "Confirm Storage";
+/* ./Encamera/Tutorial/ExplanationForUpgradeTutorial.swift */
+/* ./Encamera/Camera/CameraConfigurationService.swift */
 /* ./Encamera/Camera/AlertError.swift */
 "Accept" = "Accept";
 /* ./Encamera/KeyManagement/AlbumGridItem.swift */
@@ -224,6 +228,7 @@
 "Key Entry" = "Key Entry";
 "Cancel" = "Cancel";
 "Save Key" = "Save Key";
+/* ./Encamera/KeyManagement/KeyGeneration.swift */
 "" = "";
 "StorageSettingsSubheading" = "Where do you want to store media for files encrypted with this key?\nEach key will store data in its own directory.\n";
 
@@ -292,6 +297,7 @@
 "Check that the same key that was used to encrypt this media is set as the active key." = "Check that the same key that was used to encrypt this media is set as the active key.";
 "Tap the " = "Tap the ";
 " icon in the camera view to change the active key." = " icon in the camera view to change the active key.";
+/* ./Encamera/ImageViewing/GalleryScrollViewItem.swift */
 /* ./Encamera/ImageViewing/GalleryGridView.swift */
 "Hide" = "Hide";
 /* ./Encamera/ImageViewing/ImageViewing.swift */
@@ -313,6 +319,7 @@
 "OnboardingCarousel.HeadingText3" = "No accounts. No profiling. No ads.";
 "OnboardingCarousel.SubheadingText3" = "Encamera never collects your data. Your private moments stay completely yours.";
 "GetStartedButtonText" = "Let's Start";
+
 
 "You have an existing password for this device." = "You have an existing password for this device.";
 
@@ -1158,6 +1165,100 @@
 "CreateAlbumModal.HeaderText" = "Name this encrypted album";
 "CreateAlbumModal.Placeholder" = "Your memories";
 "CreateAlbumModal.CreateAlbum" = "Create Album";
+
+
+/* ./Encamera/Components/RestoringFromiCloudView.swift - iCloud Keychain restore wait screen */
+"RestoringFromICloud.Title" = "Restoring from iCloud…";
+"RestoringFromICloud.Subtitle" = "Looking for your Encamera account from another device. This usually takes a few seconds.";
+"RestoringFromICloud.SetUpAsNew" = "Set up as a new device";
+"RestoringFromICloud.EnterKeyPhrase" = "Enter key phrase instead";
+"RestoringFromICloud.FinishingRestore" = "Finishing restore…";
+/* ./Encamera/Onboarding/OnboardingHostingView.swift - Welcome back takeover for synced accounts */
+"WelcomeBack.Title" = "Welcome back!";
+"WelcomeBack.Message" = "We found your Encamera account from another device. Enter your passcode to unlock it here.";
+"WelcomeBack.Continue" = "Enter passcode";
+"Onboarding.AlreadyUseEncamera" = "I already use Encamera on another device";
+/* ./Encamera/Onboarding/OnboardingHostingView.swift - iCloud Multi-Device Mode opt-in during onboarding (ENC-95). Default off; explicit tap required. */
+"Onboarding.MultiDeviceMode.Title" = "Use Encamera on all your devices";
+"Onboarding.MultiDeviceMode.Body" = "Your key and passcode can travel with you through your iCloud Keychain, so Encamera works on your iPad and your other Apple devices.";
+"Onboarding.MultiDeviceMode.EnableButton" = "Turn On Multi-Device Mode";
+"Onboarding.MultiDeviceMode.SkipButton" = "Not Now";
+"Onboarding.MultiDeviceMode.ConfirmTurnOn" = "Turn On";
+/* ./Encamera/Onboarding/OnboardingHostingView.swift - Restore Purchases during onboarding (ENC-96). Three distinct failure modes. */
+"Onboarding.RestorePurchases.NoPurchasesTitle" = "No purchases to restore";
+"Onboarding.RestorePurchases.NoPurchasesMessage" = "We couldn't find any previous purchases on your Apple ID. You can continue setting up Encamera and subscribe any time.";
+"Onboarding.RestorePurchases.NotSignedInTitle" = "Not signed in to the App Store";
+"Onboarding.RestorePurchases.NotSignedInMessage" = "Sign in to the App Store in Settings, then try restoring again. You can continue setting up Encamera in the meantime.";
+"Onboarding.RestorePurchases.NetworkErrorTitle" = "Couldn't reach the App Store";
+"Onboarding.RestorePurchases.NetworkErrorMessage" = "Check your internet connection and try restoring again. You can continue setting up Encamera without it.";
+/* ./Encamera/Onboarding/OnboardingHostingView.swift - Returning-user branch screen (ENC-91). Placeholder copy pending design (ENC-75). */
+"ReturningUser.Title" = "You've used Encamera before";
+"ReturningUser.Body" = "We found an existing Encamera account linked to your iCloud. Choose how you'd like to continue on this device.";
+"ReturningUser.MediaCountCloud" = "%d encrypted items found in iCloud";
+"ReturningUser.MediaCountLegacy" = "%d files found in iCloud Drive";
+"ReturningUser.KnownDevices" = "Previously used on: %@";
+"ReturningUser.IHaveMyKey" = "I have my key";
+"ReturningUser.KeyOnOtherDevice" = "It's on my other device";
+"ReturningUser.IDontHaveMyKey" = "I don't have my key";
+"ReturningUser.SetUpAsNew" = "Set up as a new device";
+"ReturningUser.RecoveryTitle" = "Recover your key";
+"ReturningUser.RecoveryBody" = "Key recovery isn't built yet. This is a placeholder for the upcoming recovery flow.";
+"ReturningUser.DeleteTitle" = "Delete existing data";
+"ReturningUser.DeleteBody" = "The delete-my-data flow isn't built yet. This is a placeholder for the upcoming destructive path.";
+"ReturningUser.PlaceholderContinue" = "Continue";
+/* ./Encamera/Onboarding/OnboardingHostingView.swift - Destructive delete-my-iCloud-data path (ENC-94). Escalating confirmation, then hold-to-delete. Placeholder copy pending design (ENC-101/102). */
+"ReturningUser.Destructive.ExistsTitle" = "Delete your iCloud data";
+"ReturningUser.Destructive.ExistsBody" = "You're about to remove the Encamera data stored in your iCloud. Review what will be deleted before you continue.";
+"ReturningUser.Destructive.GenericScope" = "This data was created on another device.";
+"ReturningUser.Destructive.Continue" = "Continue";
+"ReturningUser.Destructive.WarningTitle" = "This cannot be undone";
+"ReturningUser.Destructive.WarningBody" = "There is no recovery and no support path — like a crypto wallet, once this data is gone it is gone forever. Only continue if you are certain you cannot recover your key.";
+"ReturningUser.Destructive.HoldTitle" = "Delete everything";
+"ReturningUser.Destructive.HoldBody" = "Hold the button to permanently delete your iCloud data. This is your last chance to cancel.";
+"ReturningUser.Destructive.HoldButton" = "Hold to Delete";
+"ReturningUser.Destructive.HoldCountdown" = "Deleting in %d";
+"ReturningUser.Destructive.Offline" = "You must be online to delete your iCloud data. Connect to the internet and try again.";
+"ReturningUser.Destructive.Deleting" = "Deleting your iCloud data…";
+"ReturningUser.Destructive.PartialFailureTitle" = "Deletion incomplete";
+"ReturningUser.Destructive.PartialFailureBody" = "Some of your data could not be deleted and still remains in iCloud. No new key was created. Please try again to finish deleting.";
+"ReturningUser.Destructive.FailedBody" = "Something went wrong and the deletion did not finish. Your iCloud data has not been fully deleted. Please try again.";
+/* ./Encamera/Onboarding/OnboardingKeyEntryView.swift - Manual key-phrase entry with fingerprint validation (ENC-92) */
+"KeyEntry.Title" = "Enter your key phrase";
+"KeyEntry.Prompt" = "Enter the key phrase for your Encamera account. Your existing photos are encrypted with it.";
+"KeyEntry.PromptWithFingerprint" = "Enter the key phrase for key %@. Your existing photos are encrypted with it.";
+"KeyEntry.PromptUnknown" = "Enter your key phrase. We couldn't reach your existing photos to check it now — we'll verify it when they load.";
+"KeyEntry.Submit" = "Verify and continue";
+"KeyEntry.Verifying" = "Checking your key…";
+"KeyEntry.FingerprintMismatch" = "That's not the key these photos need. You entered key %@, but they need key %@.";
+"KeyEntry.OfflineAccepted" = "Key saved. We'll verify it against your photos when they load.";
+/* ./Encamera/Onboarding/OnboardingGuidedSyncView.swift - Guided flip-the-switch flow: wait for the key to arrive via iCloud Keychain (ENC-93) */
+"GuidedSync.Title" = "Turn on Multi-Device Mode";
+"GuidedSync.Body" = "On your other device, open Encamera and turn on iCloud Multi-Device Mode in Settings. Your key will sync to this device automatically.";
+"GuidedSync.BodyNamed" = "On %@, open Encamera and turn on iCloud Multi-Device Mode in Settings. Your key will sync to this device automatically.";
+"GuidedSync.Waiting" = "Waiting for your key to arrive…";
+"GuidedSync.EnterManually" = "Enter key phrase instead";
+"GuidedSync.SuccessTitle" = "Key synced";
+"GuidedSync.SuccessBody" = "Your key arrived from your other device. You're all set to continue on this device.";
+"GuidedSync.Continue" = "Continue";
+"GuidedSync.TimeoutTitle" = "Still waiting for your key";
+"GuidedSync.TimeoutBody" = "Your key hasn't arrived yet. Make sure iCloud Keychain is turned on: check Settings → iCloud → Passwords & Keychain on both devices, then try again.";
+"GuidedSync.Retry" = "Keep waiting";
+"GuidedSync.MismatchTitle" = "That's a different key";
+"GuidedSync.MismatchBody" = "A key arrived from another device, but it isn't the one your photos here need. Enter your key phrase instead, or keep waiting for the right device to sync.";
+/* ./Encamera/EncameraApp.swift - Credential conflict prompt (two accounts detected) */
+"CredentialConflict.Title" = "Another account found";
+"CredentialConflict.Message" = "This device has its own Encamera account, and a different account synced in from another device via iCloud. Which one do you want to use on this device?";
+"CredentialConflict.KeepLocal" = "Keep this device's account";
+"CredentialConflict.UseSynced" = "Use the other device's account";
+"CredentialConflict.UseSyncedWarning" = "You'll unlock with the other device's passcode. Photos taken on this device before switching may require switching back to view.";
+/* ./Encamera/Components/KeyMissingView.swift - No encryption key on this device */
+"KeyMissing.Title" = "No encryption key on this device";
+"KeyMissing.Subtitle" = "Your encryption key isn't available on this device, so existing photos can't be decrypted.";
+"KeyMissing.DisabledFromDevice" = "iCloud key backup was turned off from %@, which removes the key from all other devices.";
+"KeyMissing.DisabledFromDeviceOn" = "iCloud key backup was turned off from %@ on %@, which removes the key from all other devices.";
+"KeyMissing.AnotherDevice" = "another device";
+"KeyMissing.EnterKeyPhrase" = "Enter Key Phrase";
+"KeyMissing.StartFresh" = "Start fresh on this device";
 
 /* ENC-99 - Media encrypted with a key this device does not hold (placeholder copy; design in ENC-103) */
 "MissingKey.Title" = "This photo needs a different key";

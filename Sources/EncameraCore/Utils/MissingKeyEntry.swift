@@ -13,12 +13,17 @@ public extension Notification.Name {
     ///
     /// An added, non-current key does NOT go through `setActiveKey`, so it never
     /// fires `keyPublisher` and none of the rebuild that ENC-97 relies on for an
-    /// *imported* key happens here. Nothing needs rebuilding either — the key
-    /// library is read fresh on every `storedKeys()` call, `DiskFileAccess`'s
-    /// memo only ever caches successful resolutions, and `KeyDiscovery` sweeps
-    /// the whole library on each open. What does need redoing is work whose
-    /// *result* was computed while the key was absent: the album reconcile, whose
-    /// locked-out count is now stale.
+    /// *imported* key happens here. `DiskFileAccess`'s memo only ever caches
+    /// successful resolutions, and `KeyDiscovery` sweeps the whole library on
+    /// each open. What does need redoing is work whose *result* was computed
+    /// while the key was absent: the album reconcile, whose locked-out count is
+    /// now stale.
+    ///
+    /// This is also a cache-invalidation signal, not only a refresh one.
+    /// `DiskFileAccess` holds the key library in a short-lived snapshot rather
+    /// than re-querying the keychain per image, so a key added here would
+    /// otherwise stay invisible for as long as that snapshot lives. Observing
+    /// this notification is what guarantees the very next sweep sees the new key.
     static let keyLibraryDidGrow = Notification.Name("EncameraKeyLibraryDidGrow")
 }
 

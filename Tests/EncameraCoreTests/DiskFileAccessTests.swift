@@ -53,9 +53,18 @@ final class DiskFileAccessTests: XCTestCase {
         tempDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent("DiskFileAccessTests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+        // The `storedKeysCalls` assertions below use "did the keychain get read"
+        // as the observable proof that a discovery sweep ran. `DiskFileAccess`
+        // holds the key library in a short-lived snapshot, which would make a
+        // genuine second sweep read zero times and quietly turn those
+        // assertions into no-ops. Zeroing the TTL keeps them measuring what they
+        // were written to measure; `testStoredKeysSnapshotCollapsesRepeatQueries`
+        // covers the caching itself.
+        DiskFileAccess.storedKeysSnapshotTTL = 0
     }
 
     override func tearDownWithError() throws {
+        DiskFileAccess.storedKeysSnapshotTTL = 1.0
         try? FileManager.default.removeItem(at: tempDirectory)
     }
 
@@ -412,6 +421,65 @@ final class DiskFileAccessTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(keyManager.storedKeysCalls, 1, "A fresh instance starts with an empty memo — no static/global state")
     }
 
+    // MARK: - Stored-key snapshot
+
+    /// Sweeping an album must read the key library once, not once per file.
+    /// `KeychainManager.storedKeys()` is a `SecItemCopyMatching` over every
+    /// stored key with `kSecReturnData`; at one call per image it measured ~47ms
+    /// of pure keychain traffic per 120-image album on an iPhone 12 Pro.
+    func testStoredKeysSnapshotCollapsesRepeatQueries() async throws {
+        DiskFileAccess.storedKeysSnapshotTTL = 1.0
+
+        let keyManager = SpyKeyManager(keys: [keyA, keyB])
+        keyManager.currentKey = keyB
+        let diskAccess = await makeICloudDiskAccess(keyManager: keyManager)
+
+        // Encrypted with a key the manager does not hold, so every open runs the
+        // full sweep and none of them can be short-circuited by the memo.
+        let foreign = PrivateKey(name: "foreign", keyBytes: Array(repeating: 0x5A, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        var media: [EncryptedMedia] = []
+        for _ in 0..<8 {
+            media.append(try await encryptFixture(with: foreign, id: UUID().uuidString))
+        }
+
+        keyManager.storedKeysCalls = 0
+        for item in media {
+            _ = try? await open(item, with: diskAccess)
+        }
+        XCTAssertEqual(keyManager.storedKeysCalls, 1,
+                       "8 unresolvable opens inside the TTL must read the key library exactly once")
+    }
+
+    /// The snapshot must never outlive a key being added — that key exists
+    /// precisely to open the media being looked at (ENC-99), and waiting out a
+    /// TTL to notice it would show the user a missing-key album they have just
+    /// supplied the key for.
+    func testKeyLibraryDidGrowRetiresTheSnapshot() async throws {
+        DiskFileAccess.storedKeysSnapshotTTL = 1.0
+
+        let keyManager = SpyKeyManager(keys: [keyA, keyB])
+        keyManager.currentKey = keyB
+        let diskAccess = await makeICloudDiskAccess(keyManager: keyManager)
+
+        let foreign = PrivateKey(name: "foreign", keyBytes: Array(repeating: 0x5B, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let first = try await encryptFixture(with: foreign, id: UUID().uuidString)
+        let second = try await encryptFixture(with: foreign, id: UUID().uuidString)
+
+        keyManager.storedKeysCalls = 0
+        _ = try? await open(first, with: diskAccess)
+        XCTAssertEqual(keyManager.storedKeysCalls, 1)
+
+        NotificationCenter.default.post(name: .keyLibraryDidGrow, object: nil)
+        // The notification is delivered synchronously on the posting thread, but
+        // the observer is registered with a nil queue on first use; give the run
+        // loop a turn so the generation bump is visible.
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        _ = try? await open(second, with: diskAccess)
+        XCTAssertEqual(keyManager.storedKeysCalls, 2,
+                       "a grown key library must force the next sweep to re-read, TTL notwithstanding")
+    }
+
     // MARK: - Born-stamped saves
 
     /// A tiny real JPEG so `save`'s preview generation succeeds.
@@ -488,7 +556,14 @@ final class DiskFileAccessTests: XCTestCase {
             return XCTFail("Expected in-memory data")
         }
         XCTAssertEqual(data, plaintext)
-        XCTAssertEqual(keyManager.keyWithUUIDCalls, [keyA.uuid], "The xattr hint must be consulted for key resolution")
+        // The hint used to be resolved via `keyManager.keyWith(uuid:)`, which is
+        // a second full keychain query per file; discovery now resolves it
+        // against the key snapshot it already holds, so there is no call to
+        // count here. That the hint still ORDERS candidates ahead of the current
+        // key is asserted directly, on attempt order, by
+        // `KeyDiscoveryTests.testXattrHintOrderedBeforeCurrentKey`.
+        XCTAssertTrue(keyManager.keyWithUUIDCalls.isEmpty,
+                      "Resolving the xattr hint must not cost a second keychain query")
     }
     func testTotalStoredMediaCountCountsNormalPhoto() async throws {
         let fileManager = FileManager.default

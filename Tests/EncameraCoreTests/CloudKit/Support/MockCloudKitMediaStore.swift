@@ -20,13 +20,29 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var metadataToReturn: [CloudKitMediaMetadata] = []
     var blobContents = Data("ciphertext".utf8)
     var fetchBlobDelayNanos: UInt64 = 0
+    /// Stalls `fetchFingerprintCensus` so a test can drive the onboarding probe
+    /// past its time budget. `fetchBlobDelayNanos` cannot do that job: the probe
+    /// never fetches a blob, which is the point of it.
+    var fingerprintCensusDelayNanos: UInt64 = 0
+    /// Forces the census answer, notably `.indexUnavailable` — the "queried but
+    /// the server has not indexed `keyFingerprint` yet" case that must NOT read as
+    /// "no data exists".
+    var fingerprintCensusOverride: CloudKitFingerprintCensus?
+    var fingerprintCensusError: Error?
     var fetchBlobError: Error?
     var fetchChangesError: Error?
     var deleteError: Error?
+    /// The enumeration failures the destructive path must not mistake for "there
+    /// was nothing here" (ENC-94). Without these hooks no test could reach that
+    /// branch at all, which is how the vacuous-success bug survived.
+    var fetchAllAlbumsError: Error?
+    var fetchMetadataError: Error?
     var uploadRefOverride: CloudKitMediaRef?
 
     // Recorded
     private var _fetchBlobCount = 0
+    private var _fingerprintCensusCount = 0
+    var fingerprintCensusCount: Int { locked { _fingerprintCensusCount } }
     private var _fetchChangesCount = 0
     private var _registerSubscriptionCount = 0
     private var _tombstoneCalls: [String] = []
@@ -104,7 +120,8 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     }
 
     func fetchMetadata(albumID: String, includeThumbnail: Bool) async throws -> [CloudKitMediaMetadata] {
-        locked { metadataToReturn + (reflectUploadsInMetadata ? _reflected : []) }
+        if let fetchMetadataError { throw fetchMetadataError }
+        return locked { metadataToReturn + (reflectUploadsInMetadata ? _reflected : []) }
     }
 
     func fetchRecordMetadata(recordName: String) async throws -> CloudKitMediaMetadata? {
@@ -203,6 +220,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     func fetchAllAlbums() async throws -> [CloudKitAlbumMetadata] {
         locked { _fetchAllAlbumsCount += 1 }
         if let gate = fetchAllAlbumsGate { await gate() }
+        if let fetchAllAlbumsError { throw fetchAllAlbumsError }
         return locked { Array(_albums.values) }
     }
 
@@ -210,7 +228,13 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     /// on the server — so a wiped account reports an empty census and
     /// `fetchBlobCount` stays at 0.
     func fetchFingerprintCensus() async throws -> CloudKitFingerprintCensus {
-        locked {
+        locked { _fingerprintCensusCount += 1 }
+        if fingerprintCensusDelayNanos > 0 {
+            try? await Task.sleep(nanoseconds: fingerprintCensusDelayNanos)
+        }
+        if let fingerprintCensusError { throw fingerprintCensusError }
+        if let fingerprintCensusOverride { return fingerprintCensusOverride }
+        return locked {
             var counts: [String: Int] = [:]
             for item in _liveRecords.values where !item.keyFingerprint.isEmpty {
                 counts[item.keyFingerprint, default: 0] += 1

@@ -70,7 +70,7 @@ Three groups of helpers sit beside that stack:
 - **A delete intent outlives the app.** An album delete is queued durably before the tombstone save, so a delete made offline still reaches the server — and until it does, that album is not re-materialized locally.
 - **Account-absent ⇒ local-only.** Anything short of `.available` means the app stays on its local plane; CloudKit calls no-op rather than crash.
 - **Reads must be format-agnostic.** A migrated album can hold V1-format blobs, because the migration uploads the on-disk ciphertext verbatim. Reads use `SecretFileHandler` (which sniffs the format); `SecretFileHandlerV2` throws on V1 and is write-side only. See ENC-135.
-- **Existing iCloud Drive albums stay readable.** iCloud Drive is a dead end as a *destination* once CloudKit is on, but albums already there keep working until the user moves them. Those two questions are `isStorageTypeOfferedForNewAlbums` and `isStorageTypeAvailable`, and they are deliberately separate.
+- **Existing iCloud Drive albums stay readable.** iCloud Drive is a dead end as a *destination* — unconditionally, not gated on the CloudKit flag — but albums already there keep working until the user moves them. Those two questions are `isStorageTypeOfferedForNewAlbums` and `isStorageTypeAvailable`, and they are deliberately separate.
 
 ## Tests
 

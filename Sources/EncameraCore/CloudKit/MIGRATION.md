@@ -216,7 +216,7 @@ The engine reports a machine-readable marker (`UITestMigrationProgress`) with th
 
 `plan(album:)` refuses anything that isn't `.local`. An iCloud Drive album's files can be evicted, in which case enumeration sees a placeholder but the materialized path doesn't exist — so the engine would mark every evicted item `skipped` and then happily finalize, silently stranding those files in a directory the flipped album no longer surfaces. Until the migration materializes evicted files and verifies them locally first, this direction is not offered. The album screen doesn't route `.icloud` albums into the migration flow at all; they fall through to `moveAlbum`, which throws and shows the move-failed alert.
 
-Separately: iCloud Drive is a dead end as a *destination* once CloudKit is on, but existing iCloud Drive albums stay fully readable and writable. Those are two different questions and they have two different functions — `isStorageTypeOfferedForNewAlbums` versus `isStorageTypeAvailable`.
+Separately: iCloud Drive is a dead end as a *destination* — unconditionally, not gated on the CloudKit flag — but existing iCloud Drive albums stay fully readable and writable. Those are two different questions and they have two different functions — `isStorageTypeOfferedForNewAlbums` versus `isStorageTypeAvailable`.
 
 ### A cancelled plan is kept, not deleted
 

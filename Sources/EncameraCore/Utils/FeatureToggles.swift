@@ -18,6 +18,7 @@ public enum Feature: String, CaseIterable {
     case detectDuplicates
     case megapixelSettings
     case clearMediaIndex
+    case keychainSyncRestore
     case keychainInspector
     case cloudKitStorage
     case iCloudFlightCheck
@@ -52,6 +53,7 @@ public enum Feature: String, CaseIterable {
         case .detectDuplicates: return L10n.FeatureToggles.detectDuplicates
         case .megapixelSettings: return "Megapixel Settings"
         case .clearMediaIndex: return "Clear Media Index"
+        case .keychainSyncRestore: return "Keychain Sync Restore"
         case .keychainInspector: return "Keychain Inspector"
         case .cloudKitStorage: return L10n.FeatureToggles.cloudKitStorage
         case .iCloudFlightCheck: return "iCloud Flight Check"
@@ -73,6 +75,7 @@ public enum Feature: String, CaseIterable {
         case .detectDuplicates: return L10n.FeatureToggles.detectDuplicatesDescription
         case .megapixelSettings: return "Allow selecting camera capture resolution (e.g. 12 MP, 48 MP)"
         case .clearMediaIndex: return "Show a debug action in Settings to delete the on-disk media index so its rebuild can be tested"
+        case .keychainSyncRestore: return "Wait for iCloud Keychain credentials on first launch and skip onboarding when an existing account is found"
         case .keychainInspector: return "Show a debug screen in Settings that dumps every keychain item the app has stored, including iCloud-synced copies"
         case .cloudKitStorage: return L10n.FeatureToggles.cloudKitStorageDescription
         case .iCloudFlightCheck: return "Show a Settings workbench that runs the real CloudKit save/read path end-to-end with dummy data to verify the iCloud container is working"
@@ -82,8 +85,12 @@ public enum Feature: String, CaseIterable {
         }
     }
 
+    /// Value used when the toggle has never been set explicitly. `nil` means the
+    /// toggle has no opinion and callers fall back to disabled.
     public var defaultValue: Bool? {
         switch self {
+        case .keychainSyncRestore:
+            return true
         case .cloudKitStorage, .iCloudFlightCheck, .iCloudDiagnostics, .clearMediaIndex:
             #if DEBUG
             return true

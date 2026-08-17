@@ -45,6 +45,71 @@ public actor DiskFileAccess: DebugPrintable {
     /// so no LRU machinery is warranted.
     private var discoveredKeyMemo: [String: UUID] = [:]
 
+    /// Short-lived snapshot of the key library, so sweeping an album costs one
+    /// keychain query rather than one per image.
+    ///
+    /// `KeychainManager.storedKeys()` is a `SecItemCopyMatching` over every
+    /// stored key with `kSecReturnData`, and `resolveKey` runs per file. On an
+    /// iPhone 12 Pro holding one key that measured ~0.39ms per call — ~47ms of
+    /// pure keychain traffic for a 120-image album, growing with the library and
+    /// repeated on every re-entry into an album whose key is missing.
+    ///
+    /// The TTL bounds staleness the app cannot see coming: the key library also
+    /// changes from OUTSIDE this process — iCloud Keychain sync adds and
+    /// tombstones items with no local call to hook, which is precisely what the
+    /// two-device suites exercise — so no set of local invalidation points is
+    /// complete on its own.
+    ///
+    /// The one change that must NOT wait out the TTL is a key being added to fix
+    /// exactly the media being looked at (ENC-99): the user types a phrase and
+    /// expects the album to open. That posts `.keyLibraryDidGrow`, which bumps
+    /// `storedKeysGeneration` below and retires every outstanding snapshot at
+    /// once, so the re-enumerate that follows always reads the grown library.
+    private var storedKeysSnapshot: (keys: [PrivateKey], readAt: Date, generation: UInt64)?
+
+    /// Long enough to collapse one album sweep (~100ms for 120 images), short
+    /// enough that a key arriving over iCloud shows up effectively immediately.
+    ///
+    /// Settable so tests that assert on keychain call counts can zero it and go
+    /// on measuring what they were written to measure, rather than being
+    /// silently weakened into passing by the cache.
+    static var storedKeysSnapshotTTL: TimeInterval = 1.0
+
+    /// Bumped on `.keyLibraryDidGrow`; a snapshot from an older generation is
+    /// never reused. Static and observed once for the process, so this works for
+    /// every `DiskFileAccess` instance without per-instance wiring.
+    private static let storedKeysGenerationLock = NSLock()
+    nonisolated(unsafe) private static var storedKeysGenerationValue: UInt64 = 0
+    private static var storedKeysGeneration: UInt64 {
+        storedKeysGenerationLock.lock()
+        defer { storedKeysGenerationLock.unlock() }
+        return storedKeysGenerationValue
+    }
+    private static let keyLibraryGrowthObserver: Void = {
+        NotificationCenter.default.addObserver(
+            forName: .keyLibraryDidGrow, object: nil, queue: nil
+        ) { _ in
+            storedKeysGenerationLock.lock()
+            storedKeysGenerationValue &+= 1
+            storedKeysGenerationLock.unlock()
+        }
+    }()
+
+    /// The key library, re-reading it only once per `storedKeysSnapshotTTL` and
+    /// never across a `.keyLibraryDidGrow`.
+    private func currentStoredKeys(_ keyManager: KeyManager) -> [PrivateKey] {
+        _ = Self.keyLibraryGrowthObserver
+        let generation = Self.storedKeysGeneration
+        if let snapshot = storedKeysSnapshot,
+           snapshot.generation == generation,
+           Date().timeIntervalSince(snapshot.readAt) < Self.storedKeysSnapshotTTL {
+            return snapshot.keys
+        }
+        let keys = (try? keyManager.storedKeys()) ?? []
+        storedKeysSnapshot = (keys, Date(), generation)
+        return keys
+    }
+
     private var cancellables = Set<AnyCancellable>()
     private var album: Album?
     public var directoryModel: DataStorageModel?
@@ -750,8 +815,9 @@ extension DiskFileAccess {
         // full discovery instead of failing the open.
         if let memoizedUUID = discoveredKeyMemo[mediaID],
            let memoizedKey = await keyManager.keyWith(uuid: memoizedUUID) {
-            if await KeyDiscovery.canDecryptFirstBlock(of: sourceURL, with: memoizedKey) {
-                let stampMatched = KeyStampSlot.readStamp(url: sourceURL) == memoizedKey.stampPrefix
+            let (proof, stamp) = await KeyDiscovery.proveFirstBlockReadingStamp(of: sourceURL, with: memoizedKey)
+            if proof == .proved {
+                let stampMatched = stamp == memoizedKey.stampPrefix
                 if !stampMatched && shouldStampFile(at: sourceURL) {
                     KeyStampSlot.writeStamp(memoizedKey.stampPrefix, url: sourceURL)
                 }
@@ -760,7 +826,9 @@ extension DiskFileAccess {
             discoveredKeyMemo[mediaID] = nil
         }
 
-        switch await KeyDiscovery.discoverKeyOutcome(for: sourceURL, keyManager: keyManager) {
+        switch await KeyDiscovery.discoverKeyOutcome(for: sourceURL,
+                                                     keyManager: keyManager,
+                                                     storedKeysSnapshot: currentStoredKeys(keyManager)) {
         case .resolved(let discovered):
             printDebug("resolveKey: Discovered key '\(discovered.key.name)' for file \(mediaID), stampMatched: \(discovered.stampMatched)")
             discoveredKeyMemo[mediaID] = discovered.key.uuid

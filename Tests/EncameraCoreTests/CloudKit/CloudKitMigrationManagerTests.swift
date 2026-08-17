@@ -897,6 +897,25 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         }
     }
 
+    /// Moving media into the cloud must never be treated as consent to sync the
+    /// key that decrypts it. A full local -> CloudKit migration leaves the key
+    /// sync setting exactly as the user left it (ENC-84).
+    func testMigrationDoesNotTouchKeySyncSetting() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer { cleanup(album) }
+
+        let keyManager = albumManager.keyManager as! DemoKeyManager
+        keyManager.isSyncEnabled = false
+
+        _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .completed, "precondition: the migration actually ran")
+        XCTAssertFalse(keyManager.isSyncEnabled, "a migration must not enable key sync as a side effect")
+    }
+
     func testMoveCloudKitAlbumToLocalAbortsWhenReconcileFails() async throws {
         // Every destructive step of the move (export, deleteAllMedia, tombstone)
         // enumerates from the LOCAL index. If the pre-move reconcile fails, that
@@ -951,6 +970,228 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         XCTAssertEqual(result.storageOption, .cloudKit)
         XCTAssertFalse(FileManager.default.fileExists(atPath: model.baseURL.path), "the drained source dir is removed")
         XCTAssertTrue(FileManager.default.fileExists(atPath: marker.path), "the CloudKit discovery marker is written")
+    }
+
+    // MARK: - iCloud Drive deprecation is unconditional (ENC-88)
+
+    /// Both deprecation backstops used to be gated on the `cloudKitStorage` feature
+    /// flag, which defaults ON only in DEBUG — so in a release build they were inert
+    /// and iCloud Drive albums kept being created. These two tests drive the gates
+    /// with the flag explicitly OFF, which is precisely the release configuration.
+
+    func testCreateICloudDriveAlbumThrowsInAllBuildConfigurations() throws {
+        let prior = FeatureToggle.isEnabled(feature: .cloudKitStorage)
+        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
+        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: prior) }
+
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+        let manager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
+
+        XCTAssertThrowsError(
+            try manager.create(name: "drive-\(UUID().uuidString)", storageOption: .icloud)
+        ) { error in
+            guard case AlbumError.iCloudDriveDeprecated = error else {
+                return XCTFail("expected iCloudDriveDeprecated, got \(error)")
+            }
+        }
+    }
+
+    func testMoveToICloudDriveThrowsInAllBuildConfigurations() throws {
+        let prior = FeatureToggle.isEnabled(feature: .cloudKitStorage)
+        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
+        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: prior) }
+
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+        let manager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
+
+        // The album is laid down on disk so the source-existence check passes: the
+        // throw has to come from the deprecation gate, not from a missing directory,
+        // or this would pass for the wrong reason.
+        let album = makeAlbum()
+        let model = album.storageOption.modelForType.init(album: album)
+        try model.initializeDirectories()
+        defer { cleanup(album) }
+
+        XCTAssertThrowsError(try manager.moveAlbum(album: album, toStorage: .icloud)) { error in
+            guard case AlbumError.iCloudDriveDeprecated = error else {
+                return XCTFail("expected iCloudDriveDeprecated, got \(error)")
+            }
+        }
+    }
+
+    /// The deprecation must not hand a `.icloud` default back to the picker-less
+    /// quick-create paths, which would walk straight into the create backstop.
+    func testPersistedICloudDefaultIsCoercedToLocal() throws {
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+        let manager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
+
+        let prior = manager.defaultStorageForAlbum
+        defer { manager.defaultStorageForAlbum = prior }
+
+        manager.defaultStorageForAlbum = .icloud
+        XCTAssertEqual(manager.defaultStorageForAlbum, .local)
+    }
+
+    /// Deprecation must stop iCloud Drive being OFFERED, never stop what is already
+    /// there being SEEN. If enumeration were gated on `isStorageTypeOfferedForNewAlbums`
+    /// (which reports `.icloud` unavailable unconditionally) instead of
+    /// `isStorageTypeAvailable`, a user's existing Drive albums would silently vanish
+    /// from the grid — unusable and unmigratable, since the migration prompt can only
+    /// offer what it can find.
+    func testICloudDriveAlbumsRemainEnumerableWhileDeprecated() async throws {
+        XCTAssertNotEqual(DataStorageAvailabilityUtil.isStorageTypeOfferedForNewAlbums(type: .icloud), .available,
+                          "precondition: iCloud Drive is never offered as a destination")
+
+        try await withICloudDriveRoot {
+            XCTAssertEqual(DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud), .available,
+                           "but an existing container is still readable")
+
+            let keyManager = DemoKeyManager()
+            let key = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+            keyManager.currentKey = key
+            let manager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
+
+            let legacy = Album(name: "legacy-\(UUID().uuidString)", storageOption: .icloud,
+                               creationDate: Date(), key: key)
+            try iCloudStorageModel(album: legacy).initializeDirectories()
+            defer { cleanup(legacy) }
+
+            let found = manager.fetchAlbumsFromSources(includingHidden: true)
+            let match = try XCTUnwrap(found.first { $0.name == legacy.name },
+                                      "an existing iCloud Drive album must still appear in the grid")
+            XCTAssertEqual(match.storageOption, .icloud,
+                           "and must keep its real storage type, so the migration prompt can find it")
+        }
+    }
+
+    /// Deferring the migration prompt is a per-device decision: another device may
+    /// not even hold the legacy albums, so syncing the dismissal would silently
+    /// suppress the prompt where it still applies.
+    func testMigrationPromptDismissalIsDeviceLocal() {
+        XCTAssertFalse(UserDefaultKey.dismissediCloudDriveMigrationPrompt.shouldSyncToiCloud)
+    }
+
+    // MARK: - iCloud Drive (legacy) source
+
+    /// Points `iCloudStorageModel` at a scratch directory for the duration of a test.
+    /// Neither the simulator nor a unit-test host has a ubiquity container, so without
+    /// this the `.icloud` source path cannot be executed at all — `rootURL` traps.
+    /// Everything downstream of `albumManager.storageModel(for:)` is unchanged, and
+    /// that single seam is what the engine drives the source through, so these tests
+    /// exercise the real `.icloud` code path rather than a re-labelled local one.
+    private func withICloudDriveRoot(_ body: () async throws -> Void) async rethrows {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("icloud-drive-\(UUID().uuidString)", isDirectory: true)
+        iCloudStorageModel.testContainerRootOverride = root
+        defer {
+            iCloudStorageModel.testContainerRootOverride = nil
+            try? FileManager.default.removeItem(at: root)
+        }
+        try await body()
+    }
+
+    /// Planning must enumerate a legacy iCloud Drive album exactly as it does a local
+    /// one — the engine accepts `.icloud`, but until now only `.local` had ever been
+    /// executed end to end.
+    func testPlanFromICloudDriveSourceEnumeratesAllItems() async throws {
+        try await withICloudDriveRoot {
+            let album = makeAlbum(storage: .icloud)
+            let (manager, albumManager) = makeManager(for: album)
+            defer { cleanup(album) }
+
+            let ids = try await seedLocalAlbum(count: 3, albumManager: albumManager, album: album)
+            let plan = try await manager.plan(album: album)
+
+            XCTAssertEqual(plan.sourceStorage, .icloud)
+            XCTAssertEqual(plan.items.count, 3, "every component of an iCloud Drive album becomes a work item")
+            XCTAssertEqual(Set(plan.items.map(\.mediaID)), Set(ids))
+            XCTAssertTrue(plan.items.allSatisfy { $0.state == .pending })
+            XCTAssertTrue(plan.items.allSatisfy { $0.sizeBytes > 0 },
+                          "sizes are read from the iCloud Drive container, not assumed")
+        }
+    }
+
+    /// The verification gate must hold for an iCloud Drive source too: if the record
+    /// cannot be confirmed in CloudKit, the Drive original is never removed. This is
+    /// the only copy of the user's data at that moment, so a source-agnostic delete
+    /// would be silent data loss.
+    func testICloudDriveSourceRemovedOnlyAfterVerification() async throws {
+        try await withICloudDriveRoot {
+            let album = makeAlbum(storage: .icloud)
+            let (manager, albumManager, store) = makeExecutableManager(for: album)
+            store.reflectUploadsInMetadata = false   // verification can never succeed
+            defer { cleanup(album) }
+
+            let ids = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+            await manager.start(album: album)
+
+            XCTAssertEqual(store.uploadCalls.count, 2, "items upload...")
+            let loaded = await MigrationPlanStore(album: album).load()
+            let plan = try XCTUnwrap(loaded)
+            XCTAssertTrue(plan.items.allSatisfy { $0.state != .sourceDeleted },
+                          "...but no item advances past verification")
+            for id in ids {
+                XCTAssertTrue(FileManager.default.fileExists(atPath: sourceEncURL(album: album, id: id).path),
+                              "the iCloud Drive original survives a failed verification")
+            }
+            XCTAssertEqual(albumManager.finalizeCallCount, 0, "and the album is not flipped to CloudKit")
+            if case .failed = manager.state {} else { XCTFail("expected a failed run, got \(manager.state)") }
+
+            // Now let verification succeed and resume: the same sources ARE removed,
+            // which proves the assertions above are gated on verification and not on
+            // the `.icloud` source being skipped wholesale.
+            store.reflectUploadsInMetadata = true
+            await manager.start(album: album)
+
+            XCTAssertEqual(manager.state, .completed)
+            for id in ids {
+                XCTAssertFalse(FileManager.default.fileExists(atPath: sourceEncURL(album: album, id: id).path),
+                               "once verified, the iCloud Drive original is removed")
+            }
+        }
+    }
+
+    /// A migration killed mid-flight resumes from its checkpoint on the next launch,
+    /// mirroring the existing `.local` resume coverage.
+    func testInterruptedICloudDriveMigrationResumes() async throws {
+        try await withICloudDriveRoot {
+            let album = makeAlbum(storage: .icloud)
+            let (manager, albumManager, store) = makeExecutableManager(for: album)
+            albumManager.albumsOnDisk = [album]
+            store.reflectUploadsInMetadata = true
+            defer { cleanup(album) }
+
+            let ids = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+            let planned = try await manager.plan(album: album)
+            XCTAssertEqual(planned.items.count, 2)
+
+            // Simulate a kill after the first item finished and before the second
+            // started, by writing that exact checkpoint back to disk.
+            let planStore = MigrationPlanStore(album: album)
+            let loaded = await planStore.load()
+            var persisted = try XCTUnwrap(loaded)
+            persisted.items[0].state = .sourceDeleted
+            try await planStore.save(persisted)
+            try FileManager.default.removeItem(at: sourceEncURL(album: album, id: persisted.items[0].mediaID))
+
+            let pending = await manager.pendingPlans()
+            XCTAssertEqual(pending.map(\.id), [album.id],
+                           "the interrupted iCloud Drive migration is surfaced for resume on launch")
+
+            await manager.start(album: album)
+
+            XCTAssertEqual(manager.state, .completed)
+            XCTAssertEqual(store.uploadCalls.count, 1,
+                           "only the item that had not finished is uploaded on resume")
+            XCTAssertEqual(albumManager.finalizeCallCount, 1)
+            for id in ids {
+                XCTAssertFalse(FileManager.default.fileExists(atPath: sourceEncURL(album: album, id: id).path))
+            }
+            XCTAssertFalse(MigrationPlanStore.hasPlan(for: album), "the checkpoint is cleared on completion")
+        }
     }
 
     // MARK: - Published phase (ENC-121)
