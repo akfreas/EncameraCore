@@ -10,9 +10,9 @@
 //  — otherwise the pull path would resurrect a "deleted" album on the deleting
 //  device itself.
 //
-//  The queue holds the local *intent*. It is unrelated to how the deletion is
-//  represented on the server: that used to be a `deletedAt` tombstone and is now
-//  a real record delete, which cascades to the album's media (chunk 14).
+//  The queue holds the local *intent*, independently of how the deletion reaches
+//  the server — a real record delete, which cascades to the album's media
+//  (chunk 14).
 //
 
 import Foundation

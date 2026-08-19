@@ -63,8 +63,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
 
     private func meta(_ name: String,
                       type: MediaType = .photo,
-                      tag: String? = "tag-1",
-                      deletedAt: Date? = nil) -> CloudKitMediaMetadata {
+                      tag: String? = "tag-1") -> CloudKitMediaMetadata {
         CloudKitMediaMetadata(recordName: name,
                               albumID: "a1",
                               mediaID: name,
@@ -72,7 +71,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                               createdAt: Date(timeIntervalSince1970: 100),
                               sizeBytes: 10,
                               creationDeviceID: "device",
-                              deletedAt: deletedAt,
                               schemaVersion: 1,
                               recordChangeTag: tag)
     }
@@ -86,7 +84,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                               createdAt: Date(timeIntervalSince1970: 100),
                               sizeBytes: 10,
                               creationDeviceID: "device",
-                              deletedAt: nil,
                               schemaVersion: 1,
                               recordChangeTag: "tag-\(recordName)")
     }
@@ -464,29 +461,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertTrue(queue.pending().isEmpty, "A confirmed delete drains")
     }
 
-    func testObservedLegacyTombstoneIsReclaimed() async throws {
-        let store = MockCloudKitMediaStore()
-        let (coord, index, _) = makeCoordinator(store: store)
-
-        store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
-        try await coord.sync(albumID: "a1")
-
-        // A record soft-deleted by an older build. Nothing writes these any more,
-        // but they still sit in dev and TestFlight zones holding a full-size blob
-        // against the user's quota, so observing one must reclaim it.
-        store.changeSet = CloudKitChangeSet(changed: [meta("m1", deletedAt: Date())], deleted: [], token: nil, moreComing: false)
-        try await coord.sync(albumID: "a1")
-
-        let result = await ids(index)
-        XCTAssertTrue(result.isEmpty, "The item leaves the index as soon as the tombstone is seen")
-
-        // The drain runs before the feed is read, so the record it queues is
-        // reclaimed on the following pass.
-        store.changeSet = CloudKitChangeSet(changed: [], deleted: [], token: nil, moreComing: false)
-        try await coord.sync(albumID: "a1")
-        XCTAssertEqual(store.deleteCalls, ["m1"], "An observed legacy tombstone must end in a real delete")
-    }
-
     func testCachedBlobSurvivesRelaunchBeforeTagMapRepopulates() async throws {
         let store = MockCloudKitMediaStore()
         let index = makeIndexStore()
@@ -701,7 +675,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         func dated(_ name: String, _ date: Date) -> CloudKitMediaMetadata {
             CloudKitMediaMetadata(recordName: name, albumID: "a1", mediaID: name, mediaType: .photo,
                                   createdAt: date, sizeBytes: 1, creationDeviceID: "d",
-                                  deletedAt: nil, schemaVersion: 1, recordChangeTag: "t-\(name)")
+                                  schemaVersion: 1, recordChangeTag: "t-\(name)")
         }
         store.changeSet = CloudKitChangeSet(changed: [
             dated("old", Date(timeIntervalSince1970: 100)),

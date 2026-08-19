@@ -11,8 +11,8 @@
 //   * It deletes iCloud *data*, never keys account-wide. It issues NO account-wide
 //     keychain deletion — the user still owns their other device, and an
 //     account-wide wipe would tombstone that device's key and brick it.
-//   * Deletion is soft (tombstone), so it propagates and the reconciler cannot
-//     resurrect it.
+//   * Deletion is a real record delete, which propagates on the zone change feed
+//     so the reconciler cannot resurrect it.
 //   * Per-record failures are surfaced, never re-swallowed. A partial failure is
 //     reported as such and stops short of clearing the marker or minting a key.
 //   * It requires the account to be online, so nothing is attempted that cannot be
@@ -175,8 +175,8 @@ public struct DestructiveOnboardingCoordinator {
             return report
         }
 
-        // Tombstone every live media record, deduplicated by record name so an
-        // item is never tombstoned twice.
+        // Delete every media record, deduplicated by record name so an item is
+        // never deleted twice.
         var seenRecords = Set<String>()
         for album in albums {
             let media: [CloudKitMediaMetadata]
@@ -201,9 +201,8 @@ public struct DestructiveOnboardingCoordinator {
 
         // Delete every album record. `deleteAlbum` is deliberately NOT feature-flag
         // gated (see AlbumManager.deleteCloudKitAlbumRecord) so the delete always
-        // propagates and the reconciler cannot resurrect it. Skip albums another
-        // device already tombstoned under an older build.
-        for album in albums where album.deletedAt == nil {
+        // propagates and the reconciler cannot resurrect it.
+        for album in albums {
             do {
                 try await store.deleteAlbum(albumID: album.albumID)
                 report.tombstonedAlbums.append(album.albumID)

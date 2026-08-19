@@ -21,6 +21,17 @@ public protocol DataStorageModel: DebugPrintable {
     static func enumerateAlbumsDirectory() -> [URL]
 }
 
+/// The one directory every encrypted preview lives in, whatever an album's storage
+/// plane is — previews are keyed by media id, not by album, which is why deleting an
+/// album does not remove them and the sync path has to do it by name.
+///
+/// Public because the app target needs to name the same directory the storage models
+/// use (the models themselves are internal), rather than re-deriving the path and
+/// drifting from it.
+public enum MediaPreviewStorage {
+    public static var directory: URL { LocalStorageModel.thumbnailDirectory }
+}
+
 enum DataStorageModelError: Error {
     case noURLForiCloudDownload
     case couldNotCreateMedia

@@ -15,9 +15,10 @@
 //  Note on the download steps: a normal `loadMedia` is served from the local cache
 //  the upload just wrote, so it does NOT prove the blob is on the server. The
 //  download/thumbnail steps deliberately EVICT the cache first, forcing a true
-//  fetch from CloudKit. A successful run leaves the (empty) FlightCheck album for
-//  inspection — the final delete step removes its uploaded record — while a halted
-//  run tears down both; `removeTestAlbums` clears accumulated leftovers.
+//  fetch from CloudKit. The run deletes what it creates — step 11 the album it
+//  makes to test the cascade, step 12 the record uploaded at step 7 — so a green
+//  run leaves only its (empty) test album behind. A halted run tears down what it
+//  got to; `removeTestAlbums` clears leftovers from runs that could not.
 //
 
 import Foundation
@@ -63,6 +64,8 @@ public enum FlightCheckError: Error {
     case restartReportedNoProgress
     case cancelledDownloadStillCompleted(seconds: TimeInterval)
     case downloadTooFastToCatch(bytes: Int, seconds: TimeInterval?)
+    case childNeverReachedServer(recordName: String)
+    case childSurvivedAlbumDelete(recordName: String, waited: TimeInterval)
     case internalState(String)
 
     var message: String {
@@ -97,6 +100,10 @@ public enum FlightCheckError: Error {
             return "A cancelled download finished anyway and cached its blob"
         case .downloadTooFastToCatch:
             return "Could not catch the probe download in flight"
+        case .childNeverReachedServer:
+            return "The probe photo never reached the server, so the cascade cannot be tested"
+        case .childSurvivedAlbumDelete:
+            return "Deleting the album left its media behind on the server"
         case .internalState(let what):
             return "Internal flight-check state error: \(what)"
         }
@@ -152,6 +159,17 @@ public enum FlightCheckError: Error {
                 + "cancel from a broken one. Not a product failure — but reported as a failure rather than a silent "
                 + "pass. Raise `makeIncompressibleJPEG`'s pixelsPerSide until a cold download takes longer than "
                 + "`minimumUsefulDownloadSeconds`."
+        case .childNeverReachedServer(let recordName):
+            return "Record \(recordName) was uploaded into the flight-check album but a fetch-by-record-ID never "
+                + "returned it. Nothing can be concluded about the album-delete cascade from a child that was "
+                + "never on the server, so the step fails here rather than passing vacuously on its absence."
+        case .childSurvivedAlbumDelete(let recordName, let waited):
+            return "The album's EncAlbum record was deleted and \(String(format: "%.0f", waited))s later its child "
+                + "\(recordName) was still on the server. Every EncMedia carries a CKRecord.Reference to its album "
+                + "with action .deleteSelf, so deleting the album must take its media — and their full-size encBlob "
+                + "assets — with it. A surviving child means those blobs stay against the user's iCloud quota with "
+                + "no album left to reach them from, and receiving devices keep index entries for media whose parent "
+                + "is gone. Check the reference and its delete action on the uploaded record in the Dashboard."
         case .internalState(let what):
             return what
         }
@@ -210,8 +228,13 @@ public final class CloudKitFlightCheck: DebugPrintable {
         .init(id: 8,  title: "Sync & list uploaded item"),
         .init(id: 9,  title: "Download blob from server (cold cache)"),
         .init(id: 10, title: "Thumbnail from server (cold cache)"),
-        .init(id: 11, title: "Cancel & restart a download"),
+        .init(id: 11, title: "Deleting an album takes its media with it"),
         .init(id: 12, title: "Delete removes the record everywhere"),
+        // Last deliberately. The run halts on the first failure, and this step
+        // cannot reach a verdict at all on a fast link (see `downloadTooFastToCatch`)
+        // — ahead of the others it would stop the functional steps from ever being
+        // checked on the rig, which is where they matter most.
+        .init(id: 13, title: "Cancel & restart a download"),
     ]
 
     private let keyManager: KeyManager
@@ -226,6 +249,12 @@ public final class CloudKitFlightCheck: DebugPrintable {
     /// The multi-megabyte record the cancel/restart step uploads. Held so a halted
     /// run reclaims it — it is far too big to leak into the user's iCloud quota.
     private var cancelProbeMedia: InteractableMedia<EncryptedMedia>?
+    /// The album, access and child the cascade step creates. Held only until the
+    /// cascade removes them, so a step that fails mid-way still reclaims what it
+    /// just wrote instead of leaking a record and its blob into the user's quota.
+    private var cascadeAlbum: Album?
+    private var cascadeCloud: CloudKitFileAccess?
+    private var cascadeProbeMedia: InteractableMedia<EncryptedMedia>?
 
     public init(keyManager: KeyManager,
                 albumManager: AlbumManaging,
@@ -237,8 +266,8 @@ public final class CloudKitFlightCheck: DebugPrintable {
 
     /// Runs every step in order, reporting status transitions through `onUpdate`.
     /// Stops at the first failure (later steps remain `.pending`) and tears down
-    /// its own test data — only a fully successful run leaves the (empty) test
-    /// album behind for inspection.
+    /// its own test data. A run that reaches the end has already deleted the album
+    /// it created at step 11 and the record it uploaded at step 7.
     public func run(onUpdate: @MainActor @escaping (_ index: Int, _ status: FlightCheckStepStatus) -> Void) async {
         printDebug("Starting iCloud Flight Check — container=\(CloudKitSchema.containerID), zone=\(CloudKitSchema.zoneName)")
         for step in Self.steps {
@@ -262,7 +291,7 @@ public final class CloudKitFlightCheck: DebugPrintable {
                 return
             }
         }
-        printDebug("iCloud Flight Check complete — all steps passed. Test album left in place for inspection: \(testAlbum?.name ?? "?")")
+        printDebug("iCloud Flight Check complete — all steps passed. Every record the run uploaded was deleted; the empty test album is left for inspection: \(testAlbum?.name ?? "?")")
     }
 
     /// Best-effort teardown for a run that halted (failure or cancellation) before
@@ -276,6 +305,9 @@ public final class CloudKitFlightCheck: DebugPrintable {
         let cloud = self.cloud
         let saved = self.savedMedia
         let probe = self.cancelProbeMedia
+        let cascadeProbe = self.cascadeProbeMedia
+        let cascadeCloud = self.cascadeCloud
+        let cascadeAlbum = self.cascadeAlbum
         let album = self.testAlbum
         let albumManager = self.albumManager
         Task.detached {
@@ -284,6 +316,12 @@ public final class CloudKitFlightCheck: DebugPrintable {
             }
             if let cloud, let probe {
                 try? await cloud.delete(media: [probe])
+            }
+            if let cascadeCloud, let cascadeProbe {
+                try? await cascadeCloud.delete(media: [cascadeProbe])
+            }
+            if let cascadeAlbum {
+                albumManager.delete(album: cascadeAlbum)
             }
             if let album {
                 albumManager.delete(album: album)
@@ -297,8 +335,8 @@ public final class CloudKitFlightCheck: DebugPrintable {
     public static let testAlbumNamePrefix = "FlightCheck "
 
     /// Deletes every album left behind by previous flight-check runs (marker,
-    /// local cache, and index — see `AlbumManager.delete`). Successful runs leave
-    /// their empty album for inspection, so these accumulate without this.
+    /// local cache, and index — see `AlbumManager.delete`). Every run leaves its
+    /// test album behind, so these accumulate without this.
     /// Returns how many albums were removed.
     @discardableResult
     public static func removeTestAlbums(albumManager: AlbumManaging) -> Int {
@@ -323,8 +361,9 @@ public final class CloudKitFlightCheck: DebugPrintable {
         case 8:  return try await checkSyncAndList()
         case 9:  return try await checkColdDownload()
         case 10: return try await checkColdThumbnail()
-        case 11: return try await checkCancelAndRestartDownload()
+        case 11: return try await checkAlbumDeleteCascade()
         case 12: return try await checkDelete()
+        case 13: return try await checkCancelAndRestartDownload()
         default: return nil
         }
     }
@@ -542,10 +581,33 @@ public final class CloudKitFlightCheck: DebugPrintable {
         let cancelled = Task {
             try await cloud.loadMedia(media: probe, progress: { firstAttempt.record($0) })
         }
-        let graceSeconds = coldSeconds * Self.cancelAfterFractionOfDownload
-        try await Task.sleep(nanoseconds: UInt64(graceSeconds * 1_000_000_000))
+        // Cancel the instant bytes are provably moving, rather than after a fixed
+        // slice of the cold baseline. This second fetch is served warm and routinely
+        // beats that baseline several times over, so any stopwatch-derived grace
+        // period expires when the transfer is already finished.
+        let startedWaiting = Date()
+        let catchDeadline = startedWaiting.addingTimeInterval(coldSeconds * 3 + 1)
+        while firstAttempt.midFlightFraction == nil,
+              !firstAttempt.isPastDownloading,
+              Date() < catchDeadline {
+            try await Task.sleep(nanoseconds: 5_000_000)
+        }
+        let graceSeconds = Date().timeIntervalSince(startedWaiting)
 
-        let caughtAt = firstAttempt.downloadFractions.last ?? 0
+        let caughtAt = firstAttempt.midFlightFraction ?? firstAttempt.downloadFractions.last ?? 0
+        // Either the transfer left the downloading phase, or it never reported a
+        // fraction between 0 and 1 at all: the cancel below would land on nothing and
+        // the load would return the media whatever the product does. That is this rig
+        // being faster than the payload, not a cancel being ignored, and the two must
+        // not report the same way — the step says it could not judge rather than
+        // accusing the product of a defect it did not commit.
+        if firstAttempt.isPastDownloading || firstAttempt.midFlightFraction == nil {
+            cancelled.cancel()
+            _ = await Self.outcome(of: cancelled, timeout: coldSeconds * 3 + 1)
+            try? await cloud.delete(media: [probe])
+            cancelProbeMedia = nil
+            throw FlightCheckError.downloadTooFastToCatch(bytes: payload.count, seconds: coldSeconds)
+        }
         let cancelledAt = Date()
         cancelled.cancel()
         // A working cancel releases its caller in milliseconds. Allow it the whole
@@ -595,14 +657,13 @@ public final class CloudKitFlightCheck: DebugPrintable {
         cancelProbeMedia = nil
 
         return "\(payload.count)-byte payload downloads cold in \(String(format: "%.2f", coldSeconds))s; "
-            + "cancelled \(String(format: "%.2f", graceSeconds))s in (at \(Int(caughtAt * 100))%) — released in "
+            + "caught in flight after \(String(format: "%.2f", graceSeconds))s (at \(Int(caughtAt * 100))%) and "
+            + "cancelled — released in "
             + "\(String(format: "%.2f", releaseSeconds))s, nothing cached afterwards; the restart reported "
             + "\(restart.downloadFractions.count) progress updates and returned all \(bytes.count) bytes in "
             + "\(String(format: "%.2f", restartSeconds))s"
     }
 
-    /// How far into the (measured) transfer the probe cancels.
-    private static let cancelAfterFractionOfDownload: Double = 0.25
     /// Below this, a cold download is over before anything could meaningfully be
     /// cancelled and the step cannot judge anything.
     private static let minimumUsefulDownloadSeconds: TimeInterval = 0.25
@@ -687,7 +748,90 @@ public final class CloudKitFlightCheck: DebugPrintable {
         return "Record deleted on the server and removed from the synced index"
     }
 
+    /// Deleting an album must take its media with it. Every `EncMedia` carries a
+    /// `CKRecord.Reference` to its `EncAlbum` parent with action `.deleteSelf`, so
+    /// the server-side cascade is what reclaims the blobs when an album goes. No
+    /// mock can answer whether that cascade fires — it is CloudKit behavior — which
+    /// is why it is checked here.
+    ///
+    /// Self-contained: it creates its own album and its own child rather than
+    /// consuming the run's test album, because the album it deletes cannot survive
+    /// the step and the later steps still need one. It proves the child is ON the
+    /// server before deleting anything — an absence that was never a presence would
+    /// pass this step for the wrong reason — then deletes the album through
+    /// `AlbumManager.delete`, the same call the album's "Delete Album" makes.
+    private func checkAlbumDeleteCascade() async throws -> String? {
+        let name = "\(Self.testAlbumNamePrefix)Cascade \(Self.timestamp()) #\(String(NSUUID().uuidString.prefix(8)))"
+        let album = try albumManager.create(name: name, storageOption: .cloudKit)
+        cascadeAlbum = album
+        guard let albumID = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) else {
+            throw FlightCheckError.internalState("could not derive the album id hash for '\(album.name)'")
+        }
+
+        let cloud = await CloudKitFileAccess(album: album, albumManager: albumManager)
+        cascadeCloud = cloud
+        await cloud.start()
+
+        let jpeg = try Self.makeDummyJPEG()
+        let cleartext = CleartextMedia(source: jpeg, mediaType: .photo, id: NSUUID().uuidString)
+        let interactable = try InteractableMedia(underlyingMedia: [cleartext])
+        var metadata = EncryptedFileMetadata()
+        metadata.captureDate = Date()
+        metadata.encryptionDate = Date()
+        metadata.originalMediaType = "photo"
+        metadata.originalExtension = "jpg"
+        metadata.originalFileSize = UInt64(jpeg.count)
+        guard let probe = try await cloud.save(media: interactable, metadata: metadata, progress: { _ in }) else {
+            throw FlightCheckError.uploadReturnedNil
+        }
+        cascadeProbeMedia = probe
+        let childRecordName = MediaRecordName.componentRecordName(mediaID: probe.id, type: .photo)
+
+        // Fetch-by-record-ID, never the `fetchMetadata` query: that index is
+        // eventually consistent, so it can report a live record as absent and a
+        // deleted one as present — both of which would decide this step wrongly.
+        let store = CloudKitStoreProvider.makeStore(albumID)
+        let landed = await Self.poll(timeout: 60) {
+            let found = try? await store.fetchRecordMetadata(recordName: childRecordName)
+            return (found ?? nil) != nil
+        }
+        guard landed else { throw FlightCheckError.childNeverReachedServer(recordName: childRecordName) }
+
+        albumManager.delete(album: album)
+        // The album and its child are gone from here on; drop the handles so a
+        // cleanup pass does not try to delete them a second time.
+        cascadeAlbum = nil
+        cascadeCloud = nil
+
+        let started = Date()
+        let cascaded = await Self.poll(timeout: 120) {
+            let found = try? await store.fetchRecordMetadata(recordName: childRecordName)
+            return (found ?? nil) == nil
+        }
+        let waited = Date().timeIntervalSince(started)
+        guard cascaded else {
+            throw FlightCheckError.childSurvivedAlbumDelete(recordName: childRecordName, waited: waited)
+        }
+        cascadeProbeMedia = nil
+        return "Album delete cascaded to its media in \(String(format: "%.1f", waited))s — "
+            + "child record \(childRecordName) is gone from the server"
+    }
+
     // MARK: Helpers
+
+    /// Polls `condition` every second until it holds or `timeout` elapses.
+    /// The cascade is server-side work with no completion signal to await, and the
+    /// album record's own delete is dispatched asynchronously by `AlbumManager`, so
+    /// the only honest question is "did this become true within a budget".
+    private static func poll(timeout: TimeInterval,
+                             until condition: () async -> Bool) async -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if await condition() { return true }
+            try? await Task.sleep(for: .seconds(1))
+        }
+        return await condition()
+    }
 
     /// Splits an error into a concise message and verbose detail for the UI/logs.
     private func describe(_ error: Error) -> (message: String, detail: String) {
@@ -743,7 +887,13 @@ public final class CloudKitFlightCheck: DebugPrintable {
     /// payload of a few tens of megabytes. The cancel/restart step needs a download
     /// that is still transferring a moment after it starts; the solid-colour dummy
     /// photo above compresses to a few kilobytes and is gone instantly.
-    static func makeIncompressibleJPEG(pixelsPerSide: Int = 2600) throws -> Data {
+    ///
+    /// Sized for the fastest link this runs on, not the slowest: the rig pulls tens
+    /// of megabytes a second, and at 2600px the cold download measured barely over
+    /// `minimumUsefulDownloadSeconds` — so the second, warmer fetch finished before
+    /// the cancel could land and the step reported a product defect that was really
+    /// a stopwatch problem.
+    static func makeIncompressibleJPEG(pixelsPerSide: Int = 4200) throws -> Data {
         #if canImport(UIKit)
         let bytesPerRow = pixelsPerSide * 4
         var pixels = [UInt8](repeating: 0, count: bytesPerRow * pixelsPerSide)

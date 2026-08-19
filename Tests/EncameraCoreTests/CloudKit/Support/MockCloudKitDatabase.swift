@@ -141,7 +141,6 @@ enum CloudKitTestFactory {
                                mediaType: MediaType = .photo,
                                createdAt: Date = Date(timeIntervalSince1970: 1_000),
                                sizeBytes: Int64 = 1234,
-                               deletedAt: Date? = nil,
                                keyFingerprint: String? = nil) -> CKRecord {
         let record = CKRecord(recordType: CloudKitSchema.EncMedia.recordType, recordID: recordID(recordName))
         record[CloudKitSchema.EncMedia.albumID] = albumID as CKRecordValue
@@ -151,7 +150,6 @@ enum CloudKitTestFactory {
         record[CloudKitSchema.EncMedia.sizeBytes] = sizeBytes as CKRecordValue
         record[CloudKitSchema.EncMedia.creationDevice] = "test-device" as CKRecordValue
         record[CloudKitSchema.EncMedia.schemaVersion] = CloudKitSchema.currentSchemaVersion as CKRecordValue
-        if let deletedAt { record[CloudKitSchema.EncMedia.deletedAt] = deletedAt as CKRecordValue }
         // Left off entirely by default, so the default fixture models a record
         // written before `keyFingerprint` existed.
         if let keyFingerprint { record[CloudKitSchema.EncMedia.keyFingerprint] = keyFingerprint as CKRecordValue }
@@ -162,14 +160,12 @@ enum CloudKitTestFactory {
                                encName: String = "cipher",
                                createdAt: Date = Date(timeIntervalSince1970: 1_000),
                                isHidden: Bool = false,
-                               deletedAt: Date? = nil,
                                keyFingerprint: String? = nil) -> CKRecord {
         let record = CKRecord(recordType: CloudKitSchema.EncAlbum.recordType, recordID: recordID(albumID))
         record[CloudKitSchema.EncAlbum.encName] = encName as CKRecordValue
         record[CloudKitSchema.EncAlbum.createdAt] = createdAt as CKRecordValue
         record[CloudKitSchema.EncAlbum.isHidden] = (isHidden ? 1 : 0) as CKRecordValue
         record[CloudKitSchema.EncAlbum.schemaVersion] = CloudKitSchema.currentSchemaVersion as CKRecordValue
-        if let deletedAt { record[CloudKitSchema.EncAlbum.deletedAt] = deletedAt as CKRecordValue }
         // Same convention as `encMediaRecord`: absent by default == pre-field record.
         if let keyFingerprint { record[CloudKitSchema.EncAlbum.keyFingerprint] = keyFingerprint as CKRecordValue }
         return record

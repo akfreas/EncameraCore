@@ -132,61 +132,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(mock.fetchCount, 0, "The happy path must not fetch before saving")
     }
 
-    // MARK: - `deletedAt` is write-dead
-
-    /// The soft-delete field is still READ, because zones written by earlier builds
-    /// hold records carrying it and honoring one is what keeps a photo deleted back
-    /// then from resurfacing. Nothing may WRITE it: a build that tombstoned again
-    /// would seed new records the readers must keep special-casing forever, and it
-    /// would put back the leak the hard delete removed (a soft-deleted `EncMedia`
-    /// keeps its blob, and `.deleteSelf` never cascades off one).
-    func testUploadNeverWritesATombstone() async throws {
-        let mock = MockCloudKitDatabase()
-        let store = makeStore(adapter: mock, defaults: freshDefaults())
-
-        _ = try await store.upload(makeUpload(), progress: { _ in })
-
-        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
-        XCTAssertNil(saved[CloudKitSchema.EncMedia.deletedAt] as? Date,
-                     "An ordinary upload must save a live record, never a tombstoned one")
-    }
-
-    func testSaveAlbumNeverWritesATombstone() async throws {
-        let mock = MockCloudKitDatabase()
-        let store = makeStore(adapter: mock, defaults: freshDefaults())
-
-        try await store.saveAlbum(CloudKitAlbumUpload(albumID: "album-hash",
-                                                      encName: "ciphertext",
-                                                      createdAt: Date(timeIntervalSince1970: 555),
-                                                      isHidden: false))
-
-        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
-        XCTAssertEqual(saved.recordType, CloudKitSchema.EncAlbum.recordType)
-        XCTAssertNil(saved[CloudKitSchema.EncAlbum.deletedAt] as? Date,
-                     "An ordinary album save must save a live record, never a tombstoned one")
-    }
-
-    /// The one write that remains is the defensive clear. `saveAlbum` upserts onto the
-    /// server's own copy, so a record an older build tombstoned would otherwise carry
-    /// its `deletedAt` forward and every reader would keep the re-created album hidden.
-    func testSaveAlbumClearsALegacyTombstoneOnTheServersCopy() async throws {
-        let mock = MockCloudKitDatabase()
-        let existing = CKRecord(recordType: CloudKitSchema.EncAlbum.recordType,
-                                recordID: CloudKitTestFactory.recordID("album-hash"))
-        existing[CloudKitSchema.EncAlbum.deletedAt] = Date(timeIntervalSince1970: 100) as CKRecordValue
-        mock.stubbedFetchRecords = [CloudKitTestFactory.recordID("album-hash"): existing]
-        let store = makeStore(adapter: mock, defaults: freshDefaults())
-
-        try await store.saveAlbum(CloudKitAlbumUpload(albumID: "album-hash",
-                                                      encName: "ciphertext",
-                                                      createdAt: Date(timeIntervalSince1970: 555),
-                                                      isHidden: false))
-
-        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
-        XCTAssertNil(saved[CloudKitSchema.EncAlbum.deletedAt] as? Date,
-                     "A legacy tombstone on the server's copy must not survive the upsert")
-    }
-
     func testAccountUnavailableShortCircuits() async {
         let mock = MockCloudKitDatabase()
         let store = makeStore(account: .noAccount, adapter: mock, defaults: freshDefaults())
@@ -218,20 +163,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(mock.lastQueryDesiredKeys?.contains(CloudKitSchema.EncMedia.encBlob), false,
                        "encBlob must never be eagerly requested")
         XCTAssertEqual(mock.lastQueryDesiredKeys?.contains(CloudKitSchema.EncMedia.encThumbnail), true)
-    }
-
-    /// The read half of the legacy-tombstone story: a record an older build soft-deleted
-    /// must stay out of the gallery even though nothing writes `deletedAt` any more.
-    func testFetchMetadataFiltersTombstones() async throws {
-        let mock = MockCloudKitDatabase()
-        mock.stubbedQueryRecords = [
-            CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1"),
-            CloudKitTestFactory.encMediaRecord(recordName: "m2", albumID: "a1", deletedAt: Date())
-        ]
-        let store = makeStore(adapter: mock, defaults: freshDefaults())
-
-        let meta = try await store.fetchMetadata(albumID: "a1", includeThumbnail: false)
-        XCTAssertEqual(meta.map { $0.recordName }, ["m1"])
     }
 
     // MARK: - Key fingerprint (ENC-70)
@@ -285,15 +216,13 @@ final class CloudKitMediaStoreTests: XCTestCase {
                                         fingerprints: [keyA.keychainLabel: 2, keyB.keychainLabel: 1]))
     }
 
-    /// Unknown does not become a bucket of its own, and a tombstoned record is not
-    /// media the user still has. `mediaCount: 3` pins "records exist but none of
-    /// them names a key", which the fingerprint map alone cannot express.
-    func testFetchFingerprintCensusSkipsTombstonesAndUnknownRecords() async throws {
+    /// Unknown does not become a bucket of its own. `mediaCount: 3` pins "records
+    /// exist but none of them names a key", which the fingerprint map alone cannot
+    /// express.
+    func testFetchFingerprintCensusCountsRecordsThatNameNoKey() async throws {
         let mock = MockCloudKitDatabase()
         mock.stubbedQueryRecords = [
             CloudKitTestFactory.encMediaRecord(recordName: "live", albumID: "a1", keyFingerprint: keyA.keychainLabel),
-            CloudKitTestFactory.encMediaRecord(recordName: "dead", albumID: "a1",
-                                               deletedAt: Date(), keyFingerprint: keyA.keychainLabel),
             CloudKitTestFactory.encMediaRecord(recordName: "legacy", albumID: "a1"),
             CloudKitTestFactory.encMediaRecord(recordName: "blank", albumID: "a1", keyFingerprint: "")
         ]

@@ -40,10 +40,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         CloudKitSchema.EncMedia.createdAt,
         CloudKitSchema.EncMedia.sizeBytes,
         CloudKitSchema.EncMedia.creationDevice,
-        // Nothing writes `deletedAt` any more (see `apply`), but zones written by
-        // earlier builds still hold records carrying one. It is requested so those
-        // legacy tombstones stay visible to the readers that honor and reclaim them.
-        CloudKitSchema.EncMedia.deletedAt,
         CloudKitSchema.EncMedia.schemaVersion
     ]
 
@@ -167,13 +163,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         if !item.keyFingerprint.isEmpty {
             record[CloudKitSchema.EncMedia.keyFingerprint] = item.keyFingerprint as CKRecordValue
         }
-        // `deletedAt` is write-dead: deletes are hard deletes now, and this explicit
-        // nil is the only assignment left anywhere on the media path. It stays
-        // because every reader still treats a non-nil `deletedAt` as "deleted"
-        // regardless of what else the record carries (that is how legacy tombstones
-        // are honored), so a record this build authors must state, unambiguously,
-        // that it is live.
-        record[CloudKitSchema.EncMedia.deletedAt] = nil
         if let thumbnailURL {
             record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: thumbnailURL)
         }
@@ -203,11 +192,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             record[CloudKitSchema.EncAlbum.encName] = album.encName as CKRecordValue
             record[CloudKitSchema.EncAlbum.createdAt] = album.createdAt as CKRecordValue
             record[CloudKitSchema.EncAlbum.isHidden] = Int64(album.isHidden ? 1 : 0) as CKRecordValue
-            // Write-dead, as on `EncMedia`: only ever cleared, never set. The fetch
-            // above can hand back a record an older build tombstoned, and every
-            // reader takes a non-nil `deletedAt` as proof the album is gone — so the
-            // upsert has to say plainly that this one is live.
-            record[CloudKitSchema.EncAlbum.deletedAt] = nil
             record[CloudKitSchema.EncAlbum.schemaVersion] = album.schemaVersion as CKRecordValue
             // Same "only when known" rule as EncMedia, so a caller without a
             // fingerprint does not clear one an earlier save established.
@@ -240,8 +224,8 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     }
 
     /// See `CloudKitMediaStoring.fetchFingerprintCensus()`. Asset-free by
-    /// construction: `desiredKeys` names only the fingerprint and the tombstone
-    /// marker, so neither `encBlob` nor `encThumbnail` is ever transferred.
+    /// construction: `desiredKeys` names only the fingerprint, so neither `encBlob`
+    /// nor `encThumbnail` is ever transferred.
     ///
     /// The predicate filters on `createdAt` (matching every record — uploads always
     /// set it) instead of `NSPredicate(value: true)` deliberately: a `true` predicate
@@ -250,8 +234,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     /// container. `keyFingerprint` itself needs no index — it is only retrieved via
     /// `desiredKeys`, never filtered on.
     public func fetchFingerprintCensus() async throws -> CloudKitFingerprintCensus {
-        let desiredKeys = [CloudKitSchema.EncMedia.keyFingerprint,
-                           CloudKitSchema.EncMedia.deletedAt]
+        let desiredKeys = [CloudKitSchema.EncMedia.keyFingerprint]
         do {
             let records = try await adapter.query(recordType: CloudKitSchema.EncMedia.recordType,
                                                   predicate: NSPredicate(format: "%K > %@",
@@ -260,17 +243,13 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                                                   zoneID: zoneID,
                                                   desiredKeys: desiredKeys)
             var counts: [String: Int] = [:]
-            var liveRecords = 0
             for record in records {
-                // Tombstones are filtered client-side, as everywhere else in this file.
-                guard record[CloudKitSchema.EncMedia.deletedAt] as? Date == nil else { continue }
-                liveRecords += 1
                 guard let fingerprint = record[CloudKitSchema.EncMedia.keyFingerprint] as? String,
                       !fingerprint.isEmpty else { continue }   // pre-field record: unknown, not counted
                 counts[fingerprint, default: 0] += 1
             }
-            printDebug("fetchFingerprintCensus ok records=\(records.count) live=\(liveRecords) fingerprints=\(counts.count)")
-            return .counted(mediaCount: liveRecords, fingerprints: counts)
+            printDebug("fetchFingerprintCensus ok records=\(records.count) fingerprints=\(counts.count)")
+            return .counted(mediaCount: records.count, fingerprints: counts)
         } catch {
             let mapped = mapAndRecord(error)
             // A container whose schema predates the `createdAt` index — or the
@@ -293,6 +272,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     }
 
     public func deleteAlbum(albumID: String) async throws {
+        if CloudKitStoreTestHooks.failDeletes { throw CloudKitMediaStoreError.retry(after: 1) }
         let recordID = CKRecord.ID(recordName: albumID, zoneID: zoneID)
         do {
             // Every `EncMedia` parents to this record with `.deleteSelf`, so one op
@@ -312,9 +292,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             return nil
         }
         let isHidden = ((record[CloudKitSchema.EncAlbum.isHidden] as? Int64) ?? 0) != 0
-        // Carried purely so the reconciler can honor a legacy tombstone and queue the
-        // real delete that reclaims the record. Nothing writes the field any more.
-        let deletedAt = record[CloudKitSchema.EncAlbum.deletedAt] as? Date
         let schemaVersion = (record[CloudKitSchema.EncAlbum.schemaVersion] as? Int64) ?? CloudKitSchema.currentSchemaVersion
         // Absent stays nil ("unknown"), matching the write side's "only when known" rule.
         let keyFingerprint = record[CloudKitSchema.EncAlbum.keyFingerprint] as? String
@@ -322,7 +299,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                                      encName: encName,
                                      createdAt: createdAt,
                                      isHidden: isHidden,
-                                     deletedAt: deletedAt,
                                      schemaVersion: schemaVersion,
                                      keyFingerprint: keyFingerprint,
                                      recordChangeTag: record.recordChangeTag)
@@ -345,12 +321,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                                                   zoneID: zoneID,
                                                   desiredKeys: desiredKeys,
                                                   qualityOfService: includeThumbnail ? .userInteractive : .userInitiated)
-            // A record carrying `deletedAt` is a tombstone written by a build that
-            // soft-deleted; nothing produces one now. Honoring it keeps a photo the
-            // user deleted back then from reappearing in the gallery, and the sync
-            // coordinator queues the real delete that finally reclaims the record.
-            // Filtered client-side because server nil-predicates are unreliable.
-            return records.compactMap(metadata(from:)).filter { $0.deletedAt == nil }
+            return records.compactMap(metadata(from:))
         } catch {
             throw mapAndRecord(error)
         }
@@ -373,14 +344,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             }
             guard let meta = metadata(from: record) else {
                 printDebug("fetchRecordMetadata MISS recordName=\(recordName) — record exists but required fields are absent (albumID/mediaID/createdAt); keys present: \(record.allKeys())")
-                return nil
-            }
-            // Legacy tombstone from a build that soft-deleted. This is the
-            // migration's verify gate, so reporting the record as present would let
-            // a move into iCloud "verify" against something every other reader
-            // considers deleted.
-            guard meta.deletedAt == nil else {
-                printDebug("fetchRecordMetadata MISS recordName=\(recordName) — record carries a legacy tombstone, deletedAt=\(String(describing: meta.deletedAt))")
                 return nil
             }
             printDebug("fetchRecordMetadata hit recordName=\(recordName) sizeBytes=\(meta.sizeBytes) changeTag=\(meta.recordChangeTag ?? "nil")")
@@ -447,6 +410,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     // MARK: - Delete
 
     public func delete(recordName: String) async throws {
+        if CloudKitStoreTestHooks.failDeletes { throw CloudKitMediaStoreError.retry(after: 1) }
         let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         do {
             // Single op removes the record and, with it, both assets — atomically.
@@ -610,9 +574,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         let mediaType = MediaType(rawValue: rawType) ?? .unknown
         let sizeBytes = (record[CloudKitSchema.EncMedia.sizeBytes] as? Int64) ?? 0
         let creationDeviceID = (record[CloudKitSchema.EncMedia.creationDevice] as? String) ?? ""
-        // Legacy-only, as on the album side: read so a tombstone an older build wrote
-        // is still honored (and reclaimed), never written.
-        let deletedAt = record[CloudKitSchema.EncMedia.deletedAt] as? Date
         let schemaVersion = (record[CloudKitSchema.EncMedia.schemaVersion] as? Int64) ?? CloudKitSchema.currentSchemaVersion
 
         return CloudKitMediaMetadata(recordName: record.recordID.recordName,
@@ -622,7 +583,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                                      createdAt: createdAt,
                                      sizeBytes: sizeBytes,
                                      creationDeviceID: creationDeviceID,
-                                     deletedAt: deletedAt,
                                      schemaVersion: schemaVersion,
                                      recordChangeTag: record.recordChangeTag)
     }

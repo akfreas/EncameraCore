@@ -51,7 +51,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
         let metadata = CloudKitMediaMetadata(
             recordName: item.recordName, albumID: item.albumID, mediaID: item.mediaID,
             mediaType: item.mediaType, createdAt: item.createdAt, sizeBytes: item.sizeBytes,
-            creationDeviceID: DeviceIdentity.current, deletedAt: nil,
+            creationDeviceID: DeviceIdentity.current,
             schemaVersion: item.schemaVersion, recordChangeTag: tag
         )
         // Keyed by recordName so a Live Photo's two components don't collide.
@@ -68,7 +68,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
     /// Seeds an album and `mediaCount` live media records directly, as if another
     /// device had written them. Without this the mock binds an EMPTY zone, so a UI
     /// test that stubs a probe census of N is driving a delete over nothing: the
-    /// sweep tombstones zero records and passes exactly as it would against a
+    /// sweep deletes zero records and passes exactly as it would against a
     /// coordinator that deleted nothing at all.
     ///
     /// `includeAlbumRecord: false` seeds the media with NO album record — the media
@@ -83,7 +83,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
             if includeAlbumRecord {
                 albums[albumID] = CloudKitAlbumMetadata(
                     albumID: albumID, encName: "enc-\(albumID)", createdAt: Date(),
-                    isHidden: false, deletedAt: nil,
+                    isHidden: false,
                     schemaVersion: CloudKitSchema.currentSchemaVersion,
                     keyFingerprint: keyFingerprint,
                     recordChangeTag: "albumtag-\(albumID)"
@@ -94,7 +94,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
                 let metadata = CloudKitMediaMetadata(
                     recordName: recordName, albumID: albumID, mediaID: recordName,
                     mediaType: .photo, createdAt: Date(), sizeBytes: 1,
-                    creationDeviceID: "seeded-device", deletedAt: nil,
+                    creationDeviceID: "seeded-device",
                     schemaVersion: CloudKitSchema.currentSchemaVersion,
                     recordChangeTag: "tag-\(recordName)"
                 )
@@ -109,15 +109,15 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
     /// Record names the zone still holds live, so a test can assert what a delete
     /// actually removed rather than inferring it from navigation.
     public var liveRecordNames: [String] {
-        locked { records.values.filter { $0.metadata.deletedAt == nil }.map(\.metadata.recordName).sorted() }
+        locked { records.values.map(\.metadata.recordName).sorted() }
     }
 
     public func fetchMetadata(albumID: String, includeThumbnail: Bool) async throws -> [CloudKitMediaMetadata] {
-        locked { records.values.map { $0.metadata }.filter { $0.albumID == albumID && $0.deletedAt == nil } }
+        locked { records.values.map { $0.metadata }.filter { $0.albumID == albumID } }
     }
 
     public func fetchRecordMetadata(recordName: String) async throws -> CloudKitMediaMetadata? {
-        locked { records[recordName].map { $0.metadata }.flatMap { $0.deletedAt == nil ? $0 : nil } }
+        locked { records[recordName]?.metadata }
     }
 
     public func fetchBlob(recordName: String,
@@ -147,7 +147,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
         locked {
             albums[album.albumID] = CloudKitAlbumMetadata(
                 albumID: album.albumID, encName: album.encName, createdAt: album.createdAt,
-                isHidden: album.isHidden, deletedAt: nil, schemaVersion: album.schemaVersion,
+                isHidden: album.isHidden, schemaVersion: album.schemaVersion,
                 keyFingerprint: album.keyFingerprint.isEmpty ? nil : album.keyFingerprint,
                 recordChangeTag: tag
             )
@@ -163,13 +163,11 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
     public func fetchFingerprintCensus() async throws -> CloudKitFingerprintCensus {
         locked {
             var counts: [String: Int] = [:]
-            var liveRecords = 0
-            for stored in records.values where stored.metadata.deletedAt == nil {
-                liveRecords += 1
+            for stored in records.values {
                 guard !stored.keyFingerprint.isEmpty else { continue }
                 counts[stored.keyFingerprint, default: 0] += 1
             }
-            return .counted(mediaCount: liveRecords, fingerprints: counts)
+            return .counted(mediaCount: records.count, fingerprints: counts)
         }
     }
 
@@ -191,10 +189,8 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
         let (all, albumsNow, goneAlbums, goneRecords) = locked {
             (Array(records.values), Array(albums.values), deletedAlbumIDs, deletedRecordNames)
         }
-        let changed = all.filter { $0.metadata.deletedAt == nil }.map { $0.metadata }
-        let deleted = all.filter { $0.metadata.deletedAt != nil }.map { $0.metadata.recordName } + goneRecords
-        return CloudKitChangeSet(changed: changed,
-                                 deleted: deleted,
+        return CloudKitChangeSet(changed: all.map { $0.metadata },
+                                 deleted: goneRecords,
                                  changedAlbums: albumsNow,
                                  deletedAlbumIDs: goneAlbums,
                                  token: nil,

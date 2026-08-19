@@ -216,10 +216,10 @@ final class CloudKitFileAccessTests: XCTestCase {
             changed: [
                 CloudKitMediaMetadata(recordName: "m1", albumID: albumIDHash, mediaID: "m1", mediaType: .photo,
                                       createdAt: Date(timeIntervalSince1970: 200), sizeBytes: 1, creationDeviceID: "d",
-                                      deletedAt: nil, schemaVersion: 1, recordChangeTag: "t1"),
+                                      schemaVersion: 1, recordChangeTag: "t1"),
                 CloudKitMediaMetadata(recordName: "m2", albumID: albumIDHash, mediaID: "m2", mediaType: .photo,
                                       createdAt: Date(timeIntervalSince1970: 100), sizeBytes: 1, creationDeviceID: "d",
-                                      deletedAt: nil, schemaVersion: 1, recordChangeTag: "t2")
+                                      schemaVersion: 1, recordChangeTag: "t2")
             ],
             deleted: [], token: nil, moreComing: false
         )
@@ -374,10 +374,10 @@ final class CloudKitFileAccessTests: XCTestCase {
         store.changeSet = CloudKitChangeSet(changed: [
             CloudKitMediaMetadata(recordName: "m1", albumID: albumHash, mediaID: "m1", mediaType: .photo,
                                   createdAt: Date(timeIntervalSince1970: 300), sizeBytes: 1, creationDeviceID: "d",
-                                  deletedAt: nil, schemaVersion: 1, recordChangeTag: "t1"),
+                                  schemaVersion: 1, recordChangeTag: "t1"),
             CloudKitMediaMetadata(recordName: "m2", albumID: albumHash, mediaID: "m2", mediaType: .photo,
                                   createdAt: Date(timeIntervalSince1970: 200), sizeBytes: 1, creationDeviceID: "d",
-                                  deletedAt: nil, schemaVersion: 1, recordChangeTag: "t2")
+                                  schemaVersion: 1, recordChangeTag: "t2")
         ], deleted: [], token: nil, moreComing: false)
         let access = await makeAccess(album: album, store: store)
 
@@ -438,7 +438,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         func meta(tag: String) -> CloudKitMediaMetadata {
             CloudKitMediaMetadata(recordName: "m#0", albumID: albumHash, mediaID: "m", mediaType: .photo,
                                   createdAt: Date(timeIntervalSince1970: 1), sizeBytes: 1, creationDeviceID: "d",
-                                  deletedAt: nil, schemaVersion: 1, recordChangeTag: tag)
+                                  schemaVersion: 1, recordChangeTag: tag)
         }
         let encrypted = try InteractableMedia(underlyingMedia: [
             EncryptedMedia(source: .url(encURL(for: album, id: "m")), mediaType: .photo, id: "m")
@@ -662,7 +662,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         store.changeSet = CloudKitChangeSet(changed: [
             CloudKitMediaMetadata(recordName: "m#0", albumID: albumHash, mediaID: "m", mediaType: .photo,
                                   createdAt: Date(timeIntervalSince1970: 1), sizeBytes: 1, creationDeviceID: "d",
-                                  deletedAt: nil, schemaVersion: 1, recordChangeTag: "t1")
+                                  schemaVersion: 1, recordChangeTag: "t1")
         ], deleted: [], token: nil, moreComing: false)
         let access = await makeAccess(album: album, store: store)
         _ = await access.reconcile()
@@ -709,7 +709,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         store.changeSet = CloudKitChangeSet(changed: [
             CloudKitMediaMetadata(recordName: "p#0", albumID: albumHash, mediaID: "p", mediaType: .photo,
                                   createdAt: Date(timeIntervalSince1970: 1), sizeBytes: 1, creationDeviceID: "d",
-                                  deletedAt: nil, schemaVersion: 1, recordChangeTag: "t1")
+                                  schemaVersion: 1, recordChangeTag: "t1")
         ], deleted: [], token: nil, moreComing: false)
         let access = await makeAccess(album: album, store: store)
         _ = await access.reconcile()

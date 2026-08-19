@@ -22,7 +22,7 @@ final class DestructiveOnboardingTests: XCTestCase {
 
     private func album(_ id: String) -> CloudKitAlbumMetadata {
         CloudKitAlbumMetadata(albumID: id, encName: "enc-\(id)", createdAt: Date(),
-                              isHidden: false, deletedAt: nil,
+                              isHidden: false,
                               schemaVersion: CloudKitSchema.currentSchemaVersion,
                               keyFingerprint: nil,
                               recordChangeTag: "tag")
@@ -31,7 +31,7 @@ final class DestructiveOnboardingTests: XCTestCase {
     private func media(_ recordName: String, albumID: String) -> CloudKitMediaMetadata {
         CloudKitMediaMetadata(recordName: recordName, albumID: albumID, mediaID: recordName,
                               mediaType: .photo, createdAt: Date(), sizeBytes: 1,
-                              creationDeviceID: "dev", deletedAt: nil,
+                              creationDeviceID: "dev",
                               schemaVersion: CloudKitSchema.currentSchemaVersion,
                               recordChangeTag: "tag")
     }

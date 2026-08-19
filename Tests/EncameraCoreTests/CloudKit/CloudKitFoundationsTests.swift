@@ -56,7 +56,6 @@ final class CloudKitFoundationsTests: XCTestCase {
         XCTAssertEqual(CloudKitSchema.EncMedia.createdAt, "createdAt")
         XCTAssertEqual(CloudKitSchema.EncMedia.sizeBytes, "sizeBytes")
         XCTAssertEqual(CloudKitSchema.EncMedia.creationDevice, "creationDeviceID")
-        XCTAssertEqual(CloudKitSchema.EncMedia.deletedAt, "deletedAt")
         XCTAssertEqual(CloudKitSchema.EncMedia.schemaVersion, "schemaVersion")
         XCTAssertEqual(CloudKitSchema.EncMedia.encThumbnail, "encThumbnail")
         XCTAssertEqual(CloudKitSchema.EncMedia.encBlob, "encBlob")

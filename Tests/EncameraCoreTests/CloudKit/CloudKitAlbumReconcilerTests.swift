@@ -23,14 +23,13 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
 
     /// Build the remote album record exactly as a device would: encName is the
     /// album-name ciphertext under the album's key; albumID is its keyed hash.
-    private func remoteRecord(name: String, key: PrivateKey, isHidden: Bool = false, deleted: Bool = false) -> CloudKitAlbumMetadata {
+    private func remoteRecord(name: String, key: PrivateKey, isHidden: Bool = false) -> CloudKitAlbumMetadata {
         let album = Album(name: name, storageOption: .cloudKit, creationDate: Date(), key: key)
         let hash = SyncedStoreEncryptionHandler.keyedHash(name, keyBytes: key.keyBytes)!
         return CloudKitAlbumMetadata(albumID: hash,
                                      encName: album.encryptedPathComponent,
                                      createdAt: Date(),
                                      isHidden: isHidden,
-                                     deletedAt: deleted ? Date() : nil,
                                      schemaVersion: CloudKitSchema.currentSchemaVersion,
                                      keyFingerprint: key.keychainLabel,
                                      recordChangeTag: "tag")
@@ -280,22 +279,6 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
 
         XCTAssertEqual(albumManager.deletedAlbums.map { $0.name }, ["Gone"],
                        "a deleted remote album must be removed via AlbumManaging.delete so broadcasts, currentAlbum, and hidden-state cleanup all run")
-    }
-
-    /// A record soft-deleted by an older build. Nothing writes these any more, but
-    /// they still hold their media against the user's quota, so seeing one must
-    /// honor it AND queue the real delete that reclaims it.
-    func test_reconcile_honorsAndReclaimsALegacyTombstonedAlbum() async {
-        let key = makeKey(5)
-        let local = Album(name: "Gone", storageOption: .cloudKit, creationDate: Date(), key: key)
-        let store = MockCloudKitMediaStore()
-        store.seedAlbum(remoteRecord(name: "Gone", key: key, deleted: true))
-        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local])
-
-        _ = await reconciler.reconcileAlbums()
-
-        XCTAssertEqual(albumManager.deletedAlbums.map { $0.name }, ["Gone"])
-        XCTAssertTrue(albumManager.adoptedAlbums.isEmpty, "a tombstoned album must not be materialized")
     }
 
     /// Absence from `fetchAllAlbums` is NOT a delete signal: a `CKQuery` index is

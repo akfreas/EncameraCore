@@ -56,7 +56,6 @@ final class IndexBackendEquivalenceTests: XCTestCase {
             createdAt: date,
             sizeBytes: 0,
             creationDeviceID: "device",
-            deletedAt: nil,
             schemaVersion: 1,
             recordChangeTag: nil
         )

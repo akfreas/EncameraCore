@@ -125,23 +125,6 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                 continue
             }
 
-            // A legacy soft-deleted record from a build that tombstoned albums.
-            // Nothing writes these any more; honor it and queue the real delete so
-            // the record and its media are finally reclaimed. Without this branch a
-            // tombstoned album reads as live and is re-materialized — the album the
-            // user deleted under the old scheme comes back, photos and all.
-            if record.deletedAt != nil {
-                if let album = localByHash[record.albumID] {
-                    printDebug("reconcileAlbums pull legacyTombstone albumID=\(record.albumID)")
-                    albumManager.delete(album: album)
-                    localByHash[record.albumID] = nil
-                } else {
-                    deleteQueue.enqueue(record.albumID)
-                    printDebug("reconcileAlbums pull legacyTombstone albumID=\(record.albumID) notLocal — queued for reclaim")
-                }
-                continue
-            }
-
             // The server has it, so a later absence is meaningful for this album.
             publishRegistry.markPublished(record.albumID)
 
@@ -247,7 +230,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                 albumManager.delete(album: album)
                 removed.insert(albumID)
             }
-            for album in changeSet.changedAlbums where album.deletedAt == nil {
+            for album in changeSet.changedAlbums {
                 publishRegistry.markPublished(album.albumID)
             }
         }

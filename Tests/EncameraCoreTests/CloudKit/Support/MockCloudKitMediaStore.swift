@@ -97,7 +97,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
             _uploadedBlobBytes[item.recordName] = blobBytes
         }
         if let error = uploadErrorOnce { uploadErrorOnce = nil; throw error }
-        if enforceParentAlbumExists, locked({ _albums[item.albumID] == nil || _albums[item.albumID]?.deletedAt != nil }) {
+        if enforceParentAlbumExists, locked({ _albums[item.albumID] == nil }) {
             throw CloudKitMediaStoreError.partial(
                 failed: [item.recordName: CKErrorFactory.error(.referenceViolation)]
             )
@@ -115,7 +115,6 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
                     createdAt: item.createdAt,
                     sizeBytes: item.sizeBytes,
                     creationDeviceID: "mock",
-                    deletedAt: nil,
                     schemaVersion: item.schemaVersion,
                     recordChangeTag: "tag-upload"
                 ))
@@ -132,7 +131,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
 
     func fetchRecordMetadata(recordName: String) async throws -> CloudKitMediaMetadata? {
         locked { (metadataToReturn + (reflectUploadsInMetadata ? _reflected : []))
-            .first { $0.recordName == recordName && $0.deletedAt == nil } }
+            .first { $0.recordName == recordName } }
     }
 
     /// Fractions reported, in order, before the fetch completes — each one
@@ -203,7 +202,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
             _savedAlbumCalls.append(album)
             _albums[album.albumID] = CloudKitAlbumMetadata(
                 albumID: album.albumID, encName: album.encName, createdAt: album.createdAt,
-                isHidden: album.isHidden, deletedAt: nil, schemaVersion: album.schemaVersion,
+                isHidden: album.isHidden, schemaVersion: album.schemaVersion,
                 keyFingerprint: album.keyFingerprint.isEmpty ? nil : album.keyFingerprint,
                 recordChangeTag: "albumtag")
         }

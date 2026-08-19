@@ -297,7 +297,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         store.metadataToReturn = [CloudKitMediaMetadata(
             recordName: item.recordName, albumID: "x", mediaID: item.mediaID, mediaType: item.mediaType,
             createdAt: item.createdAt, sizeBytes: item.sizeBytes, creationDeviceID: "mock",
-            deletedAt: nil, schemaVersion: 1, recordChangeTag: "tag"
+            schemaVersion: 1, recordChangeTag: "tag"
         )]
         let planStore = MigrationPlanStore(album: album)
         let loaded = await planStore.load()
@@ -493,7 +493,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
             createdAt: item.createdAt,
             sizeBytes: item.sizeBytes,
             creationDeviceID: "other-device",
-            deletedAt: nil,
             schemaVersion: CloudKitSchema.currentSchemaVersion,
             recordChangeTag: "tag-existing"
         )]

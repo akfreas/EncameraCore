@@ -69,10 +69,6 @@ public struct CloudKitMediaMetadata: Sendable, Equatable {
     public let createdAt: Date
     public let sizeBytes: Int64
     public let creationDeviceID: String
-    /// Legacy tombstone. Deletes are hard deletes, so nothing writes this any more;
-    /// it is carried so a record written by an older build is still read as deleted
-    /// (and queued for a real delete) instead of resurfacing as live media.
-    public let deletedAt: Date?
     public let schemaVersion: Int64
     public let recordChangeTag: String?
 
@@ -83,7 +79,6 @@ public struct CloudKitMediaMetadata: Sendable, Equatable {
                 createdAt: Date,
                 sizeBytes: Int64,
                 creationDeviceID: String,
-                deletedAt: Date?,
                 schemaVersion: Int64,
                 recordChangeTag: String?) {
         self.recordName = recordName
@@ -93,7 +88,6 @@ public struct CloudKitMediaMetadata: Sendable, Equatable {
         self.createdAt = createdAt
         self.sizeBytes = sizeBytes
         self.creationDeviceID = creationDeviceID
-        self.deletedAt = deletedAt
         self.schemaVersion = schemaVersion
         self.recordChangeTag = recordChangeTag
     }
@@ -146,9 +140,6 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
     public let encName: String
     public let createdAt: Date
     public let isHidden: Bool
-    /// Legacy tombstone, write-dead. The reconciler honors one it finds and queues
-    /// the real delete, so a zone written by an older build cleans itself up.
-    public let deletedAt: Date?
     public let schemaVersion: Int64
     /// `EncAlbum.keyFingerprint` as read back from the record — the key this
     /// album's media is encrypted under, answerable even when the album has no
@@ -161,7 +152,6 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
                 encName: String,
                 createdAt: Date,
                 isHidden: Bool,
-                deletedAt: Date?,
                 schemaVersion: Int64,
                 keyFingerprint: String?,
                 recordChangeTag: String?) {
@@ -169,7 +159,6 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
         self.encName = encName
         self.createdAt = createdAt
         self.isHidden = isHidden
-        self.deletedAt = deletedAt
         self.schemaVersion = schemaVersion
         self.keyFingerprint = keyFingerprint
         self.recordChangeTag = recordChangeTag
@@ -230,15 +219,14 @@ public protocol CloudKitMediaStoring: Sendable {
 
     /// Cheap metadata sync for an album. Asset fields are excluded via `desiredKeys`;
     /// `includeThumbnail` additionally requests the small eager thumbnail key (never
-    /// the full blob). Records carrying a legacy `deletedAt` tombstone are filtered out.
+    /// the full blob).
     func fetchMetadata(albumID: String, includeThumbnail: Bool) async throws -> [CloudKitMediaMetadata]
 
     /// Strongly-consistent existence check for ONE record by name: a fetch-by-record-ID
     /// (`CKFetchRecordsOperation`), NOT the eventually-consistent `fetchMetadata` query,
     /// so a just-saved record is reliably visible immediately. Returns the record's
-    /// metadata, or `nil` if the server has no such record (or holds one an older
-    /// build tombstoned). This is the gate migration uses before deleting a local
-    /// original.
+    /// metadata, or `nil` if the server has no such record. This is the gate
+    /// migration uses before deleting a local original.
     func fetchRecordMetadata(recordName: String) async throws -> CloudKitMediaMetadata?
 
     /// Lazy full fetch: download the `encBlob` asset for one record, copied to `destination`.
@@ -260,8 +248,7 @@ public protocol CloudKitMediaStoring: Sendable {
 
     /// Upsert one `EncAlbum` record so the album syncs across devices. Idempotent:
     /// the record name is the album-id hash, so re-saving the same album is a no-op
-    /// upsert. Also clears a legacy `deletedAt` an older build may have left on the
-    /// record, which would otherwise read as "this album is deleted".
+    /// upsert.
     func saveAlbum(_ album: CloudKitAlbumUpload) async throws
 
     /// Fetch every `EncAlbum` record in the zone. DISCOVERY ONLY: this is a
@@ -272,7 +259,7 @@ public protocol CloudKitMediaStoring: Sendable {
     /// per-album media change-token cursor.
     func fetchAllAlbums() async throws -> [CloudKitAlbumMetadata]
 
-    /// A zone-wide census of live (non-tombstoned) `EncMedia` records: how many there
+    /// A zone-wide census of the `EncMedia` records in the zone: how many there
     /// are, and how many name each key fingerprint. A metadata-only query over the
     /// indexed `keyFingerprint` field — it must not fetch a blob or a thumbnail.
     ///

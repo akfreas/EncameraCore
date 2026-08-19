@@ -355,24 +355,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                     continue
                 }
 
-                // A legacy tombstone (`deletedAt` set) from a build that soft-deleted.
-                // Nothing writes these any more, but records carrying one still sit
-                // in zones those builds wrote, so they are honored — and, by being
-                // queued, finally reclaimed. Drop this branch and every photo deleted
-                // under the old scheme reads as live and comes back.
-                if meta.deletedAt != nil {
-                    let entryRemoved = entries.removeComponent(recordName: meta.recordName)
-                    deletedRecordNames.insert(meta.recordName)
-                    changeTags[meta.recordName] = nil
-                    deleteQueue.enqueue(meta.recordName)
-                    await cache.evict(recordName: meta.recordName)
-                    if entryRemoved { removeLocalPreview(mediaID: meta.mediaID) }
-                    let media = Self.media(forRecordName: meta.mediaID, albumID: self.albumID, mediaType: meta.mediaType)
-                    if entryRemoved { pendingDeletes.append(media) } else { pendingCreates.append(media) }
-                    printDebug("performSync legacyTombstone recordName=\(meta.recordName) mediaID=\(meta.mediaID) mediaType=\(meta.mediaType) entryRemoved=\(entryRemoved) queuedForDelete=true")
-                    continue
-                }
-
                 // A record whose delete has not reached the server yet still reads
                 // as live. Pulling it in would resurrect, on the deleting device,
                 // exactly the item the user removed.
