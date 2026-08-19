@@ -42,6 +42,10 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
 
     // Programmable behavior
     var saveError: Error?
+    /// Errors for successive `save` calls, consumed from the front (`nil` = that
+    /// attempt succeeds). Lets a test model a save that fails once and succeeds on
+    /// the retry; falls back to `saveError` once exhausted.
+    var saveErrorSequence: [Error?] = []
     var deleteError: Error?
     var fetchError: Error?
     var queryError: Error?
@@ -62,7 +66,8 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
         for record in records {
             for value in saveProgressValues { perRecordProgress(record.recordID, value) }
         }
-        if let saveError { throw saveError }
+        let attemptError = saveErrorSequence.isEmpty ? saveError : saveErrorSequence.removeFirst()
+        if let attemptError { throw attemptError }
         return records
     }
 
@@ -107,7 +112,7 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
                           desiredKeys: [CKRecord.FieldKey]?) async throws -> ZoneChangesResult {
         if let zoneChangesError { throw zoneChangesError }
         return stubbedZoneChanges ?? ZoneChangesResult(changed: [],
-                                                       deletedRecordNames: [],
+                                                       deleted: [],
                                                        token: token,
                                                        moreComing: false)
     }

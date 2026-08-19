@@ -7,7 +7,8 @@
 //  differs (decision doc §6). Save encrypts with `SecretFileHandlerV2` (metadata-
 //  bearing, so V2) then uploads; load lazily fetches the blob then decrypts with the
 //  format-agnostic `SecretFileHandler`; enumeration comes from the coordinator's
-//  synced `MediaIndexStore`; delete tombstones+purges across devices.
+//  synced `MediaIndexStore`; delete removes the record outright and the change
+//  feed carries that to every other device.
 //  `InteractableMediaFileAccess` routes here for `.cloudKit` albums behind the flag.
 //
 //  Reads MUST use `SecretFileHandler`, never `SecretFileHandlerV2` (ENC-135):
@@ -235,7 +236,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// A unique CloudKit record name per media component. Photo and video
     /// components of a Live Photo share `mediaID` but must be distinct records.
     static func componentRecordName(mediaID: String, type: MediaType) -> String {
-        "\(mediaID)#\(type.rawValue)"
+        MediaRecordName.componentRecordName(mediaID: mediaID, type: type)
     }
 
     private func saveSingle(_ item: CleartextMedia,
@@ -463,7 +464,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         return preview
     }
 
-    // MARK: - Delete (tombstone + cross-device purge)
+    // MARK: - Delete (hard delete + cross-device propagation)
 
     public func delete(media: [InteractableMedia<EncryptedMedia>]) async throws {
         for interactable in media {
@@ -477,7 +478,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                 // the user just deleted.
                 let wasPending = await uploadQueue.cancel(recordName: recordName)
 
-                // A pending item skips the remote tombstone (nothing is up there)
+                // A pending item skips the remote delete (nothing is up there)
                 // but still gets the full local cleanup and the deletion marker —
                 // see `remove`. Errors propagate: a swallowed failure here used to
                 // leave the index entry behind as a permanent ghost.
@@ -534,7 +535,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         }
     }
 
-    /// Removes every item in the album from CloudKit (tombstone + purge) and the index.
+    /// Removes every item in the album from CloudKit and from the index.
     public func deleteAllMedia() async throws {
         let all = await enumerate()
         guard !all.isEmpty else {

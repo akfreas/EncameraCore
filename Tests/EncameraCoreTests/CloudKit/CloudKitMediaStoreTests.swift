@@ -95,6 +95,98 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(box.values.last, 1.0)
     }
 
+    // MARK: - The iCloud -> local -> iCloud round trip
+
+    /// Moving an album out of iCloud DELETES its media records, so moving it back
+    /// re-uploads a record name the server no longer holds — an ordinary insert.
+    ///
+    /// This used to be the branch that hurt most: a move out only tombstoned the
+    /// records, leaving the names taken, so every re-upload came back as "record to
+    /// insert already exists" (14/2004) and the migration failed every item forever.
+    /// Deleting for real is what makes the name free again.
+    func testUploadAfterAMoveOutIsAPlainInsertWithNoConflictHandling() async throws {
+        let mock = MockCloudKitDatabase()
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        try await store.delete(recordName: "media-1")
+        _ = try await store.upload(makeUpload(), progress: { _ in })
+
+        XCTAssertEqual(mock.fetchCount, 0,
+                       "A freed record name needs no fetch-then-revive round trip")
+        let saved = try XCTUnwrap(mock.savedRecordBatches.last?.first)
+        XCTAssertEqual(saved.recordID.recordName, "media-1")
+        XCTAssertNotNil(saved[CloudKitSchema.EncMedia.encBlob] as? CKAsset,
+                        "The re-uploaded record must carry the ciphertext")
+    }
+
+    /// The revive costs an extra round trip, so it must stay on the conflict path.
+    /// Paying it per item on an ordinary migration would add a fetch to every one of
+    /// a several-hundred-item album for nothing.
+    func testUploadIssuesNoExtraFetchWhenTheSaveSucceeds() async throws {
+        let mock = MockCloudKitDatabase()
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        _ = try await store.upload(makeUpload(), progress: { _ in })
+
+        XCTAssertEqual(mock.saveCount, 1)
+        XCTAssertEqual(mock.fetchCount, 0, "The happy path must not fetch before saving")
+    }
+
+    // MARK: - `deletedAt` is write-dead
+
+    /// The soft-delete field is still READ, because zones written by earlier builds
+    /// hold records carrying it and honoring one is what keeps a photo deleted back
+    /// then from resurfacing. Nothing may WRITE it: a build that tombstoned again
+    /// would seed new records the readers must keep special-casing forever, and it
+    /// would put back the leak the hard delete removed (a soft-deleted `EncMedia`
+    /// keeps its blob, and `.deleteSelf` never cascades off one).
+    func testUploadNeverWritesATombstone() async throws {
+        let mock = MockCloudKitDatabase()
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        _ = try await store.upload(makeUpload(), progress: { _ in })
+
+        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
+        XCTAssertNil(saved[CloudKitSchema.EncMedia.deletedAt] as? Date,
+                     "An ordinary upload must save a live record, never a tombstoned one")
+    }
+
+    func testSaveAlbumNeverWritesATombstone() async throws {
+        let mock = MockCloudKitDatabase()
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        try await store.saveAlbum(CloudKitAlbumUpload(albumID: "album-hash",
+                                                      encName: "ciphertext",
+                                                      createdAt: Date(timeIntervalSince1970: 555),
+                                                      isHidden: false))
+
+        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
+        XCTAssertEqual(saved.recordType, CloudKitSchema.EncAlbum.recordType)
+        XCTAssertNil(saved[CloudKitSchema.EncAlbum.deletedAt] as? Date,
+                     "An ordinary album save must save a live record, never a tombstoned one")
+    }
+
+    /// The one write that remains is the defensive clear. `saveAlbum` upserts onto the
+    /// server's own copy, so a record an older build tombstoned would otherwise carry
+    /// its `deletedAt` forward and every reader would keep the re-created album hidden.
+    func testSaveAlbumClearsALegacyTombstoneOnTheServersCopy() async throws {
+        let mock = MockCloudKitDatabase()
+        let existing = CKRecord(recordType: CloudKitSchema.EncAlbum.recordType,
+                                recordID: CloudKitTestFactory.recordID("album-hash"))
+        existing[CloudKitSchema.EncAlbum.deletedAt] = Date(timeIntervalSince1970: 100) as CKRecordValue
+        mock.stubbedFetchRecords = [CloudKitTestFactory.recordID("album-hash"): existing]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        try await store.saveAlbum(CloudKitAlbumUpload(albumID: "album-hash",
+                                                      encName: "ciphertext",
+                                                      createdAt: Date(timeIntervalSince1970: 555),
+                                                      isHidden: false))
+
+        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
+        XCTAssertNil(saved[CloudKitSchema.EncAlbum.deletedAt] as? Date,
+                     "A legacy tombstone on the server's copy must not survive the upsert")
+    }
+
     func testAccountUnavailableShortCircuits() async {
         let mock = MockCloudKitDatabase()
         let store = makeStore(account: .noAccount, adapter: mock, defaults: freshDefaults())
@@ -128,6 +220,8 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(mock.lastQueryDesiredKeys?.contains(CloudKitSchema.EncMedia.encThumbnail), true)
     }
 
+    /// The read half of the legacy-tombstone story: a record an older build soft-deleted
+    /// must stay out of the gallery even though nothing writes `deletedAt` any more.
     func testFetchMetadataFiltersTombstones() async throws {
         let mock = MockCloudKitDatabase()
         mock.stubbedQueryRecords = [
@@ -411,7 +505,7 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(mock.lastQueryQualityOfService, .userInteractive)
     }
 
-    // MARK: - Delete / tombstone
+    // MARK: - Delete
 
     func testDeleteIsAtomicSingleOp() async throws {
         let mock = MockCloudKitDatabase()
@@ -422,19 +516,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(mock.deleteCount, 1)
         XCTAssertEqual(mock.fetchCount, 0, "No separate blob op — delete removes the record and both assets atomically")
         XCTAssertEqual(mock.deletedRecordIDBatches.first?.first, CloudKitTestFactory.recordID("m1"))
-    }
-
-    func testTombstoneSetsDeletedAtAndSaves() async throws {
-        let record = CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1")
-        let mock = MockCloudKitDatabase()
-        mock.stubbedFetchRecords = [CloudKitTestFactory.recordID("m1"): record]
-        let store = makeStore(adapter: mock, defaults: freshDefaults())
-
-        try await store.tombstone(recordName: "m1")
-
-        XCTAssertEqual(mock.fetchCount, 1)
-        let saved = try XCTUnwrap(mock.savedRecordBatches.last?.first)
-        XCTAssertNotNil(saved[CloudKitSchema.EncMedia.deletedAt] as? Date)
     }
 
     // MARK: - Error mapping
@@ -597,7 +678,7 @@ final class CloudKitMediaStoreTests: XCTestCase {
         let mock = MockCloudKitDatabase()
         mock.stubbedZoneChanges = ZoneChangesResult(
             changed: [CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1")],
-            deletedRecordNames: ["m2"],
+            deleted: [DeletedRecord(recordName: "m2", recordType: CloudKitSchema.EncMedia.recordType)],
             token: nil,
             moreComing: true
         )

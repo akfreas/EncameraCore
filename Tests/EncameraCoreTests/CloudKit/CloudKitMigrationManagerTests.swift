@@ -941,9 +941,9 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         } catch {
             // Any thrown error is acceptable; the teardown assertions below are the contract.
         }
-        XCTAssertTrue(store.tombstonedAlbumCalls.isEmpty,
-                      "the album record must not be tombstoned after a failed reconcile")
-        XCTAssertTrue(store.tombstoneCalls.isEmpty && store.deleteCalls.isEmpty,
+        XCTAssertTrue(store.deletedAlbumCalls.isEmpty,
+                      "the album record must not be deleted after a failed reconcile")
+        XCTAssertTrue(store.deleteCalls.isEmpty,
                       "no media record may be touched after a failed reconcile")
     }
 

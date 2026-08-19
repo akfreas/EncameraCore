@@ -22,6 +22,11 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
     private let lock = NSLock()
     private var records: [String: Stored] = [:]
     private var albums: [String: CloudKitAlbumMetadata] = [:]
+    /// Deletions the change feed still has to report. The real zone reports a
+    /// deleted record once, by id and type; a fake that just drops the entry would
+    /// let a delete vanish without any consumer ever hearing about it.
+    private var deletedAlbumIDs: [String] = []
+    private var deletedRecordNames: [String] = []
     private func locked<T>(_ body: () -> T) -> T { lock.lock(); defer { lock.unlock() }; return body() }
 
     /// Artificial per-upload delay, for UI tests that need a migration to stay in
@@ -129,27 +134,10 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
     }
 
     public func delete(recordName: String) async throws {
-        locked { records[recordName] = nil }
-    }
-
-    public func tombstone(recordName: String) async throws {
-        // Parity with `CloudKitMediaStore.tombstone`: the real store fetches the
-        // record first and throws `.notFound` when the zone has never seen it. A
-        // silent no-op here masked exactly the pending-delete path that depends
-        // on that behaviour.
-        let found: Bool = locked {
-            guard var stored = records[recordName] else { return false }
-            stored.metadata = CloudKitMediaMetadata(
-                recordName: stored.metadata.recordName, albumID: stored.metadata.albumID,
-                mediaID: stored.metadata.mediaID, mediaType: stored.metadata.mediaType,
-                createdAt: stored.metadata.createdAt, sizeBytes: stored.metadata.sizeBytes,
-                creationDeviceID: stored.metadata.creationDeviceID, deletedAt: Date(),
-                schemaVersion: stored.metadata.schemaVersion, recordChangeTag: stored.metadata.recordChangeTag
-            )
-            records[recordName] = stored
-            return true
+        locked {
+            guard records.removeValue(forKey: recordName) != nil else { return }
+            deletedRecordNames.append(recordName)
         }
-        guard found else { throw CloudKitMediaStoreError.notFound }
     }
 
     // MARK: Albums (chunk 13)
@@ -185,24 +173,32 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
         }
     }
 
-    public func tombstoneAlbum(albumID: String) async throws {
+    public func deleteAlbum(albumID: String) async throws {
         locked {
-            if let existing = albums[albumID] {
-                albums[albumID] = CloudKitAlbumMetadata(
-                    albumID: existing.albumID, encName: existing.encName, createdAt: existing.createdAt,
-                    isHidden: existing.isHidden, deletedAt: Date(), schemaVersion: existing.schemaVersion,
-                    keyFingerprint: existing.keyFingerprint,
-                    recordChangeTag: existing.recordChangeTag
-                )
+            guard albums.removeValue(forKey: albumID) != nil else { return }
+            deletedAlbumIDs.append(albumID)
+            // Model the server-side `.deleteSelf` cascade: the album's media go with
+            // it. Without this the fake would keep reporting an album's records as
+            // live after the album was deleted, which the real zone never does.
+            for (recordName, stored) in records where stored.metadata.albumID == albumID {
+                records[recordName] = nil
+                deletedRecordNames.append(recordName)
             }
         }
     }
 
     public func fetchChanges(since token: CKServerChangeToken?) async throws -> CloudKitChangeSet {
-        let all = locked { Array(records.values) }
+        let (all, albumsNow, goneAlbums, goneRecords) = locked {
+            (Array(records.values), Array(albums.values), deletedAlbumIDs, deletedRecordNames)
+        }
         let changed = all.filter { $0.metadata.deletedAt == nil }.map { $0.metadata }
-        let deleted = all.filter { $0.metadata.deletedAt != nil }.map { $0.metadata.recordName }
-        return CloudKitChangeSet(changed: changed, deleted: deleted, token: nil, moreComing: false)
+        let deleted = all.filter { $0.metadata.deletedAt != nil }.map { $0.metadata.recordName } + goneRecords
+        return CloudKitChangeSet(changed: changed,
+                                 deleted: deleted,
+                                 changedAlbums: albumsNow,
+                                 deletedAlbumIDs: goneAlbums,
+                                 token: nil,
+                                 moreComing: false)
     }
 
     public func loadChangeToken() async -> CKServerChangeToken? { nil }

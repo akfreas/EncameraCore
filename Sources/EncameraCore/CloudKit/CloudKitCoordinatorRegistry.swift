@@ -6,7 +6,7 @@
 //  `CloudKitFileAccess` and the push fan-out (`CloudKitAlbumsSync`). Without this,
 //  the fan-out would build ephemeral coordinators that update the on-disk index but
 //  not the live coordinator's in-memory `changeTags`/`deletedRecordNames`, so the
-//  active instance could serve stale blobs or miss cross-device tombstones.
+//  active instance could serve stale blobs or miss cross-device deletes.
 //
 
 import Foundation

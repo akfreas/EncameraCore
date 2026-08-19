@@ -5,10 +5,18 @@
 //  Makes CloudKit the authoritative, cross-device source of truth for which albums
 //  exist (chunk 13). Two-way reconcile against the `EncAlbum` records in the zone:
 //   - Pull: a remote album with no local materialization becomes a local discovery
-//     marker (so it shows in the grid and gets its media reconciled); a tombstoned
-//     remote album removes the local materialization.
-//   - Push (self-heal): a local `.cloudKit` album with no remote record is uploaded,
-//     so an `EncAlbum` save that failed while offline at create-time is recovered.
+//     marker (so it shows in the grid and gets its media reconciled); an album the
+//     change feed reports deleted removes the local materialization.
+//   - Push (self-heal): a local `.cloudKit` album that has NEVER been confirmed on
+//     the server is uploaded, so an `EncAlbum` save that failed while offline at
+//     create-time is recovered.
+//
+//  Deletions come from the zone change feed (`deletedAlbumIDs`), not from absence
+//  in `fetchAllAlbums`. That distinction is the whole design: the query's index is
+//  eventually consistent, so absence there is not evidence of anything, and a
+//  reconciler that treated it as a delete would race every fresh create. Absence
+//  is disambiguated locally instead, by whether the album was ever published
+//  (chunk 14) — no server-side tombstone required.
 //
 //  The album-id hash is one-way, so a fresh device recovers the plaintext name by
 //  matching a synced album key against the hash (XChaCha20's MAC rejects wrong keys;
@@ -27,16 +35,19 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     private let store: CloudKitMediaStoring
     private let keyManager: KeyManager
     private let albumManager: AlbumManaging
-    private let tombstoneQueue: CloudKitAlbumTombstoneQueue
+    private let deleteQueue: CloudKitAlbumDeleteQueue
+    private let publishRegistry: CloudKitAlbumPublishRegistry
 
     public init(store: CloudKitMediaStoring,
                 keyManager: KeyManager,
                 albumManager: AlbumManaging,
-                tombstoneQueue: CloudKitAlbumTombstoneQueue = CloudKitAlbumTombstoneQueue()) {
+                deleteQueue: CloudKitAlbumDeleteQueue = CloudKitAlbumDeleteQueue(),
+                publishRegistry: CloudKitAlbumPublishRegistry = CloudKitAlbumPublishRegistry()) {
         self.store = store
         self.keyManager = keyManager
         self.albumManager = albumManager
-        self.tombstoneQueue = tombstoneQueue
+        self.deleteQueue = deleteQueue
+        self.publishRegistry = publishRegistry
     }
 
     /// Reconcile album existence between CloudKit and the local filesystem markers.
@@ -52,26 +63,31 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             return 0
         }
 
-        // 0. Drain pending local delete intents FIRST (durable tombstone queue):
-        // a delete made offline or killed mid-flight must reach the server before
-        // the pull below, or its still-live record would resurrect the album on
-        // the very device that deleted it. Whatever fails to drain stays queued
-        // and is excluded from materialization and self-heal push this pass.
-        var pendingTombstones = tombstoneQueue.pending()
-        printDebug("reconcileAlbums tombstoneDrain start pending=\(pendingTombstones.count)")
-        for albumID in pendingTombstones.sorted() {
+        // 0. Drain pending local delete intents FIRST: a delete made offline or
+        // killed mid-flight must reach the server before the pull below, or its
+        // still-live record would resurrect the album on the very device that
+        // deleted it. Whatever fails to drain stays queued and is excluded from
+        // materialization and self-heal push this pass.
+        var pendingDeletes = deleteQueue.pending()
+        printDebug("reconcileAlbums deleteDrain start pending=\(pendingDeletes.count)")
+        for albumID in pendingDeletes.sorted() {
             do {
-                try await store.tombstoneAlbum(albumID: albumID)
-                tombstoneQueue.remove(albumID)
-                pendingTombstones.remove(albumID)
-                printDebug("reconcileAlbums tombstoneDrain ok albumID=\(albumID)")
+                try await store.deleteAlbum(albumID: albumID)
+                deleteQueue.remove(albumID)
+                publishRegistry.forget(albumID)
+                pendingDeletes.remove(albumID)
+                printDebug("reconcileAlbums deleteDrain ok albumID=\(albumID)")
             } catch {
                 // Stays queued on purpose; log so a permanently-stuck delete intent
                 // (which also suppresses materialization of that album) is visible.
-                printDebug("reconcileAlbums tombstoneDrain FAILED albumID=\(albumID) error=\(error)")
+                printDebug("reconcileAlbums deleteDrain FAILED albumID=\(albumID) error=\(error)")
             }
         }
-        printDebug("reconcileAlbums tombstoneDrain done stillPending=\(pendingTombstones.count)")
+        printDebug("reconcileAlbums deleteDrain done stillPending=\(pendingDeletes.count)")
+
+        // 1. Apply deletions the zone reports. This is the ONLY delete signal —
+        // absence from the query below is not one.
+        let deletedRemotely = await applyRemoteDeletions()
 
         let remote: [CloudKitAlbumMetadata]
         do {
@@ -95,35 +111,39 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
         var remoteIDs = Set<String>()
         var lockedOut = 0
         var adopted = 0
-        var deletedLocally = 0
         printDebug("reconcileAlbums state keys=\(keys.count) localCloudKitAlbums=\(localByHash.count) remote=\(remote.count)")
+        for albumID in deletedRemotely { localByHash[albumID] = nil }
 
-        // 1. Pull remote -> local.
+        // 2. Pull remote -> local.
         for record in remote {
             remoteIDs.insert(record.albumID)
 
-            // A locally-deleted album whose tombstone hasn't been confirmed yet:
-            // its remote record may still read as live — do NOT resurrect it.
-            if pendingTombstones.contains(record.albumID) {
-                printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=tombstonePending")
+            // A locally-deleted album whose delete hasn't been confirmed yet: its
+            // remote record still reads as live — do NOT resurrect it.
+            if pendingDeletes.contains(record.albumID) {
+                printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=deletePending")
                 continue
             }
 
+            // A legacy soft-deleted record from a build that tombstoned albums.
+            // Nothing writes these any more; honor it and queue the real delete so
+            // the record and its media are finally reclaimed. Without this branch a
+            // tombstoned album reads as live and is re-materialized — the album the
+            // user deleted under the old scheme comes back, photos and all.
             if record.deletedAt != nil {
                 if let album = localByHash[record.albumID] {
-                    // Route through the manager so observers get the delete
-                    // broadcast, currentAlbum is fixed up, and synced-store /
-                    // hidden-state entries are cleaned — the same four things
-                    // a user-initiated delete does.
-                    printDebug("reconcileAlbums pull delete albumID=\(record.albumID) deletedAt=\(String(describing: record.deletedAt))")
+                    printDebug("reconcileAlbums pull legacyTombstone albumID=\(record.albumID)")
                     albumManager.delete(album: album)
                     localByHash[record.albumID] = nil
-                    deletedLocally += 1
                 } else {
-                    printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=remoteTombstonedButNotLocal")
+                    deleteQueue.enqueue(record.albumID)
+                    printDebug("reconcileAlbums pull legacyTombstone albumID=\(record.albumID) notLocal — queued for reclaim")
                 }
                 continue
             }
+
+            // The server has it, so a later absence is meaningful for this album.
+            publishRegistry.markPublished(record.albumID)
 
             if localByHash[record.albumID] != nil {
                 printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=alreadyMaterialized")
@@ -148,10 +168,28 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             adopted += 1
         }
 
-        // 2. Push local-only -> remote (self-heal an offline create). Skip albums
-        // whose tombstone is still pending — re-uploading them would undo the delete.
+        // 3. Reconcile local albums the query did not return.
+        //
+        // Absence here is ambiguous, and the two readings need opposite actions, so
+        // it is resolved from local state rather than from the server:
+        //   - never published -> the create never landed. Push it (self-heal).
+        //   - published before -> deleted elsewhere, and the deletion notice was
+        //     missed (token expired, or the app was away long enough). Remove it.
+        //
+        // Note what is NOT done: treating plain absence as a delete. A record saved
+        // moments ago is routinely missing from a `CKQuery` while its index
+        // catches up, so that rule would delete brand-new albums at random.
         var pushed = 0
-        for (hash, album) in localByHash where !remoteIDs.contains(hash) && !pendingTombstones.contains(hash) {
+        var deletedLocally = deletedRemotely.count
+        for (hash, album) in localByHash where !remoteIDs.contains(hash) && !pendingDeletes.contains(hash) {
+            if publishRegistry.isPublished(hash) {
+                printDebug("reconcileAlbums delete albumID=\(hash) reason=publishedButAbsentRemotely")
+                albumManager.delete(album: album)
+                publishRegistry.forget(hash)
+                deletedLocally += 1
+                continue
+            }
+
             let upload = CloudKitAlbumUpload(albumID: hash,
                                              encName: album.encryptedPathComponent,
                                              createdAt: album.creationDate,
@@ -160,6 +198,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             printDebug("reconcileAlbums push start albumID=\(hash) isHidden=\(upload.isHidden)")
             do {
                 try await store.saveAlbum(upload)
+                publishRegistry.markPublished(hash)
                 pushed += 1
                 printDebug("reconcileAlbums push ok albumID=\(hash)")
             } catch {
@@ -170,8 +209,54 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             }
         }
 
-        printDebug("reconcileAlbums ok remote=\(remote.count) adopted=\(adopted) deletedLocally=\(deletedLocally) pushed=\(pushed) lockedOut=\(lockedOut) stillPendingTombstones=\(pendingTombstones.count)")
+        printDebug("reconcileAlbums ok remote=\(remote.count) adopted=\(adopted) deletedLocally=\(deletedLocally) pushed=\(pushed) lockedOut=\(lockedOut) stillPendingDeletes=\(pendingDeletes.count)")
         return lockedOut
+    }
+
+    /// Applies album deletions the zone change feed reports, and returns the ids
+    /// removed. This is the authoritative cross-device delete signal.
+    ///
+    /// Local removal routes through `AlbumManager.delete` so observers get the
+    /// broadcast, `currentAlbum` is fixed up, and synced-store / hidden-state
+    /// entries are cleaned — the same four things a user-initiated delete does.
+    private func applyRemoteDeletions() async -> Set<String> {
+        var removed: Set<String> = []
+        let localByHash = localCloudKitAlbumsByHash()
+        var token = await store.loadChangeToken()
+        var moreComing = true
+
+        while moreComing {
+            let changeSet: CloudKitChangeSet
+            do {
+                changeSet = try await store.fetchChanges(since: token)
+            } catch {
+                // Degrade quietly: the next pass retries from the un-advanced token.
+                printDebug("applyRemoteDeletions fetchChanges FAILED error=\(error)")
+                return removed
+            }
+            if changeSet.token != nil { token = changeSet.token }
+            moreComing = changeSet.moreComing
+
+            for albumID in changeSet.deletedAlbumIDs {
+                publishRegistry.forget(albumID)
+                guard let album = localByHash[albumID] else {
+                    printDebug("applyRemoteDeletions skip albumID=\(albumID) reason=notMaterializedLocally")
+                    continue
+                }
+                printDebug("applyRemoteDeletions delete albumID=\(albumID)")
+                albumManager.delete(album: album)
+                removed.insert(albumID)
+            }
+            for album in changeSet.changedAlbums where album.deletedAt == nil {
+                publishRegistry.markPublished(album.albumID)
+            }
+        }
+
+        // Committed only after the deletions above were applied, so a failure
+        // re-reads the same notices rather than losing them.
+        await store.commitChangeToken(token)
+        printDebug("applyRemoteDeletions ok removed=\(removed.count)")
+        return removed
     }
 
     // MARK: - Matching

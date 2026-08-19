@@ -190,7 +190,7 @@ public struct DestructiveOnboardingCoordinator {
             }
             for item in media where seenRecords.insert(item.recordName).inserted {
                 do {
-                    try await store.tombstone(recordName: item.recordName)
+                    try await store.delete(recordName: item.recordName)
                     report.tombstonedMedia.append(item.recordName)
                 } catch {
                     // Step 5: surface it, never re-swallow it.
@@ -199,13 +199,13 @@ public struct DestructiveOnboardingCoordinator {
             }
         }
 
-        // Tombstone every album. `tombstoneAlbum` is deliberately NOT feature-flag
-        // gated (see AlbumManager.tombstoneCloudKitAlbumRecord) so the delete always
+        // Delete every album record. `deleteAlbum` is deliberately NOT feature-flag
+        // gated (see AlbumManager.deleteCloudKitAlbumRecord) so the delete always
         // propagates and the reconciler cannot resurrect it. Skip albums another
-        // device already tombstoned.
+        // device already tombstoned under an older build.
         for album in albums where album.deletedAt == nil {
             do {
-                try await store.tombstoneAlbum(albumID: album.albumID)
+                try await store.deleteAlbum(albumID: album.albumID)
                 report.tombstonedAlbums.append(album.albumID)
             } catch {
                 report.albumFailures[album.albumID] = "\(error)"

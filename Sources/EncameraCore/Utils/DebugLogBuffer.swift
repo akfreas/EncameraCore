@@ -82,7 +82,7 @@ public struct DebugLogStats: Sendable, Equatable {
 /// forcing a main-actor hop per line would be both a correctness hazard and a
 /// throughput problem in hot import loops. Hence `NSLock` + `@unchecked Sendable`,
 /// which is the established pattern in this module (see `DeviceIDProvider`,
-/// `CloudKitAlbumTombstoneQueue`).
+/// `CloudKitAlbumDeleteQueue`).
 ///
 /// - Important: This type must never conform to `DebugPrintable` and must never
 ///   call `printDebug`, directly or transitively. `NSLock` is not recursive, so

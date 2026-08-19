@@ -69,6 +69,9 @@ public struct CloudKitMediaMetadata: Sendable, Equatable {
     public let createdAt: Date
     public let sizeBytes: Int64
     public let creationDeviceID: String
+    /// Legacy tombstone. Deletes are hard deletes, so nothing writes this any more;
+    /// it is carried so a record written by an older build is still read as deleted
+    /// (and queued for a real delete) instead of resurfacing as live media.
     public let deletedAt: Date?
     public let schemaVersion: Int64
     public let recordChangeTag: String?
@@ -135,13 +138,16 @@ public struct CloudKitAlbumUpload: Sendable {
     }
 }
 
-/// An album record as fetched from CloudKit. `deletedAt != nil` is a cross-device
-/// tombstone (the album was deleted on another device).
+/// An album record as fetched from CloudKit. A cross-device album delete arrives on
+/// the zone change feed as `CloudKitChangeSet.deletedAlbumIDs`, not as a field on
+/// this type.
 public struct CloudKitAlbumMetadata: Sendable, Equatable {
     public let albumID: String          // == record name
     public let encName: String
     public let createdAt: Date
     public let isHidden: Bool
+    /// Legacy tombstone, write-dead. The reconciler honors one it finds and queues
+    /// the real delete, so a zone written by an older build cleans itself up.
     public let deletedAt: Date?
     public let schemaVersion: Int64
     /// `EncAlbum.keyFingerprint` as read back from the record — the key this
@@ -171,20 +177,47 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
 }
 
 /// The result of a delta sync since a server change token.
+///
+/// The zone holds both record types, so one fetch carries both: `changed` /
+/// `deleted` are the `EncMedia` half, `changedAlbums` / `deletedAlbumIDs` the
+/// `EncAlbum` half. Each consumer keeps its own cursor and ignores the other's
+/// half.
 public struct CloudKitChangeSet: Sendable {
     public let changed: [CloudKitMediaMetadata]
     public let deleted: [String]            // record names
+    /// `EncAlbum` records changed since the token — album discovery and rename.
+    public let changedAlbums: [CloudKitAlbumMetadata]
+    /// Album ids the zone reports deleted. Positive evidence of deletion, which a
+    /// `CKQuery` of `EncAlbum` cannot give at all: absence from a query means
+    /// "deleted" and "not indexed yet" equally.
+    public let deletedAlbumIDs: [String]
     public let token: CKServerChangeToken?
     public let moreComing: Bool
 
+    /// Whether the server acknowledged this fetch by issuing a fresh cursor.
+    ///
+    /// Only an acknowledged fetch may be read as an *authoritative* answer about
+    /// what the zone contains. A caller that started from no token and gets this
+    /// back knows it holds a complete snapshot, and may therefore treat a record's
+    /// absence as deletion; without it, absence proves nothing. Separate from
+    /// `token` because `CKServerChangeToken` cannot be constructed outside
+    /// CloudKit, so the flag is the part a fake store can speak to.
+    public let snapshotComplete: Bool
+
     public init(changed: [CloudKitMediaMetadata],
                 deleted: [String],
+                changedAlbums: [CloudKitAlbumMetadata] = [],
+                deletedAlbumIDs: [String] = [],
                 token: CKServerChangeToken?,
-                moreComing: Bool) {
+                moreComing: Bool,
+                snapshotComplete: Bool = false) {
         self.changed = changed
         self.deleted = deleted
+        self.changedAlbums = changedAlbums
+        self.deletedAlbumIDs = deletedAlbumIDs
         self.token = token
         self.moreComing = moreComing
+        self.snapshotComplete = snapshotComplete
     }
 }
 
@@ -197,14 +230,15 @@ public protocol CloudKitMediaStoring: Sendable {
 
     /// Cheap metadata sync for an album. Asset fields are excluded via `desiredKeys`;
     /// `includeThumbnail` additionally requests the small eager thumbnail key (never
-    /// the full blob). Tombstoned records are filtered out.
+    /// the full blob). Records carrying a legacy `deletedAt` tombstone are filtered out.
     func fetchMetadata(albumID: String, includeThumbnail: Bool) async throws -> [CloudKitMediaMetadata]
 
     /// Strongly-consistent existence check for ONE record by name: a fetch-by-record-ID
     /// (`CKFetchRecordsOperation`), NOT the eventually-consistent `fetchMetadata` query,
     /// so a just-saved record is reliably visible immediately. Returns the record's
-    /// metadata, or `nil` if the server has no such (non-tombstoned) record. This is the
-    /// gate migration uses before deleting a local original.
+    /// metadata, or `nil` if the server has no such record (or holds one an older
+    /// build tombstoned). This is the gate migration uses before deleting a local
+    /// original.
     func fetchRecordMetadata(recordName: String) async throws -> CloudKitMediaMetadata?
 
     /// Lazy full fetch: download the `encBlob` asset for one record, copied to `destination`.
@@ -215,21 +249,25 @@ public protocol CloudKitMediaStoring: Sendable {
     /// Lazy eager-thumb fetch: download the `encThumbnail` asset, copied to `destination`.
     func fetchThumbnail(recordName: String, to destination: URL) async throws
 
-    /// Hard delete: removes the record and (atomically) both assets.
+    /// Removes the record and (atomically) both assets.
+    ///
+    /// The only delete there is. Cross-device propagation is the zone change feed's
+    /// job — `CKFetchRecordZoneChangesOperation` reports deletions — so media needs
+    /// no soft-delete state of its own (chunk 14).
     func delete(recordName: String) async throws
-
-    /// Soft delete: set `deletedAt` for cross-device delete propagation (chunk 03).
-    func tombstone(recordName: String) async throws
 
     // MARK: Albums (chunk 13)
 
     /// Upsert one `EncAlbum` record so the album syncs across devices. Idempotent:
     /// the record name is the album-id hash, so re-saving the same album is a no-op
-    /// upsert. Clears any prior `deletedAt` so re-creating a deleted album revives it.
+    /// upsert. Also clears a legacy `deletedAt` an older build may have left on the
+    /// record, which would otherwise read as "this album is deleted".
     func saveAlbum(_ album: CloudKitAlbumUpload) async throws
 
-    /// Fetch every `EncAlbum` record in the zone, INCLUDING tombstoned ones — the
-    /// caller needs tombstones to remove locally-materialized albums. Album discovery
+    /// Fetch every `EncAlbum` record in the zone. DISCOVERY ONLY: this is a
+    /// `CKQuery`, whose index is eventually consistent, so a record's absence here
+    /// proves nothing and must never be read as a deletion. Deletions arrive on the
+    /// change feed as `deletedAlbumIDs`. Album discovery
     /// is a full query (albums are few), not a delta sync, so it is independent of the
     /// per-album media change-token cursor.
     func fetchAllAlbums() async throws -> [CloudKitAlbumMetadata]
@@ -248,10 +286,10 @@ public protocol CloudKitMediaStoring: Sendable {
     /// queryable server-side.
     func fetchFingerprintCensus() async throws -> CloudKitFingerprintCensus
 
-    /// Soft-delete an album (set `deletedAt`). `.deleteSelf` references on its media
-    /// cascade server-side; the per-media tombstone path remains the cross-device
-    /// backstop. No-op if the album record is absent.
-    func tombstoneAlbum(albumID: String) async throws
+    /// Delete an album's record. Its media parent to it with `.deleteSelf`, so the
+    /// server cascades to every `EncMedia` and reclaims their blobs. Deleting a
+    /// record the zone does not hold is success, not an error.
+    func deleteAlbum(albumID: String) async throws
 
     /// Delta sync: changes since `token` (nil == full sync) plus the new token. Pure —
     /// it does NOT persist the token, so the caller can commit it only after durably

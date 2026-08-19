@@ -4,8 +4,9 @@
 //
 //  Orchestrates CloudKit for one album: delta-syncs metadata into the existing
 //  per-album MediaIndexStore, keeps an app-controlled evictable blob cache,
-//  dedups concurrent blob fetches, applies cross-device deletes via tombstones,
-//  and registers the zone push subscription. No app-UI wiring (chunk 04+).
+//  dedups concurrent blob fetches, applies cross-device deletes from the zone
+//  change feed, and registers the zone push subscription. No app-UI wiring
+//  (chunk 04+).
 //  All CloudKit I/O goes through the chunk-02 `CloudKitMediaStoring` seam.
 //
 
@@ -102,25 +103,62 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// same record share one `fetchBlob` instead of issuing duplicates — while
     /// each keeps its own progress stream and its own right to walk away.
     private var downloads: [String: BlobDownload] = [:]
-    /// Records known-deleted locally (tombstoned) — a delete that lands mid-fetch wins.
+    /// Records known-deleted locally — a delete that lands mid-fetch wins. Purely a
+    /// within-session race guard; the delete INTENT is durable and lives in
+    /// `deleteQueue`.
     private var deletedRecordNames: Set<String> = []
     /// Latest server change tag per record, used to invalidate stale cache copies.
     private var changeTags: [String: String] = [:]
-    /// Tombstoned records awaiting a hard purge on the next sync ("tombstone, propagate, then purge").
-    private var pendingPurge: Set<String> = []
+    /// Deletes the server has not confirmed, persisted so an intent formed offline
+    /// or interrupted by termination is retried on a later sync.
+    private let deleteQueue: CloudKitMediaDeleteQueue
+
+    /// Drops every trace of a delete for `recordName`, because the record is live
+    /// again. Both marks have to go together: `deletedRecordNames` alone would keep
+    /// refusing to read the record, and a queued delete alone would still remove it.
+    ///
+    /// This is what makes a republished record name safe without asking the server
+    /// whether it is live: an explicit upload of a name supersedes any delete still
+    /// pending for it, and because the queue is process-wide the coordinator that
+    /// republishes need not be the one that queued the delete.
+    private func forgetDeletion(of recordName: String) {
+        deletedRecordNames.remove(recordName)
+        deleteQueue.remove(recordName)
+    }
+
+    /// Deletes the local encrypted preview for a media id.
+    ///
+    /// Only safe once the media's LAST component is gone: previews are keyed by
+    /// media id in one storage-agnostic directory, so a Live Photo's photo and
+    /// video components share a single file. Every caller gates on the
+    /// `entryRemoved` result of the index removal for exactly that reason.
+    private func removeLocalPreview(mediaID: String) {
+        let previewURL = CloudKitStorageModel.previewURL(forMediaID: mediaID)
+        guard FileManager.default.fileExists(atPath: previewURL.path) else { return }
+        do {
+            try FileManager.default.removeItem(at: previewURL)
+            printDebug("removeLocalPreview ok mediaID=\(mediaID)")
+        } catch {
+            // The blob is gone but its thumbnail bytes stay on disk — a silent
+            // leak that grows with every cross-device delete.
+            printDebug("removeLocalPreview FAILED mediaID=\(mediaID) file=\(previewURL.lastPathComponent) raw=\(error)")
+        }
+    }
 
     public init(albumID: String,
                 store: CloudKitMediaStoring,
                 cache: CloudKitBlobCache,
                 indexStore: MediaIndexStore,
                 bus: FileOperationBus = .shared,
-                uploadQueue: CloudKitUploadQueue = .shared) {
+                uploadQueue: CloudKitUploadQueue = .shared,
+                deleteQueue: CloudKitMediaDeleteQueue = CloudKitMediaDeleteQueue()) {
         self.albumID = albumID
         self.store = store
         self.cache = cache
         self.indexStore = indexStore
         self.bus = bus
         self.uploadQueue = uploadQueue
+        self.deleteQueue = deleteQueue
     }
 
     // MARK: - Sync
@@ -191,11 +229,79 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         printDebug("drainSync ok albumID=\(albumID) passes=\(pass)")
     }
 
+    /// One component of a media item, identified the way the index identifies it
+    /// (`indexEntry(from:)` derives the component flags from `mediaID` + `mediaType`).
+    /// Comparing on this pair rather than on record names keeps the reap correct
+    /// regardless of how a record name is spelled.
+    private struct MediaComponent: Hashable {
+        let mediaID: String
+        let mediaType: MediaType
+    }
+
+    /// Drops index entries whose records a from-scratch fetch did not return.
+    ///
+    /// Without this, a delete this device never saw in the change feed is invisible
+    /// forever: `performSync` only ever applies what the feed reports, so a record
+    /// deleted while the token was expired (or before an index rebuild) keeps its
+    /// index entry, its cached blob and its preview for the life of the install.
+    ///
+    /// Items still waiting in the upload queue are exempt. They are legitimately in
+    /// the index and legitimately absent from the server — that is what "pending
+    /// upload" means — and reaping them would delete a just-captured photo before
+    /// its bytes ever left the device.
+    private func reap(from entries: inout [MediaIndexEntry],
+                      seen: Set<MediaComponent>,
+                      pendingDeletes: inout [EncryptedMedia],
+                      pendingCreates: inout [EncryptedMedia]) async {
+        let pendingUpload = Set(await uploadQueue.all().map {
+            MediaComponent(mediaID: $0.mediaID, mediaType: $0.mediaType)
+        })
+        var reaped = 0
+        var exempt = 0
+
+        for entry in entries {
+            var components: [MediaComponent] = []
+            if entry.hasPhotoComponent { components.append(.init(mediaID: entry.id, mediaType: .photo)) }
+            if entry.hasVideoComponent { components.append(.init(mediaID: entry.id, mediaType: .video)) }
+
+            for component in components where !seen.contains(component) {
+                guard !pendingUpload.contains(component) else {
+                    exempt += 1
+                    printDebug("reap skip mediaID=\(component.mediaID) mediaType=\(component.mediaType) reason=pendingUpload")
+                    continue
+                }
+                let recordName = MediaRecordName.componentRecordName(mediaID: component.mediaID,
+                                                                     type: component.mediaType)
+                let entryRemoved = entries.removeComponent(recordName: recordName)
+                deletedRecordNames.insert(recordName)
+                changeTags[recordName] = nil
+                await cache.evict(recordName: recordName)
+                if entryRemoved { removeLocalPreview(mediaID: component.mediaID) }
+                let media = Self.media(forRecordName: component.mediaID,
+                                       albumID: self.albumID,
+                                       mediaType: component.mediaType)
+                if entryRemoved { pendingDeletes.append(media) } else { pendingCreates.append(media) }
+                reaped += 1
+                printDebug("reap ok recordName=\(recordName) mediaID=\(component.mediaID) mediaType=\(component.mediaType) entryRemoved=\(entryRemoved) — absent from a full fetch")
+            }
+        }
+
+        // Loud on purpose: a reap that fires on a healthy album means the full
+        // fetch came back short, and this pass just deleted live media locally.
+        printDebug("reap done albumID=\(self.albumID) reaped=\(reaped) exemptPendingUpload=\(exempt) seen=\(seen.count) entriesRemaining=\(entries.count)")
+    }
+
     private func performSync(albumID: String) async throws {
+        // Push unconfirmed deletes FIRST, so the fetch below sees a zone that
+        // already reflects them. Whatever fails to drain is excluded from the
+        // upsert path — otherwise its still-live remote record would resurrect the
+        // item on the very device that deleted it.
+        let undrainedDeletes = await drainPendingDeletes()
+
         // Diff from the authoritative on-disk index, refreshing the store's cache.
         let loaded = await indexStore.reloadFromDisk()
         var entries = loaded?.entries ?? []
-        printDebug("performSync start albumID=\(albumID) coordinatorAlbumID=\(self.albumID) indexLoaded=\(loaded != nil) entries=\(entries.count) pendingPurge=\(pendingPurge.count)")
+        printDebug("performSync start albumID=\(albumID) coordinatorAlbumID=\(self.albumID) indexLoaded=\(loaded != nil) entries=\(entries.count) undrainedDeletes=\(undrainedDeletes.count)")
 
         // Buffer gallery events and emit them ONLY after the index is durably saved,
         // so a save failure + retry can't fire duplicate refreshes for unpersisted items.
@@ -214,6 +320,15 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             await store.resetChangeToken()
             token = nil
         }
+        // A from-scratch fetch returns every live record in the zone, so anything
+        // this album's index claims that does NOT come back no longer exists —
+        // the only chance to notice a delete whose change-feed entry we missed
+        // (an expired token, a cleared index). On an incremental fetch the feed
+        // reports just the delta, so absence there means nothing at all.
+        let startedWithoutToken = token == nil
+        var seen: Set<MediaComponent> = []
+        var snapshotComplete = false
+
         var moreComing = true
         var page = 0
         var skippedOtherAlbum = 0
@@ -229,6 +344,9 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             printDebug("performSync page ok albumID=\(self.albumID) page=\(page) changed=\(changeSet.changed.count) deleted=\(changeSet.deleted.count) moreComing=\(changeSet.moreComing) newToken=\(changeSet.token != nil)")
             if changeSet.token != nil { token = changeSet.token }   // advance the cursor across pages
             moreComing = changeSet.moreComing
+            // The final page decides: an authoritative drain is one the server
+            // acknowledged all the way to its end.
+            snapshotComplete = changeSet.snapshotComplete
 
             for meta in changeSet.changed {
                 // The zone is shared across albums; only apply records for THIS album.
@@ -237,26 +355,35 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                     continue
                 }
 
-                // A tombstone (deletedAt set) is a cross-device delete, not an upsert.
+                // A legacy tombstone (`deletedAt` set) from a build that soft-deleted.
+                // Nothing writes these any more, but records carrying one still sit
+                // in zones those builds wrote, so they are honored — and, by being
+                // queued, finally reclaimed. Drop this branch and every photo deleted
+                // under the old scheme reads as live and comes back.
                 if meta.deletedAt != nil {
                     let entryRemoved = entries.removeComponent(recordName: meta.recordName)
                     deletedRecordNames.insert(meta.recordName)
                     changeTags[meta.recordName] = nil
-                    // Every device that OBSERVES a tombstone enqueues the hard purge,
-                    // making it durable: if the deleting device is killed before its
-                    // purge pass, the record (and its full-size blob asset) is still
-                    // reclaimed by whichever device syncs next. Purges are idempotent —
-                    // an already-gone record maps to `.notFound` and leaves the queue.
-                    pendingPurge.insert(meta.recordName)
+                    deleteQueue.enqueue(meta.recordName)
                     await cache.evict(recordName: meta.recordName)
+                    if entryRemoved { removeLocalPreview(mediaID: meta.mediaID) }
                     let media = Self.media(forRecordName: meta.mediaID, albumID: self.albumID, mediaType: meta.mediaType)
                     if entryRemoved { pendingDeletes.append(media) } else { pendingCreates.append(media) }
-                    printDebug("performSync tombstone recordName=\(meta.recordName) mediaID=\(meta.mediaID) mediaType=\(meta.mediaType) entryRemoved=\(entryRemoved) queuedForPurge=true")
+                    printDebug("performSync legacyTombstone recordName=\(meta.recordName) mediaID=\(meta.mediaID) mediaType=\(meta.mediaType) entryRemoved=\(entryRemoved) queuedForDelete=true")
+                    continue
+                }
+
+                // A record whose delete has not reached the server yet still reads
+                // as live. Pulling it in would resurrect, on the deleting device,
+                // exactly the item the user removed.
+                if undrainedDeletes.contains(meta.recordName) {
+                    printDebug("performSync upsert skip recordName=\(meta.recordName) reason=deletePending")
                     continue
                 }
 
                 if let tag = meta.recordChangeTag { changeTags[meta.recordName] = tag }
                 deletedRecordNames.remove(meta.recordName)
+                seen.insert(MediaComponent(mediaID: meta.mediaID, mediaType: meta.mediaType))
                 // The shared `upsert` appends a new item or merges a Live Photo's
                 // second component into the existing entry, and reports whether the
                 // index actually changed. Refresh the gallery only on a real change —
@@ -273,11 +400,22 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             }
 
             for recordName in changeSet.deleted {
-                // The deleted list spans the whole shared zone; only act on records this
-                // album actually holds (the deleted payload carries no albumID).
                 let mediaID = MediaRecordName.mediaID(from: recordName)
+
+                // Evict BEFORE the index-membership guard below. The record is gone
+                // from the zone whichever album owned it, so dropping any cached
+                // ciphertext is always correct — and a blob whose index entry
+                // vanished by some other path would otherwise be stranded on disk
+                // with nothing left to evict it. `evict` no-ops when not cached.
+                await cache.evict(recordName: recordName)
+
+                // The rest of the delete spans the whole shared zone; only act on
+                // records this album actually holds (the deleted payload carries no
+                // albumID). The owning album's coordinator does its own cleanup —
+                // including the preview, which we cannot reason about here because
+                // component survival is only knowable from that album's index.
                 guard entries.contains(where: { $0.id == mediaID }) else {
-                    printDebug("performSync hardDelete skip recordName=\(recordName) mediaID=\(mediaID) — not in this album's index (shared-zone delete for another album)")
+                    printDebug("performSync hardDelete skip recordName=\(recordName) mediaID=\(mediaID) — not in this album's index (shared-zone delete for another album); cache evicted")
                     continue
                 }
 
@@ -285,14 +423,33 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 let entryRemoved = entries.removeComponent(recordName: recordName)
                 deletedRecordNames.insert(recordName)
                 changeTags[recordName] = nil
-                await cache.evict(recordName: recordName)
-                let media = Self.media(forRecordName: mediaID, albumID: self.albumID, mediaType: .unknown)
+                if entryRemoved { removeLocalPreview(mediaID: mediaID) }
+                // The deletion payload carries no fields, but the record name encodes
+                // the component type — so a hard delete still emits a well-typed bus
+                // event instead of the `.unknown` the gallery cannot act on.
+                let mediaType = MediaRecordName.mediaType(from: recordName)
+                let media = Self.media(forRecordName: mediaID, albumID: self.albumID, mediaType: mediaType)
                 if entryRemoved { pendingDeletes.append(media) } else { pendingCreates.append(media) }
-                printDebug("performSync hardDelete recordName=\(recordName) mediaID=\(mediaID) entryRemoved=\(entryRemoved)")
+                printDebug("performSync hardDelete recordName=\(recordName) mediaID=\(mediaID) mediaType=\(mediaType) entryRemoved=\(entryRemoved)")
             }
         }
         if skippedOtherAlbum > 0 {
             printDebug("performSync skip albumID=\(self.albumID) otherAlbumRecords=\(skippedOtherAlbum) (shared zone)")
+        }
+
+        // Reap only when this pass was a from-scratch fetch the server acknowledged
+        // to its end — the one case where the feed's answer is a COMPLETE snapshot
+        // of the zone, so a record's absence from it means deletion. On an
+        // incremental fetch absence means nothing, and on an unacknowledged one we
+        // have no evidence the answer was whole; reaping on either would delete
+        // live media locally.
+        if startedWithoutToken, snapshotComplete {
+            await reap(from: &entries,
+                       seen: seen,
+                       pendingDeletes: &pendingDeletes,
+                       pendingCreates: &pendingCreates)
+        } else if startedWithoutToken {
+            printDebug("reap skip albumID=\(self.albumID) reason=snapshotNotAcknowledged — the full fetch returned no cursor, so absence cannot be read as deletion")
         }
 
         // Save the whole rebuilt index in ONE write before emitting or committing
@@ -320,27 +477,41 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             printDebug("performSync token WARNING albumID=\(self.albumID) — no token returned by the change feed; next sync will full-fetch")
         }
 
-        // Follow-up pass: hard-purge anything we previously tombstoned. A stale
-        // record (already gone from the zone) must not abort the whole sync — drop
-        // it from the queue; keep only genuinely transient failures for a retry.
-        for recordName in Array(pendingPurge) {
+    }
+
+    /// Retries deletes the server has not confirmed, and reports what is still
+    /// outstanding so the caller can refuse to re-materialize those records.
+    ///
+    /// Runs BEFORE the change feed is read: a delete that lands here is reflected
+    /// in the very fetch that follows, instead of the record arriving as a live
+    /// change and being pulled straight back into the index.
+    ///
+    /// A record that is genuinely gone drains on `.notFound` — deleting is
+    /// idempotent, so this needs no "is it still there?" round-trip. Only
+    /// transient failures stay queued.
+    private func drainPendingDeletes() async -> Set<String> {
+        var outstanding = deleteQueue.pending()
+        guard !outstanding.isEmpty else { return [] }
+        printDebug("drainPendingDeletes start albumID=\(self.albumID) pending=\(outstanding.count)")
+
+        for recordName in outstanding.sorted() {
             do {
                 try await store.delete(recordName: recordName)
-                pendingPurge.remove(recordName)
-                printDebug("purge ok recordName=\(recordName) remainingQueued=\(pendingPurge.count)")
-            } catch let error as CloudKitMediaStoreError {
-                if case .notFound = error {
-                    pendingPurge.remove(recordName)
-                    printDebug("purge skip recordName=\(recordName) — already gone from the zone; dropped from the queue")
-                } else {
-                    // else: leave it queued and try again on the next sync.
-                    printDebug("purge FAILED recordName=\(recordName) mapped=\(error) — left queued for the next sync")
-                }
+                deleteQueue.remove(recordName)
+                outstanding.remove(recordName)
+                printDebug("drainPendingDeletes ok recordName=\(recordName)")
+            } catch CloudKitMediaStoreError.notFound {
+                deleteQueue.remove(recordName)
+                outstanding.remove(recordName)
+                printDebug("drainPendingDeletes skip recordName=\(recordName) — already gone from the zone")
             } catch {
-                // Unknown error — leave queued for retry, don't fail the sync.
-                printDebug("purge FAILED recordName=\(recordName) raw=\(error) — unmapped error, left queued for the next sync")
+                // Stays queued; log so a permanently stuck delete (which also
+                // suppresses that record's re-materialization) is visible.
+                printDebug("drainPendingDeletes FAILED recordName=\(recordName) — left queued raw=\(error)")
             }
         }
+        printDebug("drainPendingDeletes done albumID=\(self.albumID) stillPending=\(outstanding.count)")
+        return outstanding
     }
 
     // MARK: - Blob residency
@@ -562,6 +733,19 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                        progress: @escaping @Sendable (Double) -> Void,
                        alreadyVisibleLocally: Bool = false) async throws -> CloudKitMediaRef {
         printDebug("upload start recordName=\(item.recordName) albumID=\(item.albumID) mediaType=\(item.mediaType) sizeBytes=\(item.sizeBytes)")
+        // Issuing this upload is a deliberate (re)publication of the record name, so
+        // any delete bookkeeping from BEFORE it started is stale. The case that
+        // matters: moving an album out of iCloud calls `remove` for every item,
+        // leaving each one marked deleted-locally and queued for a hard purge — all
+        // in memory, on a coordinator the registry hands straight back when the album
+        // is moved to iCloud again. Without this, the guard after the store call
+        // fires on the very record the user asked to upload, marks it deleted, and the
+        // stale purge then deletes their photo from iCloud.
+        //
+        // Clearing here (before the `await`, on the actor) is also what makes that
+        // guard mean what it says: a delete that landed *during* this upload. One
+        // arriving now re-inserts the marks and still wins.
+        forgetDeletion(of: item.recordName)
         let ref: CloudKitMediaRef
         do {
             do {
@@ -587,9 +771,16 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         // clear the deletion marker, resurrecting a deleted photo locally AND on
         // every other device.
         if deletedRecordNames.contains(item.recordName) {
-            printDebug("upload landed after delete recordName=\(item.recordName) — tombstoning the fresh record and discarding the result")
-            try? await store.tombstone(recordName: item.recordName)
-            pendingPurge.insert(item.recordName)
+            printDebug("upload landed after delete recordName=\(item.recordName) — deleting the fresh record and discarding the result")
+            // Queue first, so the reclaim survives a failure here or a kill before
+            // the delete lands. Retried by the next sync's drain.
+            deleteQueue.enqueue(item.recordName)
+            do {
+                try await store.delete(recordName: item.recordName)
+                deleteQueue.remove(item.recordName)
+            } catch {
+                printDebug("upload postDeleteReclaim FAILED recordName=\(item.recordName) — left queued raw=\(error)")
+            }
             throw CloudKitMediaStoreError.cancelled
         }
 
@@ -625,37 +816,46 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
     // MARK: - Delete
 
-    /// Tombstone first (propagates by push), clear local state, then purge hard on
-    /// the next `sync`. Preserves the tombstone-beats-blob safety property across
-    /// devices (decision doc §1).
+    /// Deletes the record outright, then clears local state.
+    ///
+    /// The intent is queued durably BEFORE the delete is issued, so the delete is
+    /// not lost to being offline or to termination mid-flight — the next sync
+    /// drains the queue. That durability is also why a failed delete no longer
+    /// aborts the local cleanup: the item leaves this device immediately and the
+    /// server copy is reclaimed on a later pass, instead of the user's delete
+    /// appearing to do nothing. Until the queue drains, `performSync` refuses to
+    /// re-materialize the record from its still-live remote copy.
     ///
     /// - Parameter wasPending: true when the item was still in the upload queue,
-    ///   i.e. it (almost certainly) never reached CloudKit. The tombstone is
-    ///   skipped — `tombstone` throws `.notFound` for a record the server has
-    ///   never seen, which used to abort this method before ANY local cleanup ran,
-    ///   leaving a permanent ghost entry in the index. "Almost": an upload may
-    ///   land while this delete runs, so the record is still marked in
-    ///   `deletedRecordNames` (which `upload` checks after its store call) and
-    ///   queued for the idempotent hard purge.
+    ///   i.e. it (almost certainly) never reached CloudKit, so there is nothing to
+    ///   delete remotely. "Almost": an upload may land while this delete runs, so
+    ///   the record is still marked in `deletedRecordNames`, which `upload` checks
+    ///   after its store call.
     public func remove(recordName: String, albumID: String, wasPending: Bool = false) async throws {
         printDebug("remove start recordName=\(recordName) albumID=\(albumID) wasPending=\(wasPending)")
-        if !wasPending {
-            do {
-                try await store.tombstone(recordName: recordName)
-            } catch CloudKitMediaStoreError.notFound {
-                // Already absent from the zone — deleted from another device, or a
-                // record that never uploaded. Nothing to tombstone is success for
-                // a delete; the local cleanup below must still run.
-                printDebug("remove tombstone skip recordName=\(recordName) — record already absent from the zone")
-            } catch {
-                printDebug("remove tombstone FAILED recordName=\(recordName) albumID=\(albumID) — nothing cleared locally raw=\(error)")
-                throw error
-            }
-        }
         deletedRecordNames.insert(recordName)
         changeTags[recordName] = nil
-        pendingPurge.insert(recordName)
         await cache.evict(recordName: recordName)
+
+        if !wasPending {
+            // Enqueue BEFORE the call: a delete that never gets issued (offline, or
+            // the process dies here) must still be retried, and the queue is what
+            // keeps the record from being pulled back in meanwhile.
+            deleteQueue.enqueue(recordName)
+            do {
+                try await store.delete(recordName: recordName)
+                deleteQueue.remove(recordName)
+                printDebug("remove delete ok recordName=\(recordName)")
+            } catch CloudKitMediaStoreError.notFound {
+                // Already absent — deleted from another device, or never uploaded.
+                // Nothing to delete is success for a delete.
+                deleteQueue.remove(recordName)
+                printDebug("remove delete skip recordName=\(recordName) — record already absent from the zone")
+            } catch {
+                // Left queued on purpose. The local cleanup below still runs.
+                printDebug("remove delete FAILED recordName=\(recordName) albumID=\(albumID) — left queued for the next sync raw=\(error)")
+            }
+        }
 
         // Clear only this component; the entry survives if the other component does.
         // The store persists and caches; a no-op (record already absent) skips the write.
@@ -663,12 +863,13 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         do {
             entryRemoved = try await indexStore.removeComponent(recordName: recordName)
         } catch {
-            // The record is already tombstoned server-side, so a failure here leaves
-            // the local index claiming an item that no longer exists remotely.
-            printDebug("remove indexRemove FAILED recordName=\(recordName) — record is tombstoned in CloudKit but still in the local index raw=\(error)")
+            // The record is gone (or queued to go) server-side, so a failure here
+            // leaves the local index claiming an item that no longer exists remotely.
+            printDebug("remove indexRemove FAILED recordName=\(recordName) — record is deleted in CloudKit but still in the local index raw=\(error)")
             throw error
         }
-        printDebug("remove ok recordName=\(recordName) entryRemoved=\(entryRemoved) queuedForPurge=\(pendingPurge.count)")
+        if entryRemoved { removeLocalPreview(mediaID: MediaRecordName.mediaID(from: recordName)) }
+        printDebug("remove ok recordName=\(recordName) entryRemoved=\(entryRemoved) stillQueued=\(deleteQueue.pending().count)")
 
         emitDeletion(mediaID: MediaRecordName.mediaID(from: recordName), entryRemoved: entryRemoved)
     }

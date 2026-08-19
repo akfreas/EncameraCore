@@ -84,6 +84,20 @@ public enum MediaRecordName {
         recordName.components(separatedBy: separator).first ?? recordName
     }
 
+    /// Builds the record name for one component of a media item. The inverse of
+    /// `parse`, kept beside it so the two cannot drift.
+    public static func componentRecordName(mediaID: String, type: MediaType) -> String {
+        "\(mediaID)\(separator)\(type.rawValue)"
+    }
+
+    /// The component `MediaType` a record name names, or `.unknown` when it
+    /// carries no valid `"#type"` suffix. For callers that only ever have a
+    /// record name to work from — notably a CloudKit zone-change deletion, whose
+    /// payload is the record id and nothing else.
+    public static func mediaType(from recordName: String) -> MediaType {
+        parse(recordName).type ?? .unknown
+    }
+
     /// Splits a record name into its media id and, when a valid `"#type"` suffix
     /// is present, the named component's `MediaType`. Anything that is not exactly
     /// `"mediaID#<valid-MediaType-raw-value>"` parses as `(id, nil)` — i.e. a

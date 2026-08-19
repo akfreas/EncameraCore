@@ -5,8 +5,8 @@
 //  Manual, end-to-end smoke test of the CloudKit storage plane. Runs the *real*
 //  app code paths (account gating, zone bootstrap, push subscription, album
 //  creation, encrypt + upload, delta sync, cold-cache server download + decrypt,
-//  thumbnail fetch, delete + tombstone) with dummy data and the existing keychain
-//  key, so a human can see exactly where iCloud albums break.
+//  thumbnail fetch, delete + cross-device propagation) with dummy data and the
+//  existing keychain key, so a human can see exactly where iCloud albums break.
 //
 //  Drives the `ICloudFlightCheckView` workbench (behind the `iCloudFlightCheck`
 //  feature toggle). Steps run in order and HALT on the first failure; each step
@@ -129,7 +129,7 @@ public enum FlightCheckError: Error {
         case .emptyThumbnail:
             return "After evicting the local thumbnail, loadMediaPreview() fetched the eager encThumbnail asset from CloudKit but it decoded to no data — the thumbnail asset may not have uploaded."
         case .stillListedAfterDelete(let id):
-            return "After delete + reconcile, record id \(id) is still present in the synced index — the tombstone did not propagate."
+            return "After delete + reconcile, record id \(id) is still present in the synced index — the record delete did not reach the server, or the zone change feed did not report it back."
         case .imageEncodingFailed:
             return "UIGraphicsImageRenderer / jpegData produced no data for the synthetic test image."
         case .cancelIgnored(let detail):
@@ -211,7 +211,7 @@ public final class CloudKitFlightCheck: DebugPrintable {
         .init(id: 9,  title: "Download blob from server (cold cache)"),
         .init(id: 10, title: "Thumbnail from server (cold cache)"),
         .init(id: 11, title: "Cancel & restart a download"),
-        .init(id: 12, title: "Delete & tombstone propagation"),
+        .init(id: 12, title: "Delete removes the record everywhere"),
     ]
 
     private let keyManager: KeyManager
@@ -668,8 +668,12 @@ public final class CloudKitFlightCheck: DebugPrintable {
         throw lastError
     }
 
-    /// Deletes the uploaded record (tombstone + purge) and verifies it disappears
-    /// from the synced index. Leaves the (now empty) album for inspection.
+    /// Deletes the uploaded record and verifies it disappears from the synced index.
+    ///
+    /// A delete is one server op that takes the record and both its assets with it;
+    /// the reconcile then proves the zone change feed reported that deletion back,
+    /// which is the same signal every other device acts on. Leaves the (now empty)
+    /// album for inspection.
     private func checkDelete() async throws -> String? {
         guard let cloud, let saved = savedMedia else {
             throw FlightCheckError.internalState("no upload to delete from step 7")
@@ -680,7 +684,7 @@ public final class CloudKitFlightCheck: DebugPrintable {
         guard !listed.contains(where: { $0.id == saved.id }) else {
             throw FlightCheckError.stillListedAfterDelete(id: saved.id)
         }
-        return "Record tombstoned and removed from the synced index"
+        return "Record deleted on the server and removed from the synced index"
     }
 
     // MARK: Helpers

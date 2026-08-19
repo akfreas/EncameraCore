@@ -256,19 +256,13 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         albumsSyncedStore?.deleteAlbum(name: album.name)
         UserDefaultUtils.set(nil, forKey: .isAlbumHidden(name: album.name))
         // CloudKit albums: also remove the discovery marker + synced index, and
-        // tombstone the `EncAlbum` record so the deletion propagates to other devices.
-        // KNOWN GAP: the tombstone only sets `deletedAt` — the record, its `EncMedia`
-        // records, and their blobs stay in the zone (`.deleteSelf` cascades only on a
-        // real record delete, which never happens here). Re-creating an album with the
-        // same name + key derives the same albumID, revives the record (`saveAlbum`
-        // clears `deletedAt`), and a fresh index + full resync then resurrects the
-        // "deleted" photos. Hard-delete/purge of the record and its media is a later
-        // chunk. `.local` albums skip this entirely. (chunk 13)
+        // delete the `EncAlbum` record so the deletion propagates to other devices
+        // and its media cascade away with it. `.local` albums skip this entirely.
         if album.storageOption == .cloudKit {
             let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
             try? fileManager.removeItem(at: marker)
             try? fileManager.removeItem(at: MediaIndexStore.indexURL(for: album))
-            tombstoneCloudKitAlbumRecord(album)
+            deleteCloudKitAlbumRecord(album)
         }
 
         albumOperationSubject.send(.albumDeleted(album: album))
@@ -297,32 +291,45 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                                          isHidden: isAlbumHidden(album),
                                          keyFingerprint: album.key.keychainLabel)
         let store = CloudKitStoreProvider.makeStore(hash)
-        Task { try? await store.saveAlbum(upload) }
+        Task {
+            guard (try? await store.saveAlbum(upload)) != nil else { return }
+            // Confirmed on the server, so a later absence means someone deleted it.
+            CloudKitAlbumPublishRegistry().markPublished(hash)
+        }
     }
 
-    /// Tombstone the album's `EncAlbum` record (cross-device delete). The durable
-    /// intent is persisted FIRST: a fire-and-forget save alone loses the delete when
-    /// the device is offline, the app is killed before the task runs, or the save
-    /// conflicts — and a live remote record with no local marker would then be
-    /// re-materialized by the album reconciler, resurrecting the "deleted" album on
-    /// this device and every other. The reconciler drains the queue and refuses to
-    /// re-materialize pending albums until the tombstone is confirmed.
+    /// Delete the album's `EncAlbum` record (cross-device delete). The durable
+    /// intent is persisted FIRST: a fire-and-forget call alone loses the delete when
+    /// the device is offline or the app is killed before the task runs — and a live
+    /// remote record with no local marker would then be re-materialized by the album
+    /// reconciler, resurrecting the "deleted" album on this device and every other.
+    /// The reconciler drains the queue and refuses to re-materialize pending albums
+    /// until the delete is confirmed.
+    ///
+    /// The record's media parent to it with `.deleteSelf`, so this reclaims their
+    /// blobs too — which the old soft delete never did, because `.deleteSelf`
+    /// cascades on a real delete only.
     ///
     /// Deliberately NOT gated on the `cloudKitStorage` feature: a `.cloudKit` album
     /// only exists from a flag-on period, and `CloudKitAlbumsSync.performSyncAll`
     /// keeps reconciling such albums with the flag off — a flag gate here would let
-    /// the reconciler resurrect a flag-off delete (no tombstone queued, record still
+    /// the reconciler resurrect a flag-off delete (nothing queued, record still
     /// live). Both paths share the same predicate: `.cloudKit` albums always sync.
-    private func tombstoneCloudKitAlbumRecord(_ album: Album) {
+    private func deleteCloudKitAlbumRecord(_ album: Album) {
         guard album.storageOption == .cloudKit,
               let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) else { return }
-        let queue = CloudKitAlbumTombstoneQueue()
+        let queue = CloudKitAlbumDeleteQueue()
         queue.enqueue(hash)
+        let publishRegistry = CloudKitAlbumPublishRegistry()
         let store = CloudKitStoreProvider.makeStore(hash)
         Task {
             do {
-                try await store.tombstoneAlbum(albumID: hash)
+                try await store.deleteAlbum(albumID: hash)
                 queue.remove(hash)
+                // Forget the publish mark too, so re-creating an album with this
+                // name later reads as a fresh create rather than as one that was
+                // published and has since vanished.
+                publishRegistry.forget(hash)
             } catch {
                 // Left queued — the album reconciler retries on its next pass.
             }
@@ -572,7 +579,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         // moments ago is included rather than silently left in the cloud. A FAILED
         // reconcile must abort: every destructive step below enumerates from the
         // local index, so a stale/empty index (fresh device, transient CloudKit
-        // error) would export nothing yet still tombstone the album — orphaning
+        // error) would export nothing yet still delete the album — orphaning
         // every un-indexed record on every device.
         guard await access.reconcile() else {
             throw AlbumError.cloudReconcileFailed
@@ -587,30 +594,33 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         // The point of no return. A cancel that arrives during the export aborts
         // cleanly here (local copies are just redundant bytes; the album is still
         // whole in CloudKit) — but past this check the cloud plane starts coming
-        // down, and aborting mid-teardown would strand tombstoned records while
+        // down, and aborting mid-teardown would strand deleted records while
         // the album still reads as CloudKit.
         try Task.checkCancellation()
 
         // Local copies are verified — now remove the cloud plane. Media first
-        // (each tombstone is awaited), then the album record. The album tombstone
-        // is ALSO awaited (not fire-and-forget like delete): the durable retry
-        // queue is device-local, so relying on it here would let a fresh install
+        // (each delete is awaited), then the album record. The album delete is ALSO
+        // awaited (not fire-and-forget like delete): the durable retry queue is
+        // device-local, so relying on it here would let a fresh install
         // rematerialize the album before this device retries.
         await onProgress?(CloudToLocalMoveProgress(phase: .removingRemoteCopy,
                                                    exportedCount: exported,
                                                    totalCount: exported))
         try await access.deleteAllMedia()
         if let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) {
-            let queue = CloudKitAlbumTombstoneQueue()
+            let queue = CloudKitAlbumDeleteQueue()
             queue.enqueue(hash)
             do {
-                try await CloudKitStoreProvider.makeStore(hash).tombstoneAlbum(albumID: hash)
+                try await CloudKitStoreProvider.makeStore(hash).deleteAlbum(albumID: hash)
                 queue.remove(hash)
+                // The record name is free again, so a later move back to iCloud is
+                // an ordinary create rather than a collision with a leftover record.
+                CloudKitAlbumPublishRegistry().forget(hash)
             } catch {
                 // Left queued — the reconciler retries from this device. The local
                 // move still completes; the worst interim state elsewhere is an
                 // empty album, never data loss.
-                printDebug("moveCloudKitAlbumToLocal album tombstone FAILED album=\(album.name) — left queued for retry raw=\(error)")
+                printDebug("moveCloudKitAlbumToLocal album delete FAILED album=\(album.name) — left queued for retry raw=\(error)")
             }
         }
 

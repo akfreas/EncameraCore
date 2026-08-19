@@ -47,7 +47,7 @@ public enum CloudKitSchema {
         public static let createdAt      = "createdAt"        // Date, QUERYABLE + SORTABLE
         public static let sizeBytes      = "sizeBytes"        // Int64
         public static let creationDevice = "creationDeviceID" // String
-        public static let deletedAt      = "deletedAt"        // Date? (tombstone)
+        public static let deletedAt      = "deletedAt"        // Date? — legacy tombstone: read to honor old records, never written
         public static let schemaVersion  = "schemaVersion"    // Int64
         public static let encThumbnail   = "encThumbnail"     // CKAsset (small, eager)
         public static let encBlob        = "encBlob"          // CKAsset (full ENC2, lazy)
@@ -84,7 +84,7 @@ public enum CloudKitSchema {
         public static let encName        = "encName"          // String (album name ciphertext)
         public static let createdAt      = "createdAt"        // Date
         public static let isHidden       = "isHidden"         // Int64 (0/1)
-        public static let deletedAt      = "deletedAt"        // Date? (tombstone)
+        public static let deletedAt      = "deletedAt"        // Date? — legacy tombstone: read to honor old records, never written
         public static let schemaVersion  = "schemaVersion"    // Int64
         /// The fingerprint of the key this album's media is encrypted under — the same
         /// value as `EncMedia.keyFingerprint`, recorded once per album so the key an

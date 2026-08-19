@@ -82,7 +82,7 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     }
 
     /// First reconcile album *existence* from CloudKit (materialize newly-discovered
-    /// albums, remove tombstoned ones, push local-only ones up), THEN reconcile each
+    /// albums, remove ones deleted elsewhere, push local-only ones up), THEN reconcile each
     /// CloudKit album's media index — so a newly materialized album is included in the
     /// same pass. Local/iCloud-Drive albums are ignored throughout. Overlapping calls
     /// coalesce into the in-flight run.

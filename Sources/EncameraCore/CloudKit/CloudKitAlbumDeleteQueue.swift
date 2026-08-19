@@ -1,21 +1,25 @@
 //
-//  CloudKitAlbumTombstoneQueue.swift
+//  CloudKitAlbumDeleteQueue.swift
 //  EncameraCore
 //
-//  Durable record of CloudKit album deletes whose `EncAlbum` tombstone has not
-//  been confirmed by the server yet. `AlbumManager.delete` enqueues BEFORE the
-//  fire-and-forget tombstone save, so a delete made offline (or killed mid-flight)
-//  survives relaunch; `CloudKitAlbumReconciler` drains the queue on every pass
-//  and, until an entry drains, refuses to re-materialize that album from its
-//  still-live remote record — otherwise the pull path would resurrect a "deleted"
-//  album on the deleting device itself.
+//  Durable record of CloudKit album deletes the server has not confirmed yet.
+//  `AlbumManager.delete` enqueues BEFORE the fire-and-forget delete, so a delete
+//  made offline (or killed mid-flight) survives relaunch;
+//  `CloudKitAlbumReconciler` drains the queue on every pass and, until an entry
+//  drains, refuses to re-materialize that album from its still-live remote record
+//  — otherwise the pull path would resurrect a "deleted" album on the deleting
+//  device itself.
+//
+//  The queue holds the local *intent*. It is unrelated to how the deletion is
+//  represented on the server: that used to be a `deletedAt` tombstone and is now
+//  a real record delete, which cascades to the album's media (chunk 14).
 //
 
 import Foundation
 
-public struct CloudKitAlbumTombstoneQueue: DebugPrintable {
+public struct CloudKitAlbumDeleteQueue: DebugPrintable {
 
-    private static let storageKey = "cloudkit_pending_album_tombstones_v1"
+    private static let storageKey = "cloudkit_pending_album_deletes_v1"
 
     /// `enqueue`/`remove` are read-modify-write over one defaults key, and the two
     /// writers run on different executors (`AlbumManager.delete` on the caller's
@@ -31,7 +35,7 @@ public struct CloudKitAlbumTombstoneQueue: DebugPrintable {
         self.defaults = defaults
     }
 
-    /// Album-id hashes with an unconfirmed tombstone.
+    /// Album-id hashes with an unconfirmed delete.
     public func pending() -> Set<String> {
         let set = Self.lock.withLock { read() }
         printDebug("pending ok count=\(set.count) albumIDs=\(set.sorted())")
@@ -56,7 +60,7 @@ public struct CloudKitAlbumTombstoneQueue: DebugPrintable {
             var set = read()
             guard set.remove(albumID) != nil else {
                 // Removing an entry that isn't there means someone confirmed a
-                // tombstone we never recorded — benign, but it hides double-drains.
+                // delete we never recorded — benign, but it hides double-drains.
                 printDebug("remove skip albumID=\(albumID) reason=notQueued pending=\(set.count)")
                 return
             }

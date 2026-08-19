@@ -37,6 +37,8 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     /// branch at all, which is how the vacuous-success bug survived.
     var fetchAllAlbumsError: Error?
     var fetchMetadataError: Error?
+    /// Fails the NEXT delete only, so a retry can be observed to succeed.
+    var deleteErrorOnce: Error?
     var uploadRefOverride: CloudKitMediaRef?
 
     // Recorded
@@ -45,14 +47,13 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var fingerprintCensusCount: Int { locked { _fingerprintCensusCount } }
     private var _fetchChangesCount = 0
     private var _registerSubscriptionCount = 0
-    private var _tombstoneCalls: [String] = []
     private var _deleteCalls: [String] = []
     private var _uploadCalls: [String] = []
     private var _uploadedItems: [CloudKitMediaUpload] = []
     var uploadedItems: [CloudKitMediaUpload] { locked { _uploadedItems } }
     /// Records this mock believes made it onto the server and are not tombstoned,
     /// keyed by record name. Written only after `upload` clears its failure
-    /// injections, and removed by `delete` / `tombstone` / `tombstoneAlbum` — so it
+    /// injections, and removed by `delete` / `deleteAlbum` — so it
     /// models the live-record set the real store's census queries. `_uploadedItems`
     /// is a log of attempts and does neither.
     private var _liveRecords: [String: CloudKitMediaUpload] = [:]
@@ -65,7 +66,6 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var fetchBlobCount: Int { locked { _fetchBlobCount } }
     var fetchChangesCount: Int { locked { _fetchChangesCount } }
     var registerSubscriptionCount: Int { locked { _registerSubscriptionCount } }
-    var tombstoneCalls: [String] { locked { _tombstoneCalls } }
     var deleteCalls: [String] { locked { _deleteCalls } }
     var uploadCalls: [String] { locked { _uploadCalls } }
 
@@ -82,8 +82,14 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     /// verify step sees what it just uploaded — modeling server truth.
     var reflectUploadsInMetadata = false
     private var _reflected: [CloudKitMediaMetadata] = []
+    /// Runs at the point CloudKit would have the bytes in flight, so a test can make
+    /// something else (a delete) land *during* an upload rather than guessing with a
+    /// sleep.
+    var onUploadStarted: (@Sendable () async -> Void)?
+
     func upload(_ item: CloudKitMediaUpload,
                 progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitMediaRef {
+        if let onUploadStarted { await onUploadStarted() }
         let blobBytes = (try? Data(contentsOf: item.encryptedFileURL)) ?? Data()
         locked {
             _uploadCalls.append(item.mediaID)
@@ -175,16 +181,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     func delete(recordName: String) async throws {
         locked { _deleteCalls.append(recordName) }
         if let deleteError { throw deleteError }
-        locked { _liveRecords[recordName] = nil }
-    }
-
-    func tombstone(recordName: String) async throws {
-        locked { _tombstoneCalls.append(recordName) }
-        // Honors `deleteError` so a per-record tombstone failure can be injected
-        // through the same seam as `delete`, which also records the call first.
-        if let deleteError { throw deleteError }
-        // A tombstoned record is no longer live, so it leaves the census — matching
-        // the real store, which filters `deletedAt != nil` client-side.
+        if let deleteErrorOnce { self.deleteErrorOnce = nil; throw deleteErrorOnce }
         locked { _liveRecords[recordName] = nil }
     }
 
@@ -192,9 +189,9 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
 
     private var _albums: [String: CloudKitAlbumMetadata] = [:]
     private var _savedAlbumCalls: [CloudKitAlbumUpload] = []
-    private var _tombstonedAlbumCalls: [String] = []
+    private var _deletedAlbumCalls: [String] = []
     var savedAlbumCalls: [CloudKitAlbumUpload] { locked { _savedAlbumCalls } }
-    var tombstonedAlbumCalls: [String] { locked { _tombstonedAlbumCalls } }
+    var deletedAlbumCalls: [String] { locked { _deletedAlbumCalls } }
     /// Seed album records as if they came from another device.
     func seedAlbum(_ album: CloudKitAlbumMetadata) { locked { _albums[album.albumID] = album } }
 
@@ -243,22 +240,16 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         }
     }
 
-    func tombstoneAlbum(albumID: String) async throws {
-        if let deleteError {
-            locked { _tombstonedAlbumCalls.append(albumID) }
-            throw deleteError
-        }
+    var deleteAlbumError: Error?
+    func deleteAlbum(albumID: String) async throws {
+        locked { _deletedAlbumCalls.append(albumID) }
+        if let deleteAlbumError { throw deleteAlbumError }
+        // The record is gone from the zone; the change feed is what tells other
+        // consumers, and tests drive that through `changeSet.deletedAlbumIDs`.
         locked {
-            _tombstonedAlbumCalls.append(albumID)
-            if let existing = _albums[albumID] {
-                _albums[albumID] = CloudKitAlbumMetadata(
-                    albumID: existing.albumID, encName: existing.encName, createdAt: existing.createdAt,
-                    isHidden: existing.isHidden, deletedAt: Date(), schemaVersion: existing.schemaVersion,
-                    keyFingerprint: existing.keyFingerprint,
-                    recordChangeTag: existing.recordChangeTag)
-            }
-            // `.deleteSelf` cascades the album tombstone to its media server-side,
-            // so those records stop being live here too.
+            _albums[albumID] = nil
+            // `.deleteSelf` cascades the album delete to its media server-side, so
+            // those records stop being live here too.
             _liveRecords = _liveRecords.filter { $0.value.albumID != albumID }
         }
     }

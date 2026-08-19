@@ -56,24 +56,24 @@ final class DestructiveOnboardingTests: XCTestCase {
 
     // MARK: - Tests
 
-    func testDeletionTombstonesAllRecords() async throws {
+    func testDeletionRemovesAllRecords() async throws {
         let store = seededStore()
         let keyManager = DestructiveSpyKeyManager()
 
         let report = try await makeCoordinator(store: store, keyManager: keyManager).run(expectedMediaCount: 3)
 
         XCTAssertTrue(report.isCompleteSuccess, "A clean run must report success")
-        XCTAssertEqual(Set(store.tombstoneCalls), ["m1", "m2", "m3"],
-                       "Every media record must be tombstoned")
-        XCTAssertEqual(store.tombstonedAlbumCalls, ["album-1"],
-                       "The album must be tombstoned")
+        XCTAssertEqual(Set(store.deleteCalls), ["m1", "m2", "m3"],
+                       "Every media record must be deleted")
+        XCTAssertEqual(store.deletedAlbumCalls, ["album-1"],
+                       "The album must be deleted")
         XCTAssertEqual(Set(report.tombstonedMedia), ["m1", "m2", "m3"])
         XCTAssertEqual(report.tombstonedAlbums, ["album-1"])
     }
 
     func testPartialDeletionFailureIsReported() async throws {
         let store = seededStore()
-        store.deleteError = CloudKitMediaStoreError.notFound   // tombstones now fail
+        store.deleteError = CloudKitMediaStoreError.notFound   // deletes now fail
         let keyManager = DestructiveSpyKeyManager()
 
         let report = try await makeCoordinator(store: store, keyManager: keyManager).run(expectedMediaCount: 3)
@@ -161,7 +161,7 @@ final class DestructiveOnboardingTests: XCTestCase {
         XCTAssertNotNil(report.enumerationFailures["albums"])
         XCTAssertFalse(report.freshKeyGenerated, "No fresh key over data we never enumerated")
         XCTAssertEqual(keyManager.generatedKeyNames, [])
-        XCTAssertEqual(store.tombstoneCalls, [], "Nothing was enumerated, so nothing may be tombstoned")
+        XCTAssertEqual(store.deleteCalls, [], "Nothing was enumerated, so nothing may be deleted")
 
         let state = try XCTUnwrap(keyManager.getMultiDeviceState())
         XCTAssertTrue(state.hasUsedEncamera,
@@ -182,7 +182,7 @@ final class DestructiveOnboardingTests: XCTestCase {
 
         XCTAssertFalse(report.isCompleteSuccess)
         XCTAssertNotNil(report.enumerationFailures["album-1"])
-        XCTAssertEqual(report.tombstonedMedia, [], "No media was enumerated, so none may be reported tombstoned")
+        XCTAssertEqual(report.tombstonedMedia, [], "No media was enumerated, so none may be reported deleted")
         XCTAssertFalse(report.freshKeyGenerated)
     }
 

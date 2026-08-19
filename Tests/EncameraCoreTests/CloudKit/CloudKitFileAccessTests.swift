@@ -244,15 +244,16 @@ final class CloudKitFileAccessTests: XCTestCase {
         ])
         try await access.delete(media: [encrypted])
 
-        // Delete tombstones first (cross-device propagation), addressing the
-        // component record — "m1#0" for the photo component.
-        XCTAssertEqual(store.tombstoneCalls, [CloudKitFileAccess.componentRecordName(mediaID: "m1", type: .photo)])
+        // The delete addresses the component record — "m1#0" for the photo
+        // component — and removes it outright; the zone change feed is what
+        // carries that to other devices.
+        XCTAssertEqual(store.deleteCalls, [CloudKitFileAccess.componentRecordName(mediaID: "m1", type: .photo)])
     }
 
     /// Deleting a photo that has NOT uploaded yet (offline, or before the drain
-    /// ran) must remove it from the album. Regression: the remote tombstone
-    /// throws `.notFound` for a record the zone has never seen, and that error
-    /// used to abort `remove` before any local cleanup ran — the queue entry and
+    /// ran) must remove it from the album. Regression: the remote call throws
+    /// `.notFound` for a record the zone has never seen, and that error used to
+    /// abort `remove` before any local cleanup ran — the queue entry and
     /// ciphertext were already gone, but the index entry survived as a permanent,
     /// unopenable ghost the user could never delete.
     func testDeletingAPendingItemRemovesItFromTheAlbum() async throws {
@@ -568,9 +569,9 @@ final class CloudKitFileAccessTests: XCTestCase {
 
     /// The delete path must NOT be gated on the `cloudKitStorage` flag:
     /// `CloudKitAlbumsSync` keeps reconciling existing `.cloudKit` albums with the
-    /// flag off, so a flag-gated delete would enqueue no tombstone and the reconciler
-    /// would resurrect the album on the very device that deleted it.
-    func testDeleteTombstonesCloudKitRecordEvenWhenFlagOff() async throws {
+    /// flag off, so a flag-gated delete would queue nothing and the reconciler would
+    /// resurrect the album on the very device that deleted it.
+    func testDeleteRemovesCloudKitAlbumRecordEvenWhenFlagOff() async throws {
         let shared = InMemoryCloudKitMediaStore()
         let prev = CloudKitStoreProvider.makeStore
         CloudKitStoreProvider.makeStore = { _ in shared }
@@ -591,17 +592,19 @@ final class CloudKitFileAccessTests: XCTestCase {
         keyManager.currentKey = album.key
         let albumManager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
         albumManager.delete(album: album)
-        defer { CloudKitAlbumTombstoneQueue().remove(hash) }
+        defer {
+            CloudKitAlbumDeleteQueue().remove(hash)
+            CloudKitAlbumPublishRegistry().forget(hash)
+        }
 
-        // The tombstone save is fire-and-forget; wait for it to land in the store.
+        // The delete is fire-and-forget; wait for it to land in the store.
         for _ in 0..<100 {
-            if let record = try await shared.fetchAllAlbums().first(where: { $0.albumID == hash }),
-               record.deletedAt != nil { break }
+            if try await shared.fetchAllAlbums().allSatisfy({ $0.albumID != hash }) { break }
             try await Task.sleep(nanoseconds: 20_000_000)
         }
-        let record = try await shared.fetchAllAlbums().first { $0.albumID == hash }
-        XCTAssertNotNil(record?.deletedAt,
-                        "Deleting a .cloudKit album with the flag off must still tombstone its EncAlbum record")
+        let remaining = try await shared.fetchAllAlbums().filter { $0.albumID == hash }
+        XCTAssertTrue(remaining.isEmpty,
+                      "Deleting a .cloudKit album with the flag off must still remove its EncAlbum record")
     }
 
     /// A `syncAll` that joins an in-flight run may have missed the fetch/reconcile
@@ -635,7 +638,8 @@ final class CloudKitFileAccessTests: XCTestCase {
             CloudKitAlbumReconciler(store: store,
                                     keyManager: manager.keyManager,
                                     albumManager: manager,
-                                    tombstoneQueue: CloudKitAlbumTombstoneQueue(defaults: defaults(forSuite: suite)))
+                                    deleteQueue: CloudKitAlbumDeleteQueue(defaults: defaults(forSuite: suite)),
+                                    publishRegistry: CloudKitAlbumPublishRegistry(defaults: defaults(forSuite: suite)))
         })
 
         let first = Task { await sync.syncAll() }

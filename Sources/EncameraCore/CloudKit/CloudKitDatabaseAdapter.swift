@@ -11,18 +11,34 @@ import Foundation
 import CloudKit
 
 /// Result of one zone-changes delta fetch.
+/// A record the zone reports as deleted.
+///
+/// The type matters as much as the name: the zone is shared between `EncMedia`
+/// and `EncAlbum`, and CloudKit hands it to us in `recordWithIDWasDeletedBlock`.
+/// Dropping it — as this adapter used to — is what forced album deletes onto a
+/// query path that has no delete channel at all, and from there onto a tombstone.
+public struct DeletedRecord: Equatable, Sendable {
+    public let recordName: String
+    public let recordType: String
+
+    public init(recordName: String, recordType: String) {
+        self.recordName = recordName
+        self.recordType = recordType
+    }
+}
+
 public struct ZoneChangesResult {
     public let changed: [CKRecord]
-    public let deletedRecordNames: [String]
+    public let deleted: [DeletedRecord]
     public let token: CKServerChangeToken?
     public let moreComing: Bool
 
     public init(changed: [CKRecord],
-                deletedRecordNames: [String],
+                deleted: [DeletedRecord],
                 token: CKServerChangeToken?,
                 moreComing: Bool) {
         self.changed = changed
-        self.deletedRecordNames = deletedRecordNames
+        self.deleted = deleted
         self.token = token
         self.moreComing = moreComing
     }
@@ -329,7 +345,7 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
             operation.qualityOfService = .userInitiated
 
             var changed: [CKRecord] = []
-            var deleted: [String] = []
+            var deleted: [DeletedRecord] = []
             var newToken: CKServerChangeToken? = token
             var moreComing = false
             var zoneError: Error?
@@ -337,8 +353,12 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
             operation.recordWasChangedBlock = { _, result in
                 if case .success(let record) = result { changed.append(record) }
             }
-            operation.recordWithIDWasDeletedBlock = { recordID, _ in
-                deleted.append(recordID.recordName)
+            // The second parameter is the deleted record's TYPE. Keeping it is what
+            // lets a caller tell an album deletion from a media one — the whole
+            // reason album deletes can live on this feed instead of needing a
+            // server-side tombstone to be visible at all.
+            operation.recordWithIDWasDeletedBlock = { recordID, recordType in
+                deleted.append(DeletedRecord(recordName: recordID.recordName, recordType: recordType))
             }
             operation.recordZoneChangeTokensUpdatedBlock = { _, serverToken, _ in
                 if let serverToken = serverToken { newToken = serverToken }
@@ -366,7 +386,7 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
                 switch result {
                 case .success:
                     continuation.resume(returning: ZoneChangesResult(changed: changed,
-                                                                      deletedRecordNames: deleted,
+                                                                      deleted: deleted,
                                                                       token: newToken,
                                                                       moreComing: moreComing))
                 case .failure(let error):
