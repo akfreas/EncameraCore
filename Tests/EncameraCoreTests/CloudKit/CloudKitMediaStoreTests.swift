@@ -304,6 +304,34 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertNil(legacy.keyFingerprint)
     }
 
+    func testFetchAllAlbumsReportsNoAlbumsWhenTheZoneIsGone() async throws {
+        let zoneKey = "cloudkit_zone_created_v1_" + CloudKitSchema.containerID
+        let defaults = freshDefaults()
+        defaults.set(true, forKey: zoneKey)
+        let mock = MockCloudKitDatabase()
+        mock.queryError = CKErrorFactory.error(.zoneNotFound)
+        let store = makeStore(adapter: mock, defaults: defaults)
+
+        let albums = try await store.fetchAllAlbums()
+
+        XCTAssertTrue(albums.isEmpty, "A missing zone is an empty enumeration, not a failure")
+        XCTAssertFalse(defaults.bool(forKey: zoneKey),
+                       "The stale zone-created flag must still be cleared, so the next write recreates the zone")
+    }
+
+    func testFetchAllAlbumsStillThrowsWhenTheQueryMerelyFailed() async throws {
+        let mock = MockCloudKitDatabase()
+        mock.queryError = CKErrorFactory.error(.requestRateLimited)
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        do {
+            _ = try await store.fetchAllAlbums()
+            XCTFail("A throttled query must not degrade to an empty album list")
+        } catch let error as CloudKitMediaStoreError {
+            guard case .retry = error else { return XCTFail("Wrong error: \(error)") }
+        }
+    }
+
     // MARK: - Lazy asset fetch
 
     func testFetchBlobCopiesOutOfTempURL() async throws {

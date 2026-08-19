@@ -200,7 +200,12 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                                                   desiredKeys: nil)
             return records.compactMap(albumMetadata(from:))
         } catch {
-            throw mapAndRecord(error)
+            let mapped = mapAndRecord(error)
+            if case .zoneNotFound = mapped {
+                printDebug("fetchAllAlbums zoneNotFound zone=\(zoneID.zoneName) container=\(CloudKitSchema.containerID) — reporting no albums; a zone that does not exist holds none")
+                return []
+            }
+            throw mapped
         }
     }
 

@@ -251,6 +251,27 @@ final class DestructiveOnboardingTests: XCTestCase {
         XCTAssertTrue(report.freshKeyGenerated)
     }
 
+    func testEraseCompletesWhenTheZoneIsGone() async throws {
+        let store = MockCloudKitMediaStore()
+        store.fingerprintCensusError = CloudKitMediaStoreError.zoneNotFound
+        let keyManager = DestructiveSpyKeyManager()
+        try keyManager.setMultiDeviceState(
+            MultiDeviceState(hasUsedEncamera: true, devices: [], keyFingerprints: ["oldfingerprint"])
+        )
+
+        let report = try await makeCoordinator(store: store, keyManager: keyManager).run(expectedMediaCount: 12)
+
+        XCTAssertTrue(report.enumerationFailures.isEmpty, "A missing zone is not an enumeration failure")
+        XCTAssertNil(report.censusShortfall,
+                     "A zone that does not exist is provably empty — nothing is left unaccounted for")
+        XCTAssertTrue(report.isCompleteSuccess)
+        XCTAssertTrue(report.freshKeyGenerated)
+
+        let state = try XCTUnwrap(keyManager.getMultiDeviceState())
+        XCTAssertFalse(state.hasUsedEncamera, "A clean run clears the marker")
+        XCTAssertEqual(state.keyFingerprints, [], "A clean run clears the fingerprints")
+    }
+
     /// An unavailable index is not a confirmation. It is the same evidence-vs-absence
     /// distinction the probe makes, applied to verifying a delete.
     func testUnverifiableCensusDoesNotForgiveAShortSweep() async throws {

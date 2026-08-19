@@ -263,7 +263,7 @@ public struct DestructiveOnboardingCoordinator {
     }
 
     /// Whether a post-sweep census can positively confirm the zone holds no live
-    /// media. Anything else — an unavailable index, a throw — is NOT a confirmation:
+    /// media. An unavailable index or an unclassified throw is NOT a confirmation:
     /// this is the same evidence-vs-absence distinction `ExistingDataProbe` makes,
     /// applied to the verification of a delete rather than the detection of data.
     private func zoneConfirmedEmpty() async -> Bool {
@@ -272,6 +272,8 @@ public struct DestructiveOnboardingCoordinator {
                 return false
             }
             return mediaCount == 0
+        } catch CloudKitMediaStoreError.zoneNotFound {
+            return true
         } catch {
             return false
         }
