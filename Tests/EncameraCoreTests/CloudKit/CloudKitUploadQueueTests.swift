@@ -115,38 +115,19 @@ final class CloudKitUploadQueueTests: XCTestCase {
 
     // MARK: - Manifest compatibility
 
-    /// `keyFingerprint` is Optional precisely so manifests written before the field
-    /// existed keep decoding. This pins that: strip the key from a persisted entry,
-    /// relaunch, and the entry must survive on the strict (not salvage) path — the
-    /// orphan sweep still runs, and the rebuilt upload carries "" (unknown).
-    func testManifestWithoutKeyFingerprintStillDecodes() async throws {
-        let seed = CloudKitUploadQueue(baseDir: baseDir)
-        let queued = try await seed.enqueue(makeUpload(mediaID: "LEGACY", keyFingerprint: "abc123"))
-
-        let manifestURL = baseDir.appendingPathComponent("queue.json")
-        var entries = try JSONSerialization.jsonObject(with: Data(contentsOf: manifestURL)) as! [[String: Any]]
-        entries[0].removeValue(forKey: "keyFingerprint")
-        try JSONSerialization.data(withJSONObject: entries).write(to: manifestURL)
-
-        let relaunched = CloudKitUploadQueue(baseDir: baseDir)
-        // Awaited into a local first: XCTUnwrap takes its expression as an
-        // autoclosure, which cannot carry an `await`.
-        let next = await relaunched.next()
-        let item = try XCTUnwrap(next, "A pre-field entry must keep decoding")
-        XCTAssertEqual(item.recordName, "LEGACY#0")
-        XCTAssertNil(item.keyFingerprint)
-        let rebuilt = await relaunched.rebuild(item, thumbURL: nil)
-        XCTAssertEqual(rebuilt.keyFingerprint, "", "A legacy entry uploads as 'unknown', exactly as it did before the field")
-
-        // The manifest counted as healthy: an unclaimed file is quarantined, which
-        // the unreadable-manifest path would refuse to do.
-        let albumDir = queued.encryptedFileURL.deletingLastPathComponent()
-        let orphan = albumDir.appendingPathComponent("orphan.photo")
-        try Data("stray".utf8).write(to: orphan)
-        await relaunched.sweep()
-        XCTAssertFalse(FileManager.default.fileExists(atPath: orphan.path),
-                       "A manifest missing only the optional field must not count as unreadable")
-        XCTAssertTrue(FileManager.default.fileExists(atPath: queued.encryptedFileURL.path))
+    /// A manifest entry written before the fingerprint was required does not decode, and
+    /// the queue drops it rather than migrating it. Nothing has ever shipped a CloudKit
+    /// build, so the only such manifests are on development devices, and an entry that
+    /// cannot say which key wrote its bytes has nothing it could legitimately publish.
+    func testManifestWithoutKeyFingerprintIsDiscarded() throws {
+        let legacy = """
+        [{"albumID":"a1","mediaID":"m1","recordName":"m1#0","mediaTypeRawValue":0,\
+        "createdAt":0,"sizeBytes":1,"fileName":"m1.encrypted","queuedAt":0,\
+        "attempts":0,"hasGivenUp":false}]
+        """
+        let decoded = try? JSONDecoder().decode([CloudKitPendingUpload].self,
+                                                from: Data(legacy.utf8))
+        XCTAssertNil(decoded, "a pre-requirement entry must not decode into a publishable upload")
     }
 
     /// The doc comment's claim on `keyFingerprint` — "carried across a relaunch so a

@@ -58,6 +58,31 @@ final class CloudKitMediaStoreTests: XCTestCase {
 
     // MARK: - Upload
 
+    /// Every record names its key. No build has ever shipped CloudKit, so an
+    /// unlabelled record is not a state the zone can legitimately be in.
+    func testUploadAlwaysWritesTheKeyFingerprint() async throws {
+        let adapter = MockCloudKitDatabase()
+        let store = makeStore(adapter: adapter, defaults: freshDefaults())
+        _ = try await store.upload(makeUpload(keyFingerprint: keyA.keychainLabel), progress: { _ in })
+
+        let record = try XCTUnwrap(adapter.savedRecordBatches.last?.first)
+        XCTAssertEqual(record[CloudKitSchema.EncMedia.keyFingerprint] as? String, keyA.keychainLabel)
+    }
+
+    func testSaveAlbumAlwaysWritesTheKeyFingerprint() async throws {
+        let adapter = MockCloudKitDatabase()
+        let store = makeStore(adapter: adapter, defaults: freshDefaults())
+        try await store.saveAlbum(CloudKitAlbumUpload(albumID: "album-hash",
+                                                      encName: "Album_x",
+                                                      createdAt: Date(),
+                                                      isHidden: false,
+                                                      keyFingerprint: keyB.keychainLabel))
+
+        let record = try XCTUnwrap(adapter.savedRecordBatches.last?.first)
+        XCTAssertEqual(record[CloudKitSchema.EncAlbum.keyFingerprint] as? String, keyB.keychainLabel)
+    }
+
+
     func testUploadBuildsRecordWithBothAssetsAndIndexFields() async throws {
         let mock = MockCloudKitDatabase()
         let store = makeStore(adapter: mock, defaults: freshDefaults())
@@ -179,17 +204,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
                           "The fixture keys must have distinct fingerprints for this to mean anything")
     }
 
-    /// An unknown key leaves the field absent rather than writing "", so an unstamped
-    /// new record reads the same as a legacy one — both mean "unknown".
-    func testUploadOmitsKeyFingerprintWhenUnknown() async throws {
-        let mock = MockCloudKitDatabase()
-        let store = makeStore(adapter: mock, defaults: freshDefaults())
-
-        _ = try await store.upload(makeUpload(keyFingerprint: ""), progress: { _ in })
-
-        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
-        XCTAssertFalse(saved.allKeys().contains(CloudKitSchema.EncMedia.keyFingerprint))
-    }
 
     /// A record written before the field existed still decodes to full metadata.
     func testRecordWithoutFingerprintFieldStillLoads() async throws {
@@ -295,20 +309,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(saved[CloudKitSchema.EncAlbum.keyFingerprint] as? String, keyA.keychainLabel)
     }
 
-    /// A caller with no fingerprint to offer must not clear one an earlier save
-    /// established — absent stays absent, present stays present.
-    func testSaveAlbumOmitsKeyFingerprintWhenUnknown() async throws {
-        let mock = MockCloudKitDatabase()
-        let store = makeStore(adapter: mock, defaults: freshDefaults())
-
-        try await store.saveAlbum(CloudKitAlbumUpload(albumID: "album-hash",
-                                                      encName: "cipher",
-                                                      createdAt: Date(timeIntervalSince1970: 100),
-                                                      isHidden: false))
-
-        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
-        XCTAssertFalse(saved.allKeys().contains(CloudKitSchema.EncAlbum.keyFingerprint))
-    }
 
     /// The album record is the one place the fingerprint survives when an album has
     /// no live media, so `fetchAllAlbums` must read it back — and a pre-field record

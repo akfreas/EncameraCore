@@ -106,9 +106,20 @@ public struct Album: Codable, Identifiable, Hashable {
     }
 
     // MARK: - Decrypt Album Name
-    public static func decryptAlbumName(_ encryptedName: String, key: PrivateKey) -> String {
-        if !encryptedName.starts(with: "Album_") {
-            return encryptedName
+
+    /// The album's real name, or nil when this key did not encrypt it.
+    ///
+    /// The lossy sibling below reports failure by handing back its own input, which
+    /// cannot be used as proof of anything: "the key was wrong" and "the name decrypted
+    /// to itself" are the same value. Key resolution needs to tell those apart, and the
+    /// secretstream pull is authenticated, so nil here carries the same weight as a
+    /// failed first-block probe on a file.
+    ///
+    /// A name without the `Album_` prefix is not ciphertext at all and yields nil — no
+    /// key encrypted it, so no key can be proven by it.
+    public static func decryptedAlbumName(_ encryptedName: String, key: PrivateKey) -> String? {
+        guard encryptedName.starts(with: "Album_") else {
+            return nil
         }
 
         let sodium = Sodium()
@@ -119,14 +130,14 @@ public struct Album: Codable, Identifiable, Hashable {
 
         guard let encryptedData = Data(base64Encoded: base64String) else {
             debugPrint("Could not decode base64 string for album with name: \(encryptedName)")
-            return encryptedName
+            return nil
         }
 
         let headerBytesCount = SecretStream.XChaCha20Poly1305.HeaderBytes
 
         guard encryptedData.count > headerBytesCount else {
             debugPrint("Not enough bytes to extract header: \(encryptedData.count) bytes found, but need at least \(headerBytesCount + 1)")
-            return encryptedName
+            return nil
         }
 
         let header = Array(encryptedData.prefix(headerBytesCount))
@@ -135,15 +146,22 @@ public struct Album: Codable, Identifiable, Hashable {
 
         guard let streamDec = sodium.secretStream.xchacha20poly1305.initPull(secretKey: key.keyBytes, header: header) else {
             debugPrint("Could not create stream with key for album with name: \(encryptedName)")
-            return encryptedName
+            return nil
         }
 
         guard let (decryptedMessage, _) = streamDec.pull(cipherText: messageBytes) else {
             debugPrint("Could not decrypt message for album with name: \(encryptedName)")
-            return encryptedName
+            return nil
         }
 
-        return String(bytes: decryptedMessage, encoding: .utf8) ?? encryptedName
+        return String(bytes: decryptedMessage, encoding: .utf8)
+    }
+
+    /// The album's name for display, falling back to the ciphertext when this key
+    /// cannot open it. Kept because callers rely on getting *something* renderable
+    /// back; anything deciding which key to use wants `decryptedAlbumName` instead.
+    public static func decryptAlbumName(_ encryptedName: String, key: PrivateKey) -> String {
+        decryptedAlbumName(encryptedName, key: key) ?? encryptedName
     }
 }
 

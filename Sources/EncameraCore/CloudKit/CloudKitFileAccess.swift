@@ -37,9 +37,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     private let album: Album
     private let albumIDHash: String
     private let keyBytes: [UInt8]
-    /// Fingerprint of the album key every record this instance writes is encrypted
-    /// under, stamped onto each upload.
-    private let keyFingerprint: String
+    /// The key library, for proving which key encrypted a blob before it is uploaded.
+    private let keyManager: KeyManager
     private let store: CloudKitMediaStoring
     private let coordinator: CloudKitSyncCoordinator
     private let directoryModel: DataStorageModel
@@ -108,7 +107,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     public init(album: Album, albumManager: AlbumManaging, store: CloudKitMediaStoring? = nil) async {
         self.album = album
         self.keyBytes = album.key.keyBytes
-        self.keyFingerprint = album.key.keychainLabel
+        self.keyManager = albumManager.keyManager
         let albumIDHash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) ?? album.id
         self.albumIDHash = albumIDHash
         let resolvedStore = store ?? CloudKitStoreProvider.makeStore(albumIDHash)
@@ -265,6 +264,11 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             printDebug("saveSingle thumbnail WARNING mediaID=\(item.id) — no preview file on disk; uploading the record without an eager thumbnail")
         }
 
+        // Must run before the queue moves the file into the holding folder: the stamp
+        // has to be part of the bytes that reach CloudKit.
+        let proven = try await CloudKitKeyStamp.stampAndProveKey(forCiphertextAt: encURL,
+                                                                 keyManager: keyManager)
+
         // 3. Describe the record that will eventually be uploaded.
         let size = (try? FileManager.default.attributesOfItem(atPath: encURL.path)[.size] as? NSNumber)?.int64Value ?? 0
         if size == 0 {
@@ -281,7 +285,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             encryptedFileURL: encURL,
             encryptedThumbURL: thumbURL,
             recordName: Self.componentRecordName(mediaID: item.id, type: item.mediaType),
-            keyFingerprint: keyFingerprint
+            keyFingerprint: proven.fingerprint
         )
         // 4. Hand the ciphertext to the durable holding folder. This MOVES the
         // file out of the album's cache directory, which lives under

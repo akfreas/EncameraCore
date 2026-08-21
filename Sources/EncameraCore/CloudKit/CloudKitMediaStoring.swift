@@ -32,9 +32,9 @@ public struct CloudKitMediaUpload: Sendable {
     public let encryptedThumbURL: URL?
     public let schemaVersion: Int64
     /// `PrivateKey.keychainLabel` of the key that produced `encryptedFileURL` —
-    /// lowercase hex of the full 16-byte fingerprint. Empty means "unknown"; the
-    /// record is then written without the field (see
-    /// `CloudKitSchema.EncMedia.keyFingerprint`).
+    /// lowercase hex of the full 16-byte fingerprint, proven against the file's own
+    /// bytes by `CloudKitKeyStamp`. Required: readers decrypt by this value without
+    /// re-deriving it, so a record that does not carry one has no business existing.
     public let keyFingerprint: String
 
     public init(albumID: String,
@@ -45,7 +45,7 @@ public struct CloudKitMediaUpload: Sendable {
                 encryptedFileURL: URL,
                 encryptedThumbURL: URL?,
                 recordName: String? = nil,
-                keyFingerprint: String = "",
+                keyFingerprint: String,
                 schemaVersion: Int64 = CloudKitSchema.currentSchemaVersion) {
         self.keyFingerprint = keyFingerprint
         self.albumID = albumID
@@ -70,6 +70,9 @@ public struct CloudKitMediaMetadata: Sendable, Equatable {
     public let sizeBytes: Int64
     public let creationDeviceID: String
     public let schemaVersion: Int64
+    /// The key this record's assets are encrypted under. This is the answer readers
+    /// use — they decrypt with the key it names rather than sweeping the library.
+    public let keyFingerprint: String
     public let recordChangeTag: String?
 
     public init(recordName: String,
@@ -80,6 +83,7 @@ public struct CloudKitMediaMetadata: Sendable, Equatable {
                 sizeBytes: Int64,
                 creationDeviceID: String,
                 schemaVersion: Int64,
+                keyFingerprint: String,
                 recordChangeTag: String?) {
         self.recordName = recordName
         self.albumID = albumID
@@ -89,6 +93,7 @@ public struct CloudKitMediaMetadata: Sendable, Equatable {
         self.sizeBytes = sizeBytes
         self.creationDeviceID = creationDeviceID
         self.schemaVersion = schemaVersion
+        self.keyFingerprint = keyFingerprint
         self.recordChangeTag = recordChangeTag
     }
 }
@@ -113,15 +118,15 @@ public struct CloudKitAlbumUpload: Sendable {
     public let createdAt: Date
     public let isHidden: Bool
     public let schemaVersion: Int64
-    /// `PrivateKey.keychainLabel` of the album's key. Empty means "unknown" and the
-    /// field is then left off the record entirely.
+    /// `PrivateKey.keychainLabel` of the album's key — the key its encrypted name is
+    /// written with, and the key a device needs to recognise this album at all.
     public let keyFingerprint: String
 
     public init(albumID: String,
                 encName: String,
                 createdAt: Date,
                 isHidden: Bool,
-                keyFingerprint: String = "",
+                keyFingerprint: String,
                 schemaVersion: Int64 = CloudKitSchema.currentSchemaVersion) {
         self.keyFingerprint = keyFingerprint
         self.albumID = albumID

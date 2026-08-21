@@ -164,7 +164,11 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
             throw CancellationError()
         }
         if let fetchBlobError { throw fetchBlobError }
-        try blobContents.write(to: destination)
+        // Serve back the bytes this record was uploaded with, so a test can read what
+        // actually made the round trip rather than a stub. Falls back to `blobContents`
+        // for records seeded without an upload.
+        let stored = locked { _uploadedBlobBytes[recordName] }
+        try (stored ?? blobContents).write(to: destination)
         progress(1.0)
     }
 

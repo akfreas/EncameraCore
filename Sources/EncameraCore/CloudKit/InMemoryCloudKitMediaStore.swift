@@ -52,7 +52,8 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
             recordName: item.recordName, albumID: item.albumID, mediaID: item.mediaID,
             mediaType: item.mediaType, createdAt: item.createdAt, sizeBytes: item.sizeBytes,
             creationDeviceID: DeviceIdentity.current,
-            schemaVersion: item.schemaVersion, recordChangeTag: tag
+            schemaVersion: item.schemaVersion, keyFingerprint: item.keyFingerprint,
+            recordChangeTag: tag
         )
         // Keyed by recordName so a Live Photo's two components don't collide.
         locked {
@@ -96,6 +97,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
                     mediaType: .photo, createdAt: Date(), sizeBytes: 1,
                     creationDeviceID: "seeded-device",
                     schemaVersion: CloudKitSchema.currentSchemaVersion,
+                    keyFingerprint: "",
                     recordChangeTag: "tag-\(recordName)"
                 )
                 records[recordName] = Stored(metadata: metadata,

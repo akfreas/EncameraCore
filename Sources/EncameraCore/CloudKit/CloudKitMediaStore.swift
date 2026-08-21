@@ -33,14 +33,18 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     private let zoneSubscriptionID = "EncameraZoneSubscription"
 
     /// Index (non-asset) fields, used as `desiredKeys` for the cheap metadata sync.
-    private static let metadataKeys: [CKRecord.FieldKey] = [
+    /// Internal rather than private so a test can assert every list names the
+    /// fingerprint: a fetch that omits it returns records the mapper cannot build, and
+    /// the media vanishes from the album rather than failing visibly.
+    static let metadataKeys: [CKRecord.FieldKey] = [
         CloudKitSchema.EncMedia.albumID,
         CloudKitSchema.EncMedia.mediaID,
         CloudKitSchema.EncMedia.mediaType,
         CloudKitSchema.EncMedia.createdAt,
         CloudKitSchema.EncMedia.sizeBytes,
         CloudKitSchema.EncMedia.creationDevice,
-        CloudKitSchema.EncMedia.schemaVersion
+        CloudKitSchema.EncMedia.schemaVersion,
+        CloudKitSchema.EncMedia.keyFingerprint
     ]
 
     /// `desiredKeys` for the zone change feed, which carries BOTH record types.
@@ -48,9 +52,10 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     /// named here or an `EncAlbum` record arrives with none of them set and is
     /// discarded as unmappable. All small scalars — never add `encBlob`, which is
     /// the whole point of the lazy-blob guarantee.
-    private static let changeFeedKeys: [CKRecord.FieldKey] = metadataKeys + [
+    static let changeFeedKeys: [CKRecord.FieldKey] = metadataKeys + [
         CloudKitSchema.EncAlbum.encName,
-        CloudKitSchema.EncAlbum.isHidden
+        CloudKitSchema.EncAlbum.isHidden,
+        CloudKitSchema.EncAlbum.keyFingerprint
     ]
 
     public init(container: CloudKitContainer = .shared,
@@ -158,11 +163,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         record[CloudKitSchema.EncMedia.sizeBytes] = item.sizeBytes as CKRecordValue
         record[CloudKitSchema.EncMedia.creationDevice] = DeviceIdentity.currentID(defaults: defaults) as CKRecordValue
         record[CloudKitSchema.EncMedia.schemaVersion] = item.schemaVersion as CKRecordValue
-        // Written only when known, so absent keeps meaning "unknown" rather than
-        // becoming an empty bucket in the fingerprint index.
-        if !item.keyFingerprint.isEmpty {
-            record[CloudKitSchema.EncMedia.keyFingerprint] = item.keyFingerprint as CKRecordValue
-        }
+        record[CloudKitSchema.EncMedia.keyFingerprint] = item.keyFingerprint as CKRecordValue
         if let thumbnailURL {
             record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: thumbnailURL)
         }
@@ -193,11 +194,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             record[CloudKitSchema.EncAlbum.createdAt] = album.createdAt as CKRecordValue
             record[CloudKitSchema.EncAlbum.isHidden] = Int64(album.isHidden ? 1 : 0) as CKRecordValue
             record[CloudKitSchema.EncAlbum.schemaVersion] = album.schemaVersion as CKRecordValue
-            // Same "only when known" rule as EncMedia, so a caller without a
-            // fingerprint does not clear one an earlier save established.
-            if !album.keyFingerprint.isEmpty {
-                record[CloudKitSchema.EncAlbum.keyFingerprint] = album.keyFingerprint as CKRecordValue
-            }
+            record[CloudKitSchema.EncAlbum.keyFingerprint] = album.keyFingerprint as CKRecordValue
             _ = try await adapter.save(records: [record],
                                        savePolicy: .ifServerRecordUnchanged,
                                        perRecordProgress: { _, _ in })
@@ -575,6 +572,10 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         let sizeBytes = (record[CloudKitSchema.EncMedia.sizeBytes] as? Int64) ?? 0
         let creationDeviceID = (record[CloudKitSchema.EncMedia.creationDevice] as? String) ?? ""
         let schemaVersion = (record[CloudKitSchema.EncMedia.schemaVersion] as? Int64) ?? CloudKitSchema.currentSchemaVersion
+        // Empty rather than nil for a record that somehow carries no fingerprint: the
+        // reader treats it as "this record names no key" and falls back, instead of the
+        // record failing to map at all and the media disappearing from the album.
+        let keyFingerprint = (record[CloudKitSchema.EncMedia.keyFingerprint] as? String) ?? ""
 
         return CloudKitMediaMetadata(recordName: record.recordID.recordName,
                                      albumID: albumID,
@@ -584,6 +585,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                                      sizeBytes: sizeBytes,
                                      creationDeviceID: creationDeviceID,
                                      schemaVersion: schemaVersion,
+                                     keyFingerprint: keyFingerprint,
                                      recordChangeTag: record.recordChangeTag)
     }
 

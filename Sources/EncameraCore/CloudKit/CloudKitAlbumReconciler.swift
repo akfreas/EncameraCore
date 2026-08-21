@@ -248,7 +248,17 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     /// under that key AND the keyed hash of the recovered name equals the record name
     /// (the album id). Pure + `internal` so it can be unit-tested directly.
     static func match(record: CloudKitAlbumMetadata, keys: [PrivateKey]) -> (name: String, key: PrivateKey)? {
-        for key in keys {
+        // The record names its own key, so try that one first and the sweep below
+        // becomes a single decrypt for every album a device can actually open. It stays
+        // an ordering hint rather than the answer: the keyed-hash check is what decides,
+        // and a record whose fingerprint names a key this device lacks still falls
+        // through to the sweep instead of being declared unopenable on the strength of a
+        // field alone.
+        let ordered = record.keyFingerprint
+            .flatMap { fingerprint in keys.first { $0.keychainLabel == fingerprint } }
+            .map { hinted in [hinted] + keys.filter { $0.keychainLabel != hinted.keychainLabel } }
+            ?? keys
+        for key in ordered {
             let name = Album.decryptAlbumName(record.encName, key: key)
             if SyncedStoreEncryptionHandler.keyedHash(name, keyBytes: key.keyBytes) == record.albumID {
                 printDebug("match hit albumID=\(record.albumID)")

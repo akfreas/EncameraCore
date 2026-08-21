@@ -39,10 +39,11 @@ public struct CloudKitPendingUpload: Codable, Sendable, Equatable {
     /// stores `relativePath`).
     public let fileName: String
     /// Fingerprint of the key this record was encrypted under, carried across a
-    /// relaunch so a retried upload still stamps `EncMedia.keyFingerprint`.
-    /// Optional because manifests written before the field existed must keep
-    /// decoding — those items upload as "unknown", exactly as they did then.
-    public let keyFingerprint: String?
+    /// relaunch so a retried upload still names the key its blob was proven against.
+    /// Required: a queued upload that cannot say which key wrote its bytes has nothing
+    /// to publish. A manifest from a build before this was required does not decode, and
+    /// is discarded rather than migrated — no shipped build ever wrote one.
+    public let keyFingerprint: String
 
     public var queuedAt: Date
     public var attempts: Int
@@ -216,7 +217,7 @@ public actor CloudKitUploadQueue: DebugPrintable {
             encryptedFileURL: fileURL(for: item),
             encryptedThumbURL: thumbURL,
             recordName: item.recordName,
-            keyFingerprint: item.keyFingerprint ?? ""
+            keyFingerprint: item.keyFingerprint
         )
     }
 

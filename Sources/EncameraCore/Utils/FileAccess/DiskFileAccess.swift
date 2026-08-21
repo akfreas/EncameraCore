@@ -772,7 +772,12 @@ extension DiskFileAccess {
             }
 
             printDebug("createPreview: Created preview for \(media.id)")
-            try await savePreview(preview: preview, sourceMedia: media)
+            // A preview inherits the key of the media it was made from, not the album's:
+            // an album can hold media under another key, and an item whose two halves are
+            // under different keys cannot be described by one fingerprint.
+            try await savePreview(preview: preview,
+                                  sourceMedia: media,
+                                  underKey: await sourceKey(of: media))
             return preview
         } catch {
             printDebug("createPreview: Error creating preview for \(media.id)")
@@ -780,6 +785,17 @@ extension DiskFileAccess {
         }
     }
 
+
+    /// The key the media at hand is encrypted with, or nil when it is cleartext — a
+    /// capture being encrypted for the first time, which is under the album key by
+    /// construction.
+    private func sourceKey<T: MediaDescribing>(of media: T) async -> PrivateKey? {
+        guard let encrypted = media as? EncryptedMedia,
+              case .url(let sourceURL) = encrypted.source else {
+            return nil
+        }
+        return try? await resolveKey(for: sourceURL, mediaID: encrypted.id).key
+    }
 
     private func decryptMediaToData(encrypted: EncryptedMedia, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
         guard keyManager != nil else {
@@ -992,8 +1008,13 @@ extension DiskFileAccess {
 
 extension DiskFileAccess {
 
-    @discardableResult public func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia {
-        guard let key = key else {
+    /// `underKey` is the key the source media is encrypted with. It defaults to the
+    /// album's key, which is correct only when the source is under that key — pass the
+    /// resolved key for anything read off disk.
+    @discardableResult public func savePreview<T: MediaDescribing>(preview: PreviewModel,
+                                                                   sourceMedia: T,
+                                                                   underKey: PrivateKey? = nil) async throws -> CleartextMedia {
+        guard let key = underKey ?? key else {
             throw FileAccessError.missingPrivateKey
         }
         let data = try JSONEncoder().encode(preview)

@@ -111,6 +111,18 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
     public private(set) var keyManager: KeyManager
 
+    /// Resolves an album's key by decrypting its name, rather than by looking a key up
+    /// under a name no key has ever carried. See `matchAlbumToKeyIfNeeded`.
+    private lazy var keyDiscovery = KeyDiscovery(keyManager: keyManager)
+
+    /// Albums found on disk whose key is not on this device, as of the last scan.
+    ///
+    /// They are deliberately absent from `fetchAlbumsFromSources` — an album cannot be
+    /// shown, counted, or written to without the key that encrypted it — but dropping
+    /// them silently would tell a user their photos are gone when the album is intact
+    /// and only its key is missing. `MissingKey.LockedAlbums` is the copy for this.
+    public private(set) var lockedAlbumCount: Int = 0
+
     /// The synced data store for album settings (optional, uses legacy UserDefaults if nil)
     private var albumsSyncedStore: AlbumsSyncedStore?
 
@@ -155,16 +167,22 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
     public func fetchAlbumsFromSources(includingHidden: Bool) -> [Album] {
         let fileManager = FileManager.default
+        // Read once for the whole scan: resolving a name is a cheap AEAD op, but
+        // `storedKeys()` is a full keychain query and this runs on every broadcast.
+        let storedKeys = (try? keyManager.storedKeys()) ?? []
+        var locked = 0
         let mapToAlbum: (URL, StorageType) -> Album? = { url, storageType in
             let directoryName = url.lastPathComponent
             let attributes = try? fileManager.attributesOfItem(atPath: url.path)
             let creationDate = attributes?[.creationDate] as? Date
 
-            if let creationDate {
-                return self.matchAlbumToKeyIfNeeded(albumName: directoryName, storageType: storageType, creationDate: creationDate)
-            } else {
-                return nil
-            }
+            guard let creationDate else { return nil }
+            let album = self.matchAlbumToKeyIfNeeded(albumName: directoryName,
+                                                     storageType: storageType,
+                                                     creationDate: creationDate,
+                                                     storedKeys: storedKeys)
+            if album == nil { locked += 1 }
+            return album
         }
 
         let localAlbums = LocalStorageModel.enumerateAlbumsDirectory()
@@ -186,6 +204,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             .compactMap { url -> Album? in
                 return mapToAlbum(url, .cloudKit)
             }
+        lockedAlbumCount = locked
         return Set(localAlbums)
             .union(Set(iCloudAlbums))
             .union(Set(cloudKitAlbums))
@@ -696,13 +715,32 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         return storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension]) ?? 0
     }
 
-    private func matchAlbumToKeyIfNeeded(albumName: String, storageType: StorageType, creationDate: Date) -> Album? {
-        let key = keyManager.keyWith(name: albumName)
-        if let key {
+    /// Builds the album a directory represents, keyed by the key that actually
+    /// encrypted it.
+    ///
+    /// The directory name IS the album's name encrypted with the album's own key, so
+    /// the key is recoverable from it by trying candidates and keeping the one that
+    /// authenticates. Names cannot identify a key here: every key is named
+    /// `encamera_default_key`.
+    ///
+    /// A locked album returns nil rather than taking the current key. `Album.key` feeds
+    /// the album's name, its identity, its media index and its CloudKit hash, so
+    /// attaching a key that cannot read it does not degrade gracefully — it produces an
+    /// album that is a different album, and writes new media under a key the rest of
+    /// its contents do not share.
+    private func matchAlbumToKeyIfNeeded(albumName: String,
+                                         storageType: StorageType,
+                                         creationDate: Date,
+                                         storedKeys: [PrivateKey]) -> Album? {
+        switch keyDiscovery.key(forEncryptedAlbumName: albumName, storedKeysSnapshot: storedKeys) {
+        case .resolved(let key):
             return Album(encryptedName: albumName, storageOption: storageType, creationDate: creationDate, key: key)
-        } else if let key = keyManager.currentKey {
+        case .notProvable:
+            // A legacy plaintext directory name, which no key encrypted. The current
+            // key is as good an answer as exists, and is what shipped.
+            guard let key = keyManager.currentKey else { return nil }
             return Album(encryptedName: albumName, storageOption: storageType, creationDate: creationDate, key: key)
-        } else {
+        case .noKnownKey:
             return nil
         }
     }

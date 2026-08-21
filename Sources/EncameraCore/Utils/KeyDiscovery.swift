@@ -62,7 +62,102 @@ public enum KeyDiscoveryOutcome: Equatable {
     case unreadable
 }
 
-public enum KeyDiscovery: DebugPrintable {
+/// Which key opens a piece of ciphertext, when the answer is not `resolved`.
+///
+/// The two failures need opposite handling. `noKnownKey` means the ciphertext is
+/// well-formed and no key in the library authenticates it — the album is LOCKED, and
+/// must not be handed the current key. `notProvable` means the input carries no
+/// authentication to test at all, so nothing was learned and the caller's existing
+/// default is as good as it gets.
+public enum KeyResolution: Equatable {
+
+    /// A key in the library authenticated the ciphertext. Definitive.
+    case resolved(PrivateKey)
+
+    /// Well-formed ciphertext that no held key opens.
+    case noKnownKey
+
+    /// Nothing here can prove a key: a legacy plaintext album name, or bytes too
+    /// short to be this format. Every key "succeeds" against such an input, so
+    /// reporting a winner would pin a meaningless one.
+    case notProvable
+}
+
+public struct KeyDiscovery: DebugPrintable {
+
+    private let keyManager: KeyManager
+
+    public init(keyManager: KeyManager) {
+        self.keyManager = keyManager
+    }
+
+    // MARK: - Resolving a key by proof
+
+    /// The primitive every affordance below is written in terms of: walk the candidate
+    /// keys and return the first that `prove` accepts.
+    ///
+    /// `prove` must be an authenticated decrypt and nothing weaker. `hint` is a
+    /// fingerprint to try first — an ordering optimization only, never the answer,
+    /// because the things that supply one (a CloudKit record field, a file's stamp
+    /// slot) are not covered by the AEAD and can be stale or rewritten. A wrong hint
+    /// costs one failed AEAD op and falls through to the rest of the library.
+    ///
+    /// `storedKeysSnapshot` lets a caller sweeping many items read the key library once
+    /// rather than once per item; `KeychainManager.storedKeys()` is a full
+    /// `SecItemCopyMatching` with `kSecReturnData` and is the expensive part here.
+    func resolveKey(hint: String?,
+                    storedKeysSnapshot: [PrivateKey]? = nil,
+                    prove: (PrivateKey) -> Bool) -> KeyResolution {
+        let storedKeys = storedKeysSnapshot ?? (try? keyManager.storedKeys()) ?? []
+
+        var candidates: [PrivateKey] = []
+        var seen = Set<String>()
+        func addCandidate(_ key: PrivateKey?) {
+            guard let key, seen.insert(key.keychainLabel).inserted else { return }
+            candidates.append(key)
+        }
+
+        if let hint {
+            addCandidate(storedKeys.first { $0.keychainLabel == hint })
+        }
+        addCandidate(keyManager.currentKey)
+        for key in storedKeys {
+            addCandidate(key)
+        }
+
+        for candidate in candidates where prove(candidate) {
+            return .resolved(candidate)
+        }
+        return .noKnownKey
+    }
+
+    /// The key that encrypted an album's directory name.
+    ///
+    /// A name without the `Album_` prefix predates name encryption and is returned
+    /// verbatim by every key, so it proves nothing and reports `.notProvable`.
+    public func key(forEncryptedAlbumName encryptedName: String,
+                    hint: String? = nil,
+                    storedKeysSnapshot: [PrivateKey]? = nil) -> KeyResolution {
+        guard encryptedName.hasPrefix("Album_") else {
+            return .notProvable
+        }
+        return resolveKey(hint: hint, storedKeysSnapshot: storedKeysSnapshot) { candidate in
+            Album.decryptedAlbumName(encryptedName, key: candidate) != nil
+        }
+    }
+
+    /// The key that encrypted a stream blob — the shape `MediaIndexStore` writes.
+    public func key(forCiphertextBlob blob: Data,
+                    hint: String? = nil,
+                    storedKeysSnapshot: [PrivateKey]? = nil) -> KeyResolution {
+        guard blob.count > EncryptedFileFormat.streamHeaderSize else {
+            return .notProvable
+        }
+        return resolveKey(hint: hint, storedKeysSnapshot: storedKeysSnapshot) { candidate in
+            (try? MediaIndexStore.decrypt(blob, keyBytes: candidate.keyBytes)) != nil
+        }
+    }
+
 
     /// Resolves the key that encrypted the file at `sourceURL`, or nil when no
     /// stored key decrypts it. Never throws; performs no writes (no stamping,

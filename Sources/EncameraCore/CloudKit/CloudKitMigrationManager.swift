@@ -459,6 +459,10 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         // Read once per run so changing the setting mid-migration can't produce a
         // ragged mix of batch sizes that is impossible to reason about afterwards.
         let batchSize = ICloudDriveMigrationBatchSize.current
+        // The key library, read once for the whole album rather than per item: proving
+        // an item's key is a bounded local read plus one AEAD op, but the keychain query
+        // behind it is a full `SecItemCopyMatching` with `kSecReturnData`.
+        let storedKeys = (try? albumManager.keyManager.storedKeys()) ?? []
         /// Exclusive upper bound of the item indices already materialized. Only
         /// meaningful for an `.icloud` source; a local album needs no download step,
         /// so its loop is byte-for-byte what it was before batching existed.
@@ -507,7 +511,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                       coordinator: coordinator,
                                       sourceModel: sourceModel,
                                       albumIDHash: albumIDHash,
-                                      keyFingerprint: album.key.keychainLabel)
+                                      storedKeys: storedKeys)
                 // The stale-verification recovery resets a `verified` item to
                 // `pending` and returns — the only way an item comes back
                 // `pending`. The single-pass loop would then end the run as a
@@ -522,7 +526,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                           coordinator: coordinator,
                                           sourceModel: sourceModel,
                                           albumIDHash: albumIDHash,
-                                          keyFingerprint: album.key.keychainLabel)
+                                          storedKeys: storedKeys)
                     if plan.items[index].state == .pending {
                         markFailed(&plan, index,
                                    MigrationError.verificationFailed(recordName: plan.items[index].recordName))
@@ -834,7 +838,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                              coordinator: CloudKitSyncCoordinator,
                              sourceModel: DataStorageModel?,
                              albumIDHash: String,
-                             keyFingerprint: String) async throws {
+                             storedKeys: [PrivateKey]) async throws {
         let item = plan.items[index]
         let encURL = sourceModel?.driveURLForMedia(withID: item.mediaID, type: item.mediaType)
         let previewURL = sourceModel?.previewURLForMedia(withID: item.mediaID)
@@ -890,10 +894,31 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                 return
             }
 
+            // Which key encrypted THIS file, proven against its own bytes. An album can
+            // hold a file written under another key, so the album's key is an assumption
+            // and the record's `keyFingerprint` is what readers decrypt by — a wrong one
+            // publishes a blob nobody can open. A file whose key is not on this device
+            // fails here and never uploads: a record naming a guessed key is worse than
+            // no record, and the local original is the only copy left.
+            let proven: CloudKitKeyStamp.StampedSource
+            do {
+                proven = try await CloudKitKeyStamp.stampedSourceForUpload(at: encURL,
+                                                                           keyManager: albumManager.keyManager,
+                                                                           storedKeysSnapshot: storedKeys)
+            } catch {
+                printDebug("item FAILED recordName=\(item.recordName) — key not established: \(error)")
+                plan.items[index].state = .failed
+                plan.items[index].lastError = (error as? ErrorDescribable)?.displayDescription
+                    ?? "could not establish which key encrypted this file"
+                try await planStore.save(plan)
+                return
+            }
+
             plan.items[index].state = .uploading
             plan.items[index].lastError = nil
             try await planStore.save(plan)
 
+            defer { proven.cleanUp() }
             let thumbURL = previewURL.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
             let upload = CloudKitMediaUpload(
                 albumID: albumIDHash,
@@ -901,10 +926,10 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                 mediaType: item.mediaType,
                 createdAt: item.createdAt,
                 sizeBytes: item.sizeBytes,
-                encryptedFileURL: encURL,
+                encryptedFileURL: proven.uploadURL,
                 encryptedThumbURL: thumbURL,
                 recordName: item.recordName,
-                keyFingerprint: keyFingerprint
+                keyFingerprint: proven.fingerprint
             )
             setPhase(.uploading, plan: plan, currentItemName: item.mediaID)
             do {
