@@ -101,15 +101,26 @@ final class KeyResolutionTests: XCTestCase {
                        "The hint named C but only B decrypts; the decrypt has to decide")
     }
 
-    func testCorrectHintResolves() {
+    /// The hint's entire contract is ordering: the hinted key is tried FIRST. Asserting
+    /// only on the winner cannot see that, because the sweep finds the one key that
+    /// decrypts whether or not the hint was consulted — so the assertion is on the order
+    /// of attempts, which changes the moment the hint is ignored.
+    func testCorrectHintIsTriedFirst() {
         let ciphertext = encryptedName("Holiday", key: keyC)
         let resolver = discovery(keys: [keyA, keyB, keyC], current: keyA)
 
-        guard case .resolved(let key) = resolver.key(forEncryptedAlbumName: ciphertext,
-                                                     hint: keyC.keychainLabel) else {
+        var attempted: [String] = []
+        let resolution = resolver.resolveKey(hint: keyC.keychainLabel) { candidate in
+            attempted.append(candidate.keychainLabel)
+            return Album.decryptedAlbumName(ciphertext, key: candidate) != nil
+        }
+
+        guard case .resolved(let key) = resolution else {
             return XCTFail("The hinted key does decrypt this name")
         }
         XCTAssertEqual(key.keychainLabel, keyC.keychainLabel)
+        XCTAssertEqual(attempted.first, keyC.keychainLabel,
+                       "The hinted key must be the first candidate proved; attempts were \(attempted)")
     }
 
     // MARK: - Non-lossy album-name decryption

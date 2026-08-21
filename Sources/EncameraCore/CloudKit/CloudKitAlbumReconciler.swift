@@ -173,11 +173,17 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                 continue
             }
 
+            guard let albumFingerprint = CloudKitKeyStamp.provenAlbumFingerprint(for: album,
+                                                                                 keyManager: keyManager,
+                                                                                 storedKeysSnapshot: keys) else {
+                printDebug("reconcileAlbums push skip albumID=\(hash) reason=noKeyDecryptsTheName")
+                continue
+            }
             let upload = CloudKitAlbumUpload(albumID: hash,
                                              encName: album.encryptedPathComponent,
                                              createdAt: album.creationDate,
                                              isHidden: albumManager.isAlbumHidden(album),
-                                             keyFingerprint: album.key.keychainLabel)
+                                             keyFingerprint: albumFingerprint)
             printDebug("reconcileAlbums push start albumID=\(hash) isHidden=\(upload.isHidden)")
             do {
                 try await store.saveAlbum(upload)

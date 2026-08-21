@@ -407,11 +407,21 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
     /// An album record's fingerprint has to name the key that decrypts the album's own
     /// name, which is what a receiving device matches on. The album key is proven by
     /// that decryption, so this asserts the provenance rather than assuming it.
+    /// A receiving device recognises an album by decrypting `encName`, so the record must
+    /// name the key that opens it — not whichever key the local album object happens to
+    /// carry. The fixture separates the two deliberately: `album.key` is A while the
+    /// stored ciphertext name was written under B, so an implementation that copies
+    /// `album.key.keychainLabel` records A and publishes a record no device can match.
     func testAlbumRecordNamesTheKeyThatDecryptsItsName() async throws {
-        // The album is under A while the user's current key is B.
-        let album = migratableAlbum(key: keyA)
+        let realName = "ckfp-\(UUID().uuidString.prefix(8))"
+        let underB = Album(name: realName, storageOption: .local, creationDate: Date(), key: keyB)
+        let album = Album(encryptedName: underB.encryptedPathComponent,
+                          storageOption: .local,
+                          creationDate: Date(),
+                          key: keyA)
+
         let keyManager = DemoKeyManager(keys: [keyA, keyB])
-        keyManager.currentKey = keyB
+        keyManager.currentKey = keyA
         let albumManager = MockAlbumManager(keyManager: keyManager)
         let store = MockCloudKitMediaStore()
         let manager = CloudKitMigrationManager(albumManager: albumManager, storeFactory: { _ in store })
@@ -422,9 +432,9 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
         await manager.start(album: album)
 
         let saved = try XCTUnwrap(store.savedAlbumCalls.first)
-        XCTAssertEqual(saved.keyFingerprint, keyA.keychainLabel,
-                       "the album's name is encrypted with A, so the record must name A")
-        XCTAssertEqual(Album.decryptedAlbumName(saved.encName, key: keyA), album.name,
+        XCTAssertEqual(saved.keyFingerprint, keyB.keychainLabel,
+                       "the stored name is encrypted with B, so the record must name B")
+        XCTAssertEqual(Album.decryptedAlbumName(saved.encName, key: keyB), realName,
                        "and that fingerprint must be the key that actually opens the name")
     }
 

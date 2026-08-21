@@ -60,6 +60,37 @@ public enum CloudKitKeyStamp: DebugPrintable {
         }
     }
 
+    /// The fingerprint an `EncAlbum` record must carry: the key that decrypts the
+    /// album's own encrypted name.
+    ///
+    /// A receiving device recognises an album by decrypting `encName`, so the record has
+    /// to name the key that actually opens it. `album.key` is what the local album layer
+    /// resolved, which is the same key in every ordinary case — but it is the writer's
+    /// assumption, and this is the write boundary, so it is proven here for the same
+    /// reason a media blob's key is.
+    ///
+    /// An album whose name predates name encryption has nothing to prove a key with, and
+    /// keeps the album's own key. Nil means a held key was required and none opened the
+    /// name: publish nothing, because a record naming a key that cannot decrypt its own
+    /// `encName` is unmatchable on every device that receives it.
+    public static func provenAlbumFingerprint(for album: Album,
+                                              keyManager: KeyManager,
+                                              storedKeysSnapshot: [PrivateKey]? = nil) -> String? {
+        let resolution = KeyDiscovery(keyManager: keyManager)
+            .key(forEncryptedAlbumName: album.encryptedPathComponent,
+                 hint: album.key.keychainLabel,
+                 storedKeysSnapshot: storedKeysSnapshot)
+        switch resolution {
+        case .resolved(let key):
+            return key.keychainLabel
+        case .notProvable:
+            return album.key.keychainLabel
+        case .noKnownKey:
+            printDebug("provenAlbumFingerprint: no held key decrypts this album's name; not publishing a record for it")
+            return nil
+        }
+    }
+
     /// The key that encrypted `url`, proven by authenticating its first ciphertext block.
     ///
     /// `storedKeysSnapshot` lets a caller migrating a whole album read the key library

@@ -303,12 +303,14 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     private func pushCloudKitAlbumRecord(_ album: Album) {
         guard FeatureToggle.isEnabled(feature: .cloudKitStorage),
               album.storageOption == .cloudKit,
-              let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) else { return }
+              let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes),
+              let albumFingerprint = CloudKitKeyStamp.provenAlbumFingerprint(for: album,
+                                                                            keyManager: keyManager) else { return }
         let upload = CloudKitAlbumUpload(albumID: hash,
                                          encName: album.encryptedPathComponent,
                                          createdAt: album.creationDate,
                                          isHidden: isAlbumHidden(album),
-                                         keyFingerprint: album.key.keychainLabel)
+                                         keyFingerprint: albumFingerprint)
         let store = CloudKitStoreProvider.makeStore(hash)
         Task {
             guard (try? await store.saveAlbum(upload)) != nil else { return }

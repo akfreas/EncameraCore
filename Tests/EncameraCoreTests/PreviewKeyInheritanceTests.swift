@@ -13,6 +13,11 @@
 //  Holding the invariant here keeps that true by construction, so nothing downstream
 //  has to check it.
 //
+//  Only the divergent case is covered, and deliberately: when a file is under its own
+//  album's key there is no key to distinguish, so a preview written with the album key
+//  and one written with the source key are the same bytes, and no assertion over that
+//  fixture can tell a correct implementation from a broken one.
+//
 
 import XCTest
 import UIKit
@@ -88,27 +93,4 @@ final class PreviewKeyInheritanceTests: XCTestCase {
                           + "divergent pair in the first place")
     }
 
-    /// The ordinary case must not regress: media under the album's own key still yields a
-    /// preview under that key.
-    func testPreviewOfAlbumKeyedMediaStaysUnderTheAlbumKey() async throws {
-        let model = album.storageOption.modelForType.init(album: album)
-        let encURL = model.driveURLForMedia(withID: mediaID, type: .photo)
-        let source = CleartextMedia(source: .data(tinyPNG()), mediaType: .photo, id: mediaID)
-        _ = try await SecretFileHandlerV2(keyBytes: albumKey.keyBytes,
-                                          source: source,
-                                          targetURL: encURL).encryptWithMetadata(EncryptedFileMetadata())
-
-        let keyManager = DemoKeyManager(keys: [albumKey, mediaKey])
-        keyManager.currentKey = albumKey
-        let access = DiskFileAccess()
-        await access.configure(for: album, albumManager: AlbumManager(keyManager: keyManager))
-
-        _ = try await access.createPreview(for: EncryptedMedia(source: .url(encURL),
-                                                               mediaType: .photo,
-                                                               id: mediaID))
-
-        let previewURL = model.previewURLForMedia(withID: mediaID)
-        let underAlbumKey = await KeyDiscovery.proveFirstBlock(of: previewURL, with: albumKey)
-        XCTAssertEqual(underAlbumKey, .proved)
-    }
 }

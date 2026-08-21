@@ -407,13 +407,19 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         // reconciler had not yet pushed failed EVERY item with a reference
         // violation. `saveAlbum` is idempotent, so doing it here is safe even when
         // the reconciler already got there first.
+        guard let albumFingerprint = CloudKitKeyStamp.provenAlbumFingerprint(for: album,
+                                                                             keyManager: albumManager.keyManager) else {
+            printDebug("run ABORT albumID=\(albumIDHash) — no held key decrypts this album's name")
+            state = .failed(.other("This album's key is not on this device."))
+            return
+        }
         do {
             try await store.saveAlbum(CloudKitAlbumUpload(
                 albumID: albumIDHash,
                 encName: album.encryptedPathComponent,
                 createdAt: album.creationDate,
                 isHidden: albumManager.isAlbumHidden(album),
-                keyFingerprint: album.key.keychainLabel
+                keyFingerprint: albumFingerprint
             ))
             printDebug("run album record ready albumID=\(albumIDHash)")
         } catch {
