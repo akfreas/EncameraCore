@@ -124,7 +124,16 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         return uploadRefOverride ?? CloudKitMediaRef(recordName: item.recordName, recordChangeTag: "tag-upload")
     }
 
+    /// Every `fetchMetadata` call, so a test can prove a backfill ran once and never
+    /// asked for an asset key.
+    private var _fetchMetadataCalls: [(albumID: String, includeThumbnail: Bool)] = []
+    var fetchMetadataCalls: [(albumID: String, includeThumbnail: Bool)] { locked { _fetchMetadataCalls } }
+    /// Stalls the fetch so a test can cancel a backfill genuinely mid-flight.
+    var fetchMetadataDelayNanos: UInt64 = 0
+
     func fetchMetadata(albumID: String, includeThumbnail: Bool) async throws -> [CloudKitMediaMetadata] {
+        locked { _fetchMetadataCalls.append((albumID, includeThumbnail)) }
+        if fetchMetadataDelayNanos > 0 { try await Task.sleep(nanoseconds: fetchMetadataDelayNanos) }
         if let fetchMetadataError { throw fetchMetadataError }
         return locked { metadataToReturn + (reflectUploadsInMetadata ? _reflected : []) }
     }

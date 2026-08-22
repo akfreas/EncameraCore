@@ -54,7 +54,15 @@ final class MockAlbumManager: AlbumManaging {
     func resetAlbumCover(album: Album) {}
     func getAlbumCoverImageId(album: Album) -> String? { nil }
     func isAlbumCoverImageDisabled(album: Album) -> Bool { false }
-    func fetchAlbumsFromSources(includingHidden: Bool) -> [Album] { albumsOnDisk }
+    /// Albums returned only when the caller asks for hidden ones, so a test can prove
+    /// a reader passes `includingHidden: true` rather than trusting it does.
+    var hiddenAlbumsOnDisk: [Album] = []
+    private(set) var fetchIncludingHiddenCalls: [Bool] = []
+
+    func fetchAlbumsFromSources(includingHidden: Bool) -> [Album] {
+        fetchIncludingHiddenCalls.append(includingHidden)
+        return includingHidden ? albumsOnDisk + hiddenAlbumsOnDisk : albumsOnDisk
+    }
     func restoreCurrentAlbumFromUserDefaults() {}
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album {
         Album(name: name, storageOption: storageOption, creationDate: Date(), key: keyManager.currentKey!)

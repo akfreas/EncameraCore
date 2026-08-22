@@ -115,6 +115,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         self.directoryModel = CloudKitStorageModel(album: album)
         let index = MediaIndexStore(album: album)
         self.indexStore = index
+        let sizeSidecar = AlbumSizeSidecar(album: album)
         if store != nil {
             // Explicit store (tests): own coordinator + fresh cache + a throwaway
             // upload queue in a temp directory, so a test never writes into (or
@@ -133,6 +134,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                                         store: resolvedStore,
                                         cache: CloudKitBlobCache(),
                                         indexStore: index,
+                                        sizeSidecar: sizeSidecar,
                                         uploadQueue: isolatedQueue)
             }
             self.uploader = CloudKitUploader(queue: isolatedQueue, registry: isolatedRegistry)
@@ -146,6 +148,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                                         store: resolvedStore,
                                         cache: CloudKitBlobCache.shared,
                                         indexStore: index,
+                                        sizeSidecar: sizeSidecar,
                                         uploadQueue: .shared)
             }
         }

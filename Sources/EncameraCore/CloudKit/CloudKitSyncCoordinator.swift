@@ -94,6 +94,11 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     private let store: CloudKitMediaStoring
     private let cache: CloudKitBlobCache
     private let indexStore: MediaIndexStore
+    /// Per-record CloudKit byte sizes for this album, captured from metadata that
+    /// already flows through sync. Optional because a coordinator built without an
+    /// `Album` (tests, isolated fixtures) has nowhere to put one; every write below
+    /// is a no-op then.
+    private let sizeSidecar: AlbumSizeSidecar?
     private let bus: FileOperationBus
     /// Captures written to this device but not yet in CloudKit. Consulted before
     /// the cache on every read, so a just-taken photo opens immediately.
@@ -145,10 +150,26 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         }
     }
 
+    /// Writes captured record sizes to the album's size sidecar.
+    ///
+    /// Never throws: the sidecar answers a Settings screen, and a failure to write
+    /// it must not fail a sync or hold up a change-token commit. The album goes on
+    /// reporting a stale cloud figure until the next sync or a backfill.
+    private func persistSizes(updates: [String: Int64], removals: Set<String>) async {
+        guard let sizeSidecar, !updates.isEmpty || !removals.isEmpty else { return }
+        do {
+            try await sizeSidecar.apply(updates: updates, removals: removals)
+            printDebug("sizeSidecar ok albumID=\(self.albumID) updated=\(updates.count) removed=\(removals.count)")
+        } catch {
+            printDebug("sizeSidecar FAILED albumID=\(self.albumID) updated=\(updates.count) removed=\(removals.count) — cloud size will read stale raw=\(error)")
+        }
+    }
+
     public init(albumID: String,
                 store: CloudKitMediaStoring,
                 cache: CloudKitBlobCache,
                 indexStore: MediaIndexStore,
+                sizeSidecar: AlbumSizeSidecar? = nil,
                 bus: FileOperationBus = .shared,
                 uploadQueue: CloudKitUploadQueue = .shared,
                 deleteQueue: CloudKitMediaDeleteQueue = CloudKitMediaDeleteQueue()) {
@@ -156,6 +177,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         self.store = store
         self.cache = cache
         self.indexStore = indexStore
+        self.sizeSidecar = sizeSidecar
         self.bus = bus
         self.uploadQueue = uploadQueue
         self.deleteQueue = deleteQueue
@@ -252,7 +274,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     private func reap(from entries: inout [MediaIndexEntry],
                       seen: Set<MediaComponent>,
                       pendingDeletes: inout [EncryptedMedia],
-                      pendingCreates: inout [EncryptedMedia]) async {
+                      pendingCreates: inout [EncryptedMedia],
+                      sizeRemovals: inout Set<String>) async {
         let pendingUpload = Set(await uploadQueue.all().map {
             MediaComponent(mediaID: $0.mediaID, mediaType: $0.mediaType)
         })
@@ -275,6 +298,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 let entryRemoved = entries.removeComponent(recordName: recordName)
                 deletedRecordNames.insert(recordName)
                 changeTags[recordName] = nil
+                sizeRemovals.insert(recordName)
                 await cache.evict(recordName: recordName)
                 if entryRemoved { removeLocalPreview(mediaID: component.mediaID) }
                 let media = Self.media(forRecordName: component.mediaID,
@@ -307,6 +331,10 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         // so a save failure + retry can't fire duplicate refreshes for unpersisted items.
         var pendingCreates: [EncryptedMedia] = []
         var pendingDeletes: [EncryptedMedia] = []
+        // Record sizes seen this pass, applied to the sidecar in one write once the
+        // index is durably saved.
+        var sizeUpdates: [String: Int64] = [:]
+        var sizeRemovals: Set<String> = []
 
         // Drain the whole delta, not just the first page (the store advances its
         // persisted token each call, so passing nil continues from where it left off).
@@ -365,6 +393,10 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
                 if let tag = meta.recordChangeTag { changeTags[meta.recordName] = tag }
                 deletedRecordNames.remove(meta.recordName)
+                // Recorded even when the index entry is unchanged: a re-sync is how a
+                // sidecar that fell behind the index catches back up.
+                sizeUpdates[meta.recordName] = meta.sizeBytes
+                sizeRemovals.remove(meta.recordName)
                 seen.insert(MediaComponent(mediaID: meta.mediaID, mediaType: meta.mediaType))
                 // The shared `upsert` appends a new item or merges a Live Photo's
                 // second component into the existing entry, and reports whether the
@@ -405,6 +437,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 let entryRemoved = entries.removeComponent(recordName: recordName)
                 deletedRecordNames.insert(recordName)
                 changeTags[recordName] = nil
+                sizeUpdates[recordName] = nil
+                sizeRemovals.insert(recordName)
                 if entryRemoved { removeLocalPreview(mediaID: mediaID) }
                 // The deletion payload carries no fields, but the record name encodes
                 // the component type — so a hard delete still emits a well-typed bus
@@ -429,7 +463,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             await reap(from: &entries,
                        seen: seen,
                        pendingDeletes: &pendingDeletes,
-                       pendingCreates: &pendingCreates)
+                       pendingCreates: &pendingCreates,
+                       sizeRemovals: &sizeRemovals)
         } else if startedWithoutToken {
             printDebug("reap skip albumID=\(self.albumID) reason=snapshotNotAcknowledged — the full fetch returned no cursor, so absence cannot be read as deletion")
         }
@@ -444,6 +479,11 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             printDebug("performSync indexSave FAILED albumID=\(self.albumID) entries=\(entries.count) pendingCreates=\(pendingCreates.count) pendingDeletes=\(pendingDeletes.count) raw=\(error)")
             throw error
         }
+
+        // Alongside the index save, and deliberately after it: the sidecar is a
+        // derived cache, so a failure here is logged and the sync carries on rather
+        // than blocking the change-token commit.
+        await persistSizes(updates: sizeUpdates, removals: sizeRemovals)
 
         // The index is durably saved — now it is safe to notify the gallery.
         for media in pendingCreates { bus.didCreate(media) }
@@ -788,6 +828,9 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             printDebug("upload indexUpsert FAILED recordName=\(ref.recordName) mediaID=\(item.mediaID) — record is in CloudKit but not in the local index raw=\(error)")
             throw error
         }
+        // Counted from here, not from `registerLocally`: the sidecar measures bytes
+        // that exist in CloudKit, and until the save above returned they did not.
+        await persistSizes(updates: [ref.recordName: item.sizeBytes], removals: [])
         printDebug("upload ok recordName=\(ref.recordName) changeTag=\(ref.recordChangeTag ?? "nil")")
         if !alreadyVisibleLocally {
             // Surface the new item on the same bus the gallery already listens to.
@@ -851,6 +894,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             throw error
         }
         if entryRemoved { removeLocalPreview(mediaID: MediaRecordName.mediaID(from: recordName)) }
+        await persistSizes(updates: [:], removals: [recordName])
         printDebug("remove ok recordName=\(recordName) entryRemoved=\(entryRemoved) stillQueued=\(deleteQueue.pending().count)")
 
         emitDeletion(mediaID: MediaRecordName.mediaID(from: recordName), entryRemoved: entryRemoved)

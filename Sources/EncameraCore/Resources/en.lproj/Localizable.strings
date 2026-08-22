@@ -1275,3 +1275,37 @@
 "MissingKey.CouldNotVerify" = "This key phrase couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.";
 "MissingKey.AlreadyHaveKey" = "You already have that key on this device.";
 "MissingKey.Added" = "Key added. Your media should open now.";
+
+/* ./Encamera/Settings/StorageInsightsView.swift - Storage Insights screen */
+"StorageInsights.Title" = "Storage";
+"StorageInsights.SettingsRow" = "Storage";
+"StorageInsights.FeatureTitle" = "Storage Insights";
+"StorageInsights.FeatureDescription" = "Show a Settings screen breaking down how much space Encamera's media takes on this device and in iCloud, with an action that frees the re-downloadable cache";
+"StorageInsights.OnThisDevice" = "On this device";
+"StorageInsights.Measuring" = "Measuring…";
+"StorageInsights.CanBeFreed" = "%@ can be freed";
+"StorageInsights.NothingToFree" = "Nothing to free up";
+"StorageInsights.LocalMedia" = "Photos & videos on this device";
+"StorageInsights.CachedCloud" = "Downloaded from iCloud";
+"StorageInsights.Thumbnails" = "Previews";
+"StorageInsights.Indexes" = "Album indexes";
+"StorageInsights.Reclaimable" = "Can be freed";
+"StorageInsights.InICloud" = "In iCloud";
+"StorageInsights.ICloudUnavailable" = "Unavailable";
+"StorageInsights.ICloudUnavailableCaption" = "Sign in to iCloud to see how much is stored there.";
+"StorageInsights.EmptyTitle" = "Nothing stored on this device yet";
+"StorageInsights.EmptySubtitle" = "Photos you take or import will show up here.";
+"StorageInsights.ErrorTitle" = "Couldn't measure storage";
+"StorageInsights.Retry" = "Try again";
+"StorageInsights.LegacyFootnote" = "%d legacy iCloud Drive album(s) are managed by iOS and aren't included here.";
+
+/* ./Encamera/Settings/StorageInsightsView.swift - Free up space action */
+"StorageInsights.FreeUpSpace" = "Free up space";
+"StorageInsights.FreeUpSpaceTitle" = "Free up %@?";
+"StorageInsights.FreeUpSpaceMessage" = "This removes downloaded copies of media that is also stored in iCloud, along with previews and album indexes. None of your photos or videos are deleted — anything you open next will download again from iCloud.";
+"StorageInsights.FreeUpSpaceConfirm" = "Free up space";
+"StorageInsights.Freeing" = "Freeing up space…";
+"StorageInsights.FreedTitle" = "Space freed";
+"StorageInsights.FreedMessage" = "%@ is now available. Your photos and videos are untouched.";
+"StorageInsights.FreeUpSpaceFailedTitle" = "Couldn't free up space";
+"StorageInsights.FreeUpSpaceFailedMessage" = "Some cached files could not be removed. Nothing was deleted from your photos or videos.";

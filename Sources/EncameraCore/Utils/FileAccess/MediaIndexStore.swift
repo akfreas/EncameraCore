@@ -198,7 +198,7 @@ public actor MediaIndexStore {
 
     /// `~/Library/Application Support/MediaIndex/` — a local, never-synced
     /// directory holding the derived index cache.
-    static func indexDirectoryURL() -> URL {
+    public static func indexDirectoryURL() -> URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         return base.appendingPathComponent("MediaIndex", isDirectory: true)

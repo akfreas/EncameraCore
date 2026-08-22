@@ -447,7 +447,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             albumID: albumIDHash,
             store: store,
             cache: CloudKitBlobCache.shared,
-            indexStore: MediaIndexStore(album: target)
+            indexStore: MediaIndexStore(album: target),
+            sizeSidecar: AlbumSizeSidecar(album: target)
         )
         let planStore = MigrationPlanStore(album: album)
         let sourceModel = albumManager.storageModel(for: album)

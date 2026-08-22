@@ -99,4 +99,127 @@ final class CloudKitBlobCacheTests: XCTestCase {
         let third = await cache.cachedURL(recordName: "third", changeTag: nil)
         XCTAssertNotNil(third)
     }
+
+    // MARK: - Disk truth
+
+    /// The cache directory as an outside observer sees it, so a test never grades
+    /// the cache against its own bookkeeping.
+    private func measureCacheDirectory() throws -> (logical: Int64, files: Int) {
+        let root = tempRoot.appendingPathComponent("cache", isDirectory: true)
+        guard let enumerator = FileManager.default.enumerator(at: root,
+                                                              includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey]) else {
+            return (0, 0)
+        }
+        var bytes: Int64 = 0
+        var count = 0
+        for case let url as URL in enumerator {
+            let values = try url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+            guard values.isRegularFile == true, url.lastPathComponent != ".cacheindex.json" else { continue }
+            bytes += Int64(values.fileSize ?? 0)
+            count += 1
+        }
+        return (bytes, count)
+    }
+
+    /// Writes a blob into an album folder without going through the actor — the
+    /// on-disk shape a failed eviction leaves behind.
+    @discardableResult
+    private func plantOrphan(albumID: String, recordName: String, bytes: Int) throws -> URL {
+        let folder = tempRoot.appendingPathComponent("cache", isDirectory: true)
+            .appendingPathComponent(CloudKitBlobCache.albumFolderName(albumID), isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appendingPathComponent(recordName)
+        try Data(repeating: 0xCD, count: bytes).write(to: url)
+        return url
+    }
+
+    /// The exact gap that makes a storage screen lie: bytes on disk that the
+    /// in-memory index does not know about.
+    func testDiskBytesCountsFilesMissingFromTheIndex() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        _ = try await cache.store(recordName: "tracked", changeTag: nil, albumID: "album",
+                                  from: sourceFile(bytes: 40))
+        try plantOrphan(albumID: "album", recordName: "orphan", bytes: 60)
+
+        let tracked = await cache.totalBytes()
+        let onDisk = await cache.diskBytes()
+        XCTAssertEqual(tracked, 40, "The in-memory figure only knows what it stored")
+        XCTAssertEqual(onDisk, 100, "Disk truth includes the untracked file")
+        XCTAssertEqual(onDisk, try measureCacheDirectory().logical,
+                       "And matches an independent measurement of the directory")
+    }
+
+    func testReconcileReportsOrphanedFiles() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        _ = try await cache.store(recordName: "tracked", changeTag: nil, albumID: "album",
+                                  from: sourceFile(bytes: 40))
+        try plantOrphan(albumID: "album", recordName: "orphan", bytes: 60)
+
+        let result = await cache.reconcile()
+        XCTAssertEqual(result.orphanedFiles, 1)
+        XCTAssertEqual(result.orphanedBytes, 60)
+
+        let tracked = await cache.totalBytes()
+        XCTAssertEqual(tracked, 100, "An adopted orphan counts against the cap from now on")
+        let again = await cache.reconcile()
+        XCTAssertEqual(again.orphanedFiles, 0, "Adoption is idempotent")
+    }
+
+    /// After a failed eviction the file is still there, so its bytes must still
+    /// count — otherwise the cache reports less than it occupies.
+    func testFailedEvictionKeepsTheEntryAndItsBytes() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        _ = try await cache.store(recordName: "stuck", changeTag: nil, albumID: "album",
+                                  from: sourceFile(bytes: 80))
+        let albumDir = tempRoot.appendingPathComponent("cache", isDirectory: true)
+            .appendingPathComponent(CloudKitBlobCache.albumFolderName("album"), isDirectory: true)
+        // A read-only parent directory makes `removeItem` fail while the file lives on.
+        try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: albumDir.path)
+        addTeardownBlock {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: albumDir.path)
+        }
+
+        await cache.evict(recordName: "stuck")
+
+        let total = await cache.totalBytes()
+        XCTAssertEqual(total, 80, "A file that survived eviction keeps counting")
+        let onDisk = await cache.diskBytes()
+        XCTAssertEqual(onDisk, 80)
+    }
+
+    func testDiskBytesMatchesTotalBytesWhenTheCacheIsConsistent() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        _ = try await cache.store(recordName: "a", changeTag: nil, albumID: "album", from: sourceFile(bytes: 40))
+        _ = try await cache.store(recordName: "b", changeTag: nil, albumID: "other", from: sourceFile(bytes: 70))
+
+        let total = await cache.totalBytes()
+        let onDisk = await cache.diskBytes()
+        XCTAssertEqual(total, 110)
+        XCTAssertEqual(onDisk, total, "The two figures may only differ by orphans")
+    }
+
+    /// Allocated size is block-rounded, so it is never smaller than the logical
+    /// size — which is why the storage screen reports it rather than the other one.
+    func testAllocatedDiskBytesIsNeverLessThanLogicalBytes() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        _ = try await cache.store(recordName: "a", changeTag: nil, albumID: "album", from: sourceFile(bytes: 40))
+
+        let logical = await cache.diskBytes()
+        let allocated = await cache.allocatedDiskBytes()
+        XCTAssertGreaterThanOrEqual(allocated, logical)
+    }
+
+    func testClearAllZeroesBothFigures() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        _ = try await cache.store(recordName: "a", changeTag: nil, albumID: "album", from: sourceFile(bytes: 40))
+        try plantOrphan(albumID: "album", recordName: "orphan", bytes: 60)
+
+        try await cache.clearAll()
+
+        let total = await cache.totalBytes()
+        let onDisk = await cache.diskBytes()
+        XCTAssertEqual(total, 0)
+        XCTAssertEqual(onDisk, 0, "Including the files the index never knew about")
+        XCTAssertEqual(try measureCacheDirectory().files, 0)
+    }
 }

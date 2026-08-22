@@ -25,6 +25,7 @@ public enum Feature: String, CaseIterable {
     case iCloudDiagnostics
     case showDebugLogs
     case showFontConfig
+    case storageInsights
 
     var userDefaultsKey: String {
         return "feature_" +  rawValue
@@ -60,6 +61,7 @@ public enum Feature: String, CaseIterable {
         case .iCloudDiagnostics: return "iCloud Diagnostics"
         case .showDebugLogs: return "Debug Logs"
         case .showFontConfig: return "Show Font Config"
+        case .storageInsights: return L10n.StorageInsights.featureTitle
         }
     }
 
@@ -82,6 +84,7 @@ public enum Feature: String, CaseIterable {
         case .iCloudDiagnostics: return "Show a Settings workbench that reports the status of EVERYTHING iCloud saving depends on — account, network, container, schema and a live write probe — without stopping at the first failure"
         case .showDebugLogs: return "Capture every printDebug line in memory and show a floating button that opens a viewer to search, copy, or share them"
         case .showFontConfig: return "Show a Settings screen that switches the app's body typeface and nudges every text size, so alternative fonts can be judged on a real device without a rebuild"
+        case .storageInsights: return L10n.StorageInsights.featureDescription
         }
     }
 
@@ -91,7 +94,7 @@ public enum Feature: String, CaseIterable {
         switch self {
         case .keychainSyncRestore:
             return true
-        case .cloudKitStorage, .iCloudFlightCheck, .iCloudDiagnostics, .clearMediaIndex:
+        case .cloudKitStorage, .iCloudFlightCheck, .iCloudDiagnostics, .clearMediaIndex, .storageInsights:
             #if DEBUG
             return true
             #endif

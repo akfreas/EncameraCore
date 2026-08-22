@@ -2467,6 +2467,76 @@ public enum L10n {
     /// Secure Your Memories
     public static let subline = L10n.tr("Localizable", "SplashScreen.Subline", fallback: "Secure Your Memories")
   }
+  public enum StorageInsights {
+    /// Downloaded from iCloud
+    public static let cachedCloud = L10n.tr("Localizable", "StorageInsights.CachedCloud", fallback: "Downloaded from iCloud")
+    /// %@ can be freed
+    public static func canBeFreed(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "StorageInsights.CanBeFreed", String(describing: p1), fallback: "%@ can be freed")
+    }
+    /// Photos you take or import will show up here.
+    public static let emptySubtitle = L10n.tr("Localizable", "StorageInsights.EmptySubtitle", fallback: "Photos you take or import will show up here.")
+    /// Nothing stored on this device yet
+    public static let emptyTitle = L10n.tr("Localizable", "StorageInsights.EmptyTitle", fallback: "Nothing stored on this device yet")
+    /// Couldn't measure storage
+    public static let errorTitle = L10n.tr("Localizable", "StorageInsights.ErrorTitle", fallback: "Couldn't measure storage")
+    /// Show a Settings screen breaking down how much space Encamera's media takes on this device and in iCloud, with an action that frees the re-downloadable cache
+    public static let featureDescription = L10n.tr("Localizable", "StorageInsights.FeatureDescription", fallback: "Show a Settings screen breaking down how much space Encamera's media takes on this device and in iCloud, with an action that frees the re-downloadable cache")
+    /// Storage Insights
+    public static let featureTitle = L10n.tr("Localizable", "StorageInsights.FeatureTitle", fallback: "Storage Insights")
+    /// %@ is now available. Your photos and videos are untouched.
+    public static func freedMessage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "StorageInsights.FreedMessage", String(describing: p1), fallback: "%@ is now available. Your photos and videos are untouched.")
+    }
+    /// Space freed
+    public static let freedTitle = L10n.tr("Localizable", "StorageInsights.FreedTitle", fallback: "Space freed")
+    /// Freeing up space…
+    public static let freeing = L10n.tr("Localizable", "StorageInsights.Freeing", fallback: "Freeing up space…")
+    /// ./Encamera/Settings/StorageInsightsView.swift - Free up space action
+    public static let freeUpSpace = L10n.tr("Localizable", "StorageInsights.FreeUpSpace", fallback: "Free up space")
+    /// Free up space
+    public static let freeUpSpaceConfirm = L10n.tr("Localizable", "StorageInsights.FreeUpSpaceConfirm", fallback: "Free up space")
+    /// Some cached files could not be removed. Nothing was deleted from your photos or videos.
+    public static let freeUpSpaceFailedMessage = L10n.tr("Localizable", "StorageInsights.FreeUpSpaceFailedMessage", fallback: "Some cached files could not be removed. Nothing was deleted from your photos or videos.")
+    /// Couldn't free up space
+    public static let freeUpSpaceFailedTitle = L10n.tr("Localizable", "StorageInsights.FreeUpSpaceFailedTitle", fallback: "Couldn't free up space")
+    /// This removes downloaded copies of media that is also stored in iCloud, along with previews and album indexes. None of your photos or videos are deleted — anything you open next will download again from iCloud.
+    public static let freeUpSpaceMessage = L10n.tr("Localizable", "StorageInsights.FreeUpSpaceMessage", fallback: "This removes downloaded copies of media that is also stored in iCloud, along with previews and album indexes. None of your photos or videos are deleted — anything you open next will download again from iCloud.")
+    /// Free up %@?
+    public static func freeUpSpaceTitle(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "StorageInsights.FreeUpSpaceTitle", String(describing: p1), fallback: "Free up %@?")
+    }
+    /// Unavailable
+    public static let iCloudUnavailable = L10n.tr("Localizable", "StorageInsights.ICloudUnavailable", fallback: "Unavailable")
+    /// Sign in to iCloud to see how much is stored there.
+    public static let iCloudUnavailableCaption = L10n.tr("Localizable", "StorageInsights.ICloudUnavailableCaption", fallback: "Sign in to iCloud to see how much is stored there.")
+    /// Album indexes
+    public static let indexes = L10n.tr("Localizable", "StorageInsights.Indexes", fallback: "Album indexes")
+    /// In iCloud
+    public static let inICloud = L10n.tr("Localizable", "StorageInsights.InICloud", fallback: "In iCloud")
+    /// %d legacy iCloud Drive album(s) are managed by iOS and aren't included here.
+    public static func legacyFootnote(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "StorageInsights.LegacyFootnote", p1, fallback: "%d legacy iCloud Drive album(s) are managed by iOS and aren't included here.")
+    }
+    /// Photos & videos on this device
+    public static let localMedia = L10n.tr("Localizable", "StorageInsights.LocalMedia", fallback: "Photos & videos on this device")
+    /// Measuring…
+    public static let measuring = L10n.tr("Localizable", "StorageInsights.Measuring", fallback: "Measuring…")
+    /// Nothing to free up
+    public static let nothingToFree = L10n.tr("Localizable", "StorageInsights.NothingToFree", fallback: "Nothing to free up")
+    /// On this device
+    public static let onThisDevice = L10n.tr("Localizable", "StorageInsights.OnThisDevice", fallback: "On this device")
+    /// Can be freed
+    public static let reclaimable = L10n.tr("Localizable", "StorageInsights.Reclaimable", fallback: "Can be freed")
+    /// Try again
+    public static let retry = L10n.tr("Localizable", "StorageInsights.Retry", fallback: "Try again")
+    /// Storage
+    public static let settingsRow = L10n.tr("Localizable", "StorageInsights.SettingsRow", fallback: "Storage")
+    /// Previews
+    public static let thumbnails = L10n.tr("Localizable", "StorageInsights.Thumbnails", fallback: "Previews")
+    /// ./Encamera/Settings/StorageInsightsView.swift - Storage Insights screen
+    public static let title = L10n.tr("Localizable", "StorageInsights.Title", fallback: "Storage")
+  }
   public enum StorageOption {
     /// %@ Storage
     public static func storage(_ p1: Any) -> String {

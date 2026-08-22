@@ -163,17 +163,26 @@ public actor CloudKitBlobCache: DebugPrintable {
     // MARK: - Eviction
 
     public func evict(recordName: String) {
-        guard let entry = index.removeValue(forKey: recordName) else {
+        guard let entry = index[recordName] else {
             printDebug("evict skip recordName=\(recordName) reason=notIndexed")
             return
         }
+        let fileURL = url(for: entry)
         do {
-            try FileManager.default.removeItem(at: url(for: entry))
+            try FileManager.default.removeItem(at: fileURL)
+            index[recordName] = nil
             printDebug("evict ok recordName=\(recordName) sizeBytes=\(entry.size) remainingEntries=\(index.count)")
         } catch {
-            // The index entry is already dropped, so a failure here leaks the file
-            // on disk with nothing left tracking it against the byte cap.
-            printDebug("evict WARNING recordName=\(recordName) index entry dropped but file remove failed file=\(url(for: entry).lastPathComponent) raw=\(error)")
+            // A file that survives a failed remove keeps its entry and its bytes in
+            // the total — the posture `enforceCap` already takes. Dropping the entry
+            // here used to leave the file on disk with nothing tracking it, so the
+            // cache reported fewer bytes than it occupied.
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                printDebug("evict WARNING recordName=\(recordName) file remove failed, keeping entry file=\(fileURL.lastPathComponent) raw=\(error)")
+            } else {
+                index[recordName] = nil
+                printDebug("evict ok recordName=\(recordName) file already missing, dropping entry")
+            }
         }
         persist()
     }
@@ -182,10 +191,17 @@ public actor CloudKitBlobCache: DebugPrintable {
         var evicted = 0
         var freedBytes: Int64 = 0
         for (recordName, entry) in index where entry.lastAccess < date {
+            let fileURL = url(for: entry)
             do {
-                try FileManager.default.removeItem(at: url(for: entry))
+                try FileManager.default.removeItem(at: fileURL)
             } catch {
-                printDebug("evictAll WARNING recordName=\(recordName) file remove failed file=\(url(for: entry).lastPathComponent) raw=\(error)")
+                // Same posture as `evict` and `enforceCap`: a surviving file keeps its
+                // entry, so its bytes keep counting instead of leaking untracked.
+                if FileManager.default.fileExists(atPath: fileURL.path) {
+                    printDebug("evictAll WARNING recordName=\(recordName) file remove failed, keeping entry file=\(fileURL.lastPathComponent) raw=\(error)")
+                    continue
+                }
+                printDebug("evictAll recordName=\(recordName) file already missing, dropping entry")
             }
             index[recordName] = nil
             evicted += 1
@@ -195,8 +211,98 @@ public actor CloudKitBlobCache: DebugPrintable {
         persist()
     }
 
+    /// The fast in-memory figure, summed over index entries. Deliberately does no
+    /// filesystem I/O: `store` calls it on every upload, and a directory walk there
+    /// would put an enumeration in the hot path.
     public func totalBytes() -> Int64 {
         index.values.reduce(0) { $0 + $1.size }
+    }
+
+    /// Actual bytes the cache occupies on disk, including files the in-memory index
+    /// knows nothing about.
+    ///
+    /// Logical file size, the same measure `store` records into an entry — so this
+    /// and `totalBytes()` agree exactly on a consistent cache, and any difference
+    /// between them is orphaned files rather than a unit mismatch. The
+    /// `.cacheindex.json` sidecar is excluded: it is bookkeeping, not cached media,
+    /// and counting it would make the two figures differ by a few hundred bytes for
+    /// no useful reason. Use `allocatedDiskBytes()` for what the user's free space
+    /// actually reflects.
+    public func diskBytes() -> Int64 {
+        enumerateCacheFiles().reduce(0) { $0 + $1.logicalSize }
+    }
+
+    /// Bytes the cache occupies as the filesystem allocates them — block-rounded,
+    /// and therefore what the device's free space actually reflects. This is the
+    /// figure the storage screen reports; `diskBytes()` is the one that must agree
+    /// with the index.
+    public func allocatedDiskBytes() -> Int64 {
+        enumerateCacheFiles().reduce(0) { $0 + $1.allocatedSize }
+    }
+
+    /// Adopts files under `baseDir` that no index entry claims, so their bytes count
+    /// against the cap and LRU eviction can eventually reclaim them.
+    ///
+    /// Adopting rather than deleting: an orphan is real cached ciphertext that a
+    /// reader may still want, and its only defect is bookkeeping. Adopted entries
+    /// carry no change tag (so the next tag check re-fetches rather than trusting
+    /// them) and inherit the file's modification date as `lastAccess`, which puts
+    /// them at the front of the LRU queue where an untracked file belongs.
+    @discardableResult
+    public func reconcile() -> (orphanedBytes: Int64, orphanedFiles: Int) {
+        let claimed = Set(index.values.map { $0.relativePath })
+        var orphanedBytes: Int64 = 0
+        var orphanedFiles = 0
+        for file in enumerateCacheFiles() where !claimed.contains(file.relativePath) {
+            orphanedBytes += file.logicalSize
+            orphanedFiles += 1
+            index[file.recordName] = Entry(changeTag: nil,
+                                           relativePath: file.relativePath,
+                                           size: file.logicalSize,
+                                           lastAccess: file.modified)
+        }
+        if orphanedFiles > 0 {
+            printDebug("reconcile adopted orphanedFiles=\(orphanedFiles) orphanedBytes=\(orphanedBytes) entries=\(index.count)")
+            persist()
+        }
+        return (orphanedBytes, orphanedFiles)
+    }
+
+    private struct CacheFile {
+        let relativePath: String
+        let recordName: String
+        let logicalSize: Int64
+        let allocatedSize: Int64
+        let modified: Date
+    }
+
+    /// Every cached blob under `baseDir`, excluding the index sidecar. An absent
+    /// directory enumerates as nothing, which is the right answer for a cache that
+    /// has never been written.
+    private func enumerateCacheFiles() -> [CacheFile] {
+        let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey,
+                                      .totalFileAllocatedSizeKey, .contentModificationDateKey]
+        guard let enumerator = FileManager.default.enumerator(at: baseDir,
+                                                             includingPropertiesForKeys: keys,
+                                                             options: [.skipsHiddenFiles]) else {
+            return []
+        }
+        let basePath = baseDir.standardizedFileURL.path
+        var files: [CacheFile] = []
+        for case let url as URL in enumerator {
+            guard let values = try? url.resourceValues(forKeys: Set(keys)),
+                  values.isRegularFile == true else { continue }
+            guard url.lastPathComponent != indexFileURL.lastPathComponent else { continue }
+            let path = url.standardizedFileURL.path
+            guard path.hasPrefix(basePath + "/") else { continue }
+            let relativePath = String(path.dropFirst(basePath.count + 1))
+            files.append(CacheFile(relativePath: relativePath,
+                                   recordName: url.lastPathComponent,
+                                   logicalSize: Int64(values.fileSize ?? 0),
+                                   allocatedSize: Int64(values.totalFileAllocatedSize ?? values.fileSize ?? 0),
+                                   modified: values.contentModificationDate ?? Date(timeIntervalSince1970: 0)))
+        }
+        return files
     }
 
     /// Wipes the entire on-disk cache (every album folder and the `.cacheindex.json`
