@@ -1077,6 +1077,13 @@
 "ICloudStatus.NoFiles" = "No files in iCloud";
 "ICloudStatus.TapToDownload" = "Tap to download";
 
+/* ./Encamera/Components/SyncStatusBar.swift */
+"SyncStatusBar.Title" = "iCloud sync";
+"SyncStatusBar.Checking" = "Checking iCloud for changes…";
+"SyncStatusBar.Uploading" = "Uploading %d of %d to iCloud";
+"SyncStatusBar.Stalled" = "%d items could not be uploaded";
+"SyncStatusBar.UpToDate" = "iCloud is up to date";
+
 /* ./Encamera/ImageViewing/MediaViewingError.swift - iCloud Error Messages */
 "ICloudError.FileNotDownloaded" = "This file is stored in iCloud and needs to be downloaded. Please check your internet connection and try again.";
 "ICloudError.DownloadFailed" = "Could not download '%@' from iCloud: %@";

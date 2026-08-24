@@ -149,6 +149,11 @@ public actor CloudKitAlbumsSync: DebugPrintable {
         }
         printDebug("performSyncAll start featureEnabled=\(featureEnabled) hasCloudKitAlbums=\(hasCloudKitAlbums)")
 
+        // Only now, past both skip paths: this pass really is going to talk to
+        // CloudKit. Announcing earlier would flash "checking iCloud" at every
+        // user on every scene-active, CloudKit albums or not.
+        await CloudKitSyncStatusReporter.shared.reportCheckStarted()
+
         albumsNeedingKey = await makeReconciler(albumManager).reconcileAlbums()
         printDebug("performSyncAll reconcileAlbums done albumsNeedingKey=\(albumsNeedingKey)")
         // Hand the count to the UI (ENC-99). Before this, locked albums were
@@ -169,6 +174,7 @@ public actor CloudKitAlbumsSync: DebugPrintable {
         // opened this launch. The scene-active kick races this method (it fires
         // before the coordinators exist), so kick again now that they do.
         await CloudKitUploader.shared.kick()
+        await CloudKitSyncStatusReporter.shared.reportCheckFinished()
         printDebug("performSyncAll ok albumCount=\(albums.count) albumsNeedingKey=\(albumsNeedingKey)")
     }
 }

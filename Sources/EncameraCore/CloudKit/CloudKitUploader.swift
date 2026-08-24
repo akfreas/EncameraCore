@@ -114,7 +114,10 @@ public actor CloudKitUploader: DebugPrintable {
             await queue.retryGivenUp()
         }
         let items = await queue.all().filter { !$0.hasGivenUp }
-        guard !items.isEmpty else { return }
+        guard !items.isEmpty else {
+            await reportPassFinished()
+            return
+        }
 
         printDebug("drain start pending=\(items.count)")
         var uploaded = 0
@@ -122,6 +125,8 @@ public actor CloudKitUploader: DebugPrintable {
 
         // Oldest first, so a backlog is backed up in the order it was captured.
         for item in items {
+            await CloudKitSyncStatusReporter.shared.reportUploadProgress(completed: uploaded,
+                                                                        total: items.count)
             if let notBefore = nextAttemptAfter[item.recordName], notBefore > Date() {
                 deferredCount += 1
                 continue
@@ -133,7 +138,17 @@ public actor CloudKitUploader: DebugPrintable {
             }
             if await send(item, using: coordinator) { uploaded += 1 } else { deferredCount += 1 }
         }
+        await reportPassFinished()
         printDebug("drain done uploaded=\(uploaded) deferred=\(deferredCount)")
+    }
+
+    /// Hands the UI the end of a pass: no upload is in flight, and whatever has
+    /// given up is now the standing state. Reported even for an empty pass, so a
+    /// backlog that drains — or one whose items are freed by `retryFailed` —
+    /// clears the status bar rather than leaving a stale count on screen.
+    private func reportPassFinished() async {
+        let stalled = await queue.givenUp().count
+        await CloudKitSyncStatusReporter.shared.reportUploadsFinished(stalled: stalled)
     }
 
     /// Returns true when the item reached CloudKit.
