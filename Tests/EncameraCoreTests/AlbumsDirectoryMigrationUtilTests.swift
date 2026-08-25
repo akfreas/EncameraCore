@@ -131,6 +131,57 @@ final class AlbumsDirectoryMigrationUtilTests: XCTestCase {
         XCTAssertTrue(exists(albumsURL.appendingPathComponent("Album_inplace")))
     }
 
+    /// Albums created before album-name encryption sit at the storage root under
+    /// their PLAINTEXT name — no `Album_` prefix. They are still albums and still
+    /// belong under `albums/`.
+    func testMovesLegacyPlaintextAlbumDirectoriesIntoAlbumsSubdir() throws {
+        _ = try seedAlbum("met", at: rootURL)
+        _ = try seedAlbum("koti", at: rootURL)
+
+        XCTAssertTrue(util.performMigration(at: rootURL, into: albumsURL))
+
+        XCTAssertFalse(exists(rootURL.appendingPathComponent("met")))
+        XCTAssertFalse(exists(rootURL.appendingPathComponent("koti")))
+        XCTAssertTrue(exists(albumsURL.appendingPathComponent("met")))
+        XCTAssertTrue(exists(albumsURL.appendingPathComponent("koti")))
+
+        let sentinel = albumsURL.appendingPathComponent("met").appendingPathComponent("sentinel.bin")
+        XCTAssertEqual(try Data(contentsOf: sentinel), Data([0x01, 0x02, 0x03]))
+    }
+
+    /// The upgrade path this fix exists for: a device that ran the V1 migration
+    /// recorded it as done while leaving every plaintext-named album at the root.
+    /// Reusing the V1 flag key would strand those devices forever — the widened
+    /// migration would be skipped before it ever enumerated anything.
+    func testADeviceThatCompletedTheV1MigrationIsNotConsideredMigrated() throws {
+        let suiteName = "AlbumsDirMigrationV1Flag-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defaults.set([StorageType.local.rawValue, StorageType.icloud.rawValue],
+                     forKey: "completedAlbumsDirectoryMigrationV1")
+
+        let util = AlbumsDirectoryMigrationUtil(userDefaults: defaults)
+
+        XCTAssertFalse(util.hasMigrated(.local))
+        XCTAssertFalse(util.hasMigrated(.icloud))
+    }
+
+    /// The flag still has to work as a flag: once the widened migration records a
+    /// storage type, it is not repeated.
+    func testRecordsCompletionUnderTheCurrentFlagKey() throws {
+        let suiteName = "AlbumsDirMigrationV2Flag-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let util = AlbumsDirectoryMigrationUtil(userDefaults: defaults)
+        XCTAssertFalse(util.hasMigrated(.local))
+
+        util.markMigrated(.local)
+
+        XCTAssertTrue(util.hasMigrated(.local))
+        XCTAssertFalse(util.hasMigrated(.icloud))
+    }
+
     func testIgnoresFilesThatLookLikeAlbums() throws {
         let bogus = rootURL.appendingPathComponent("Album_justAFile")
         XCTAssertTrue(FileManager.default.createFile(atPath: bogus.path, contents: Data()))

@@ -112,21 +112,27 @@ extension DataStorageModel {
     }
 
     public static var albumsURL: URL {
-        rootURL.appendingPathComponent("albums", isDirectory: true)
+        rootURL.appendingPathComponent(AlbumDirectoryNaming.albumsDirectory, isDirectory: true)
     }
 
+    /// Every album directory in this storage plane, in both layouts.
+    ///
+    /// Membership is `AlbumDirectoryNaming`'s rule, not a name prefix: albums
+    /// created before album-name encryption are directories named with the
+    /// plaintext album name, and a prefix test drops them silently — leaving a
+    /// user with intact files and an empty grid.
     public static func enumerateAlbumsDirectory() -> [URL] {
         var results = enumeratorForStorageDirectory(
             at: albumsURL,
             onlyDirectories: true
-        ).filter { $0.lastPathComponent.hasPrefix("Album_") }
+        ).filter { AlbumDirectoryNaming.isAlbumDirectoryName($0.lastPathComponent) }
 
         // Also check rootURL for albums that haven't been migrated yet
         // (e.g. partial migration failure leaves some albums at rootURL).
         let legacyResults = enumeratorForStorageDirectory(
             at: rootURL,
             onlyDirectories: true
-        ).filter { $0.lastPathComponent.hasPrefix("Album_") }
+        ).filter { AlbumDirectoryNaming.isAlbumDirectoryName($0.lastPathComponent) }
 
         let migratedNames = Set(results.map { $0.lastPathComponent })
         for url in legacyResults where !migratedNames.contains(url.lastPathComponent) {

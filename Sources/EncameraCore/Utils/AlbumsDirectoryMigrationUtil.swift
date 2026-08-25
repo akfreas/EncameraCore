@@ -1,12 +1,19 @@
 import Foundation
 
-/// One-time migration: moves legacy `Album_*` directories from each storage
-/// root into a dedicated `./albums` subdirectory, so the root can host other
-/// siblings (thumbnails, RevenueCat, etc.) without colliding with album
-/// enumeration.
+/// One-time migration: moves legacy album directories from each storage root
+/// into a dedicated `./albums` subdirectory, so the root can host other siblings
+/// (thumbnails, RevenueCat, etc.) without colliding with album enumeration.
+///
+/// "Album directory" is `AlbumDirectoryNaming`'s definition, which covers both
+/// the encrypted `Album_*` names and the plaintext names that predate name
+/// encryption.
 public final class AlbumsDirectoryMigrationUtil: DebugPrintable {
 
-    static let flagKey = "completedAlbumsDirectoryMigrationV1"
+    /// V2 widened the candidate set from `Album_*` to every album directory,
+    /// including the plaintext names that predate name encryption. Devices that
+    /// already ran V1 left those behind, so the key is bumped rather than reused —
+    /// a device stuck on the V1 flag would never revisit them.
+    static let flagKey = "completedAlbumsDirectoryMigrationV2"
 
     private let userDefaults: UserDefaults
     private let fileManager: FileManager
@@ -34,7 +41,7 @@ public final class AlbumsDirectoryMigrationUtil: DebugPrintable {
         }
     }
 
-    /// Moves every legacy `Album_*` directory at `rootURL` into `albumsURL`.
+    /// Moves every album directory at `rootURL` into `albumsURL`.
     /// Returns `true` iff the destination was prepared and every candidate
     /// either moved successfully or was safely skipped (destination exists).
     /// Exposed as `internal` for testing.
@@ -81,7 +88,7 @@ public final class AlbumsDirectoryMigrationUtil: DebugPrintable {
 
         let standardizedAlbumsURL = albumsURL.standardizedFileURL
         return contents.filter { url in
-            guard url.lastPathComponent.hasPrefix("Album_") else { return false }
+            guard AlbumDirectoryNaming.isAlbumDirectoryName(url.lastPathComponent) else { return false }
             let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             guard isDirectory else { return false }
             // Defensive: if it's already under albumsURL, leave it alone.
@@ -127,11 +134,13 @@ public final class AlbumsDirectoryMigrationUtil: DebugPrintable {
         return Set(raw)
     }
 
-    private func hasMigrated(_ type: StorageType) -> Bool {
+    /// Internal for testing, alongside `performMigration`: the flag key's
+    /// version is what makes an already-migrated device revisit its storage roots.
+    func hasMigrated(_ type: StorageType) -> Bool {
         migratedSet().contains(type.rawValue)
     }
 
-    private func markMigrated(_ type: StorageType) {
+    func markMigrated(_ type: StorageType) {
         var set = migratedSet()
         set.insert(type.rawValue)
         userDefaults.set(Array(set), forKey: Self.flagKey)
