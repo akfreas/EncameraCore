@@ -36,6 +36,50 @@ final class KeyDiscoveryTests: XCTestCase {
         return url
     }
 
+    /// Byte range of the first ciphertext block, parsed out of the file's own
+    /// prologue. The damage sites below anchor on this rather than on an offset
+    /// from the end of the file, so a change to the metadata section or the
+    /// block size moves them with the layout instead of sliding them into the
+    /// header.
+    private func firstBlockRange(of url: URL) throws -> Range<Int> {
+        let data = try Data(contentsOf: url)
+        var contentStart = 0
+        if Array(data.prefix(EncryptedFileFormat.magicSize)) == EncryptedFileFormat.magic {
+            let lengthStart = EncryptedFileFormat.metadataLengthOffset
+            let metadataLength = data[lengthStart..<(lengthStart + EncryptedFileFormat.metadataLengthSize)]
+                .withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }
+            contentStart = lengthStart + EncryptedFileFormat.metadataLengthSize + Int(metadataLength)
+        }
+        // Block-size field: 8 bytes, of which bytes 0-3 are the size and 4-7
+        // are the stamp slot.
+        let blockSizeStart = contentStart + EncryptedFileFormat.streamHeaderSize
+        let blockSize = Int(data[blockSizeStart..<(blockSizeStart + 4)]
+            .withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) })
+        let blockStart = blockSizeStart + 8
+        XCTAssertGreaterThan(blockSize, 512, "fixture must carry a full first block")
+        XCTAssertLessThanOrEqual(blockStart + blockSize, data.count, "the first block must lie inside the file")
+        return blockStart..<(blockStart + blockSize)
+    }
+
+    /// Flips 200 bytes inside the first ciphertext block's body, leaving the
+    /// prologue, stream header, block-size field and stamp slot intact.
+    private func damageFirstBlockBody(of url: URL) throws {
+        let range = try firstBlockRange(of: url)
+        var fileData = try Data(contentsOf: url)
+        for index in (range.lowerBound + 64)..<(range.lowerBound + 264) {
+            fileData[index] ^= 0xFF
+        }
+        try fileData.write(to: url)
+    }
+
+    /// Cuts the file mid-way through its first ciphertext block: headers
+    /// survive, but there is no complete block left to authenticate.
+    private func truncateMidFirstBlock(of url: URL) throws {
+        let range = try firstBlockRange(of: url)
+        let fileData = try Data(contentsOf: url)
+        try fileData.prefix(range.lowerBound + range.count / 2).write(to: url)
+    }
+
     // MARK: - canDecryptFirstBlock
 
     func testFirstBlockDecryptSucceedsWithCorrectKeyV2() async throws {
@@ -55,10 +99,18 @@ final class KeyDiscoveryTests: XCTestCase {
         // succeeds with a wrong key, so an implementation that skips the pull
         // would wrongly return true here.
         let v2URL = try await encryptV2Fixture(with: keyA)
+        let v2Control = await KeyDiscovery.proveFirstBlock(of: v2URL, with: keyA)
+        XCTAssertEqual(v2Control, .proved, "the encrypting key must open the v2 fixture")
+        let v2Proof = await KeyDiscovery.proveFirstBlock(of: v2URL, with: keyB)
+        XCTAssertEqual(v2Proof, .disproved, "the wrong key must be rejected, not read as an unreadable file")
         let v2Result = await KeyDiscovery.canDecryptFirstBlock(of: v2URL, with: keyB)
         XCTAssertFalse(v2Result)
 
         let v1URL = try await encryptV1Fixture(with: keyA)
+        let v1Control = await KeyDiscovery.proveFirstBlock(of: v1URL, with: keyA)
+        XCTAssertEqual(v1Control, .proved, "the encrypting key must open the v1 fixture")
+        let v1Proof = await KeyDiscovery.proveFirstBlock(of: v1URL, with: keyB)
+        XCTAssertEqual(v1Proof, .disproved, "the wrong key must be rejected, not read as an unreadable file")
         let v1Result = await KeyDiscovery.canDecryptFirstBlock(of: v1URL, with: keyB)
         XCTAssertFalse(v1Result)
     }
@@ -75,28 +127,41 @@ final class KeyDiscoveryTests: XCTestCase {
 
     func testFirstBlockDecryptFalseOnTruncatedFile() async throws {
         let url = try await encryptV2Fixture(with: keyA)
-        let fileData = try Data(contentsOf: url)
-        // Cut mid-way through the first ciphertext block: headers survive,
-        // but there is no complete block to authenticate.
-        try fileData.prefix(fileData.count - 40000).write(to: url)
+        let intact = await KeyDiscovery.proveFirstBlock(of: url, with: keyA)
+        XCTAssertEqual(intact, .proved, "the fixture must authenticate before it is truncated")
 
+        try truncateMidFirstBlock(of: url)
+
+        let proof = await KeyDiscovery.proveFirstBlock(of: url, with: keyA)
+        XCTAssertEqual(proof, .indeterminate, "an incomplete block is unreadable, not a rejected key")
         let result = await KeyDiscovery.canDecryptFirstBlock(of: url, with: keyA)
         XCTAssertFalse(result)
     }
 
-    func testFirstBlockDecryptFalseOnGarbageAndMissingFiles() async {
+    func testFirstBlockDecryptFalseOnGarbageAndMissingFiles() async throws {
+        let readableURL = try await encryptV2Fixture(with: keyA, name: "readable-anchor")
+        let readableResult = await KeyDiscovery.canDecryptFirstBlock(of: readableURL, with: keyA)
+        XCTAssertTrue(readableResult, "anchor: the same call returns true on readable media")
+
         let garbageURL = tempDirectory.appendingPathComponent("garbage.enc")
         try? Data("definitely not an encrypted file".utf8).write(to: garbageURL)
         let garbageResult = await KeyDiscovery.canDecryptFirstBlock(of: garbageURL, with: keyA)
         XCTAssertFalse(garbageResult)
+        let garbageProof = await KeyDiscovery.proveFirstBlock(of: garbageURL, with: keyA)
+        XCTAssertEqual(garbageProof, .indeterminate, "the key was never tested against these bytes")
 
         let emptyURL = tempDirectory.appendingPathComponent("empty.enc")
         try? Data().write(to: emptyURL)
         let emptyResult = await KeyDiscovery.canDecryptFirstBlock(of: emptyURL, with: keyA)
         XCTAssertFalse(emptyResult)
+        let emptyProof = await KeyDiscovery.proveFirstBlock(of: emptyURL, with: keyA)
+        XCTAssertEqual(emptyProof, .indeterminate)
 
-        let missingResult = await KeyDiscovery.canDecryptFirstBlock(of: tempDirectory.appendingPathComponent("missing.enc"), with: keyA)
+        let missingURL = tempDirectory.appendingPathComponent("missing.enc")
+        let missingResult = await KeyDiscovery.canDecryptFirstBlock(of: missingURL, with: keyA)
         XCTAssertFalse(missingResult)
+        let missingProof = await KeyDiscovery.proveFirstBlock(of: missingURL, with: keyA)
+        XCTAssertEqual(missingProof, .indeterminate)
     }
 
     // MARK: - discoverKey
@@ -196,6 +261,14 @@ final class KeyDiscoveryTests: XCTestCase {
 
         let result = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager)
         XCTAssertNil(result)
+
+        // The same file and the same call resolve once the library holds the
+        // key it was encrypted with, so the nil above is a missing key rather
+        // than a fixture that never opened.
+        let withKey = DemoKeyManager(keys: [keyA, keyB, unstoredKey])
+        withKey.currentKey = keyA
+        let found = await KeyDiscovery.discoverKey(for: url, keyManager: withKey)
+        XCTAssertEqual(found?.key.keyBytes, unstoredKey.keyBytes)
     }
 
     func testDiscoverKeyNilOnCorruptFile() async throws {
@@ -207,6 +280,13 @@ final class KeyDiscoveryTests: XCTestCase {
 
         let result = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager)
         XCTAssertNil(result)
+        let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
+        XCTAssertEqual(outcome, .unreadable, "bytes that are not media are damage, not a missing key")
+
+        // Anchor: the same key manager and the same call resolve readable media.
+        let readableURL = try await encryptV2Fixture(with: keyA, name: "corrupt-anchor")
+        let readable = await KeyDiscovery.discoverKey(for: readableURL, keyManager: keyManager)
+        XCTAssertEqual(readable?.key, keyA)
     }
 
     /// The failsafe end to end (ENC-97): after a key phrase import replaces the
@@ -270,11 +350,14 @@ final class KeyDiscoveryTests: XCTestCase {
     /// to go find one would send them after something that cannot help.
     func testTruncatedMediaIsUnreadableNotMissingKey() async throws {
         let url = try await encryptV2Fixture(with: keyA, name: "truncated")
-        let fileData = try Data(contentsOf: url)
-        try fileData.prefix(fileData.count - 40000).write(to: url)
-
         let keyManager = DemoKeyManager(keys: [keyA, keyB])
         keyManager.currentKey = keyA
+
+        let intact = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
+        XCTAssertEqual(intact, .resolved(KeyDiscoveryResult(key: keyA, stampMatched: false)),
+                       "the fixture must open before it is truncated")
+
+        try truncateMidFirstBlock(of: url)
 
         let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
         XCTAssertEqual(outcome, .unreadable)
@@ -287,17 +370,22 @@ final class KeyDiscoveryTests: XCTestCase {
         let url = try await encryptV2Fixture(with: keyA, name: "damaged-block")
         KeyStampSlot.writeStamp(keyA.stampPrefix, url: url)
 
-        // Corrupt bytes inside the first ciphertext block, leaving the prologue,
-        // stream header, block-size field and stamp intact.
-        var fileData = try Data(contentsOf: url)
-        let blockStart = fileData.count - 45000
-        for index in blockStart..<(blockStart + 200) {
-            fileData[index] ^= 0xFF
-        }
-        try fileData.write(to: url)
-
         let keyManager = DemoKeyManager(keys: [keyA, keyB])
         keyManager.currentKey = keyA
+
+        let intact = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
+        XCTAssertEqual(intact, .resolved(KeyDiscoveryResult(key: keyA, stampMatched: true)),
+                       "the fixture must open, by its own stamp, before its block is damaged")
+
+        try damageFirstBlockBody(of: url)
+
+        // The structural producer of `.unreadable` is excluded here: the file
+        // still parses, it still names keyA, and keyA — which the library holds
+        // — is now rejected by the AEAD rather than never tested.
+        XCTAssertNotNil(FirstBlockProbe(url: url), "the prologue and block layout must survive the damage")
+        XCTAssertEqual(KeyStampSlot.readStamp(url: url), keyA.stampPrefix, "the stamp must survive the damage")
+        let proof = await KeyDiscovery.proveFirstBlock(of: url, with: keyA)
+        XCTAssertEqual(proof, .disproved, "the damage must be cryptographic, not structural")
 
         let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
         XCTAssertEqual(outcome, .unreadable, "stamp names a key we hold and it fails: damage, not a missing key")
@@ -315,12 +403,7 @@ final class KeyDiscoveryTests: XCTestCase {
         let url = try await encryptV2Fixture(with: keyA, name: "damaged-block-unstamped")
         XCTAssertNil(KeyStampSlot.readStamp(url: url), "the fixture must carry no stamp")
 
-        var fileData = try Data(contentsOf: url)
-        let blockStart = fileData.count - 45000
-        for index in blockStart..<(blockStart + 200) {
-            fileData[index] ^= 0xFF
-        }
-        try fileData.write(to: url)
+        try damageFirstBlockBody(of: url)
 
         let keyManager = DemoKeyManager(keys: [keyA, keyB])
         keyManager.currentKey = keyA
@@ -356,12 +439,21 @@ final class KeyDiscoveryTests: XCTestCase {
     func testUnstampedForeignMediaReportsNoFingerprint() async throws {
         let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let url = try await encryptV2Fixture(with: unstoredKey, name: "unstamped-foreign")
+        XCTAssertNil(KeyStampSlot.readStamp(url: url), "the fixture must carry no stamp")
 
         let keyManager = DemoKeyManager(keys: [keyA])
         keyManager.currentKey = keyA
 
         let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
         XCTAssertEqual(outcome, .noKnownKey(requiredStampPrefix: nil))
+
+        // Read against a working stamp path in the same run: the same foreign
+        // key, stamped, is reported. The nil above is an absent stamp, not a
+        // stamp-blind probe.
+        let stampedURL = try await encryptV2Fixture(with: unstoredKey, name: "unstamped-foreign-anchor")
+        KeyStampSlot.writeStamp(unstoredKey.stampPrefix, url: stampedURL)
+        let stampedOutcome = await KeyDiscovery.discoverKeyOutcome(for: stampedURL, keyManager: keyManager)
+        XCTAssertEqual(stampedOutcome, .noKnownKey(requiredStampPrefix: unstoredKey.stampPrefix))
     }
 
     private static func bytes(fromHex hex: String) -> KeyBytes {
@@ -378,8 +470,9 @@ final class KeyDiscoveryTests: XCTestCase {
         // block, authentication of later data would fail — the first block
         // alone must decide the result.
         let url = try await encryptV2Fixture(with: keyA)
+        let firstBlockEnd = try firstBlockRange(of: url).upperBound
         var fileData = try Data(contentsOf: url)
-        let firstBlockEnd = fileData.count - 25000 // well past headers + first 20497-byte block
+        XCTAssertLessThan(firstBlockEnd, fileData.count, "the fixture must have bytes past the first block to corrupt")
         for index in firstBlockEnd..<fileData.count {
             fileData[index] ^= 0xFF
         }

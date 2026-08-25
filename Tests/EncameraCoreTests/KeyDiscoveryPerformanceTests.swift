@@ -14,16 +14,23 @@
 //  scroll and every re-entry into the album. That is the shape the rig shows as
 //  "N album(s) can't be shown because their key isn't on this device".
 //
-//  Gated behind ENCAMERA_PERF so the ordinary suite does not pay for building
-//  fixtures. Run it with:
+//  Every case asserts the answer its measurement depends on, because a call that
+//  fails is faster than a call that works: a probe returning nil, an empty fixture
+//  directory, or a keychain query that never happens would otherwise all read as
+//  an improvement. No `.xcbaseline` is stored for this target, so the timings
+//  themselves are numbers to read off the log, not thresholds.
 //
-//    ENCAMERA_PERF=1 xcodebuild test -project Encamera.xcodeproj \
-//      -scheme EncameraDeviceSmoke -destination 'id=<UDID>' \
+//  Runs in the ordinary unit suite: building the 120 fixtures and sweeping them
+//  costs about four seconds in total. Run the class on its own with:
+//
+//    xcodebuild test -project Encamera.xcodeproj -scheme EncameraTests \
+//      -destination 'id=<UDID>' \
 //      -only-testing:EncameraCoreTests/KeyDiscoveryPerformanceTests
 //
 
 import XCTest
 import Combine
+import Security
 @testable import EncameraCore
 
 final class KeyDiscoveryPerformanceTests: XCTestCase {
@@ -35,6 +42,7 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
 
     private var tempDirectory: URL!
     private var fixtures: [URL] = []
+    private var fixtureError: Error?
     private var keyManager: DemoKeyManager!
 
     /// The key the media is actually encrypted under — deliberately NOT in the
@@ -47,15 +55,8 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
     /// the same shape `FirstBlockProbe` reads in production.
     private let plaintext = Data((0..<50000).map { UInt8($0 % 251) })
 
-    private func skipUnlessPerfRun() throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["ENCAMERA_PERF"] == "1",
-                          "Performance benchmark — set ENCAMERA_PERF=1 to run.")
-    }
-
     override func setUpWithError() throws {
         try super.setUpWithError()
-        try skipUnlessPerfRun()
-
         tempDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent("KeyDiscoveryPerf-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
@@ -77,13 +78,32 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
                 let handler = SecretFileHandlerV2(keyBytes: self.foreignKey.keyBytes,
                                                   source: cleartext,
                                                   targetURL: url)
-                _ = try? await handler.encryptWithMetadata(EncryptedFileMetadata())
+                do {
+                    _ = try await handler.encryptWithMetadata(EncryptedFileMetadata())
+                } catch {
+                    self.fixtureError = error
+                    break
+                }
                 self.fixtures.append(url)
             }
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 300)
+        if let fixtureError {
+            throw fixtureError
+        }
         XCTAssertEqual(fixtures.count, fileCount, "fixture setup should have produced every file")
+
+        // Every benchmark below is only interpretable if the fixtures are real
+        // encrypted media: a file that cannot be opened or parsed is measured as
+        // an early return, not as the work being timed.
+        for url in fixtures {
+            let probe = try XCTUnwrap(FirstBlockProbe(url: url),
+                                      "fixture \(url.lastPathComponent) is not readable encrypted media")
+            guard probe.authenticates(keyBytes: foreignKey.keyBytes) else {
+                throw UnusableFixture(url: url)
+            }
+        }
     }
 
     override func tearDownWithError() throws {
@@ -91,14 +111,13 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
             try? FileManager.default.removeItem(at: tempDirectory)
         }
         fixtures = []
+        fixtureError = nil
         try super.tearDownWithError()
     }
 
     /// The album-open path: `DiskFileAccess.resolveKey` -> `discoverKeyOutcome`
     /// for every item whose thumbnail is being loaded.
     func testDiscoverKeyOutcomeAcrossAlbumWithNoHeldKey() throws {
-        try skipUnlessPerfRun()
-
         measure {
             let expectation = expectation(description: "sweep complete")
             Task {
@@ -128,11 +147,23 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
 
     /// `KeyStampSlot.readStamp` on its own: a second open of a file the probe
     /// has already opened and parsed.
+    ///
+    /// The fixtures are stamped first so the read returns a value — an unstamped
+    /// file's zero slot is indistinguishable here from a read that failed.
     func testReadStampOnlyAcrossAlbum() throws {
-        try skipUnlessPerfRun()
+        for url in fixtures {
+            KeyStampSlot.writeStamp(foreignKey.stampPrefix, url: url)
+        }
+        XCTAssertEqual(KeyStampSlot.readStamp(url: try XCTUnwrap(fixtures.first)),
+                       foreignKey.stampPrefix,
+                       "the fixtures must carry a stamp for this to measure a full read")
+
         measure {
             for url in fixtures {
-                _ = KeyStampSlot.readStamp(url: url)
+                guard KeyStampSlot.readStamp(url: url) == foreignKey.stampPrefix else {
+                    XCTFail("stamp read back from \(url.lastPathComponent) is not the one written")
+                    return
+                }
             }
         }
     }
@@ -140,10 +171,16 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
     /// `FirstBlockProbe` construction on its own: one open, prologue parse, and
     /// the ~20KB first-block read, with no AEAD at all.
     func testFirstBlockProbeOnlyAcrossAlbum() throws {
-        try skipUnlessPerfRun()
         measure {
             for url in fixtures {
-                _ = FirstBlockProbe(url: url)
+                // Pins that the whole block was read: a probe that returned nil,
+                // or bailed after the prologue, would time a fraction of this.
+                guard let probe = FirstBlockProbe(url: url),
+                      probe.streamHeader.count == EncryptedFileFormat.streamHeaderSize,
+                      probe.firstBlock.count > 20000 else {
+                    XCTFail("probe should read the whole first block of \(url.lastPathComponent)")
+                    return
+                }
             }
         }
     }
@@ -158,17 +195,28 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
     ///
     /// Read-only: this queries whatever keys the device already holds and writes
     /// nothing. The count it found is printed so the number can be read in
-    /// proportion.
+    /// proportion, and the query counter pins each call to a real round-trip
+    /// rather than something cheaper.
     func testStoredKeysQueryCostPerAlbumSweep() throws {
-        try skipUnlessPerfRun()
+        let keychain = CountingKeychainWrapper()
+        let real = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(),
+                                   keychainWrapper: keychain)
+        let library = try real.storedKeys().map(\.uuid)
+        print("[KeyDiscoveryPerf] real keychain holds \(library.count) key(s)")
 
-        let real = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
-        let found = (try? real.storedKeys())?.count ?? -1
-        print("[KeyDiscoveryPerf] real keychain holds \(found) key(s)")
+        keychain.reset()
+        for _ in 0..<fileCount {
+            XCTAssertEqual(try real.storedKeys().map(\.uuid), library)
+        }
+        XCTAssertEqual(keychain.copyMatchingCount, fileCount,
+                       "every storedKeys() call is a keychain query of its own")
 
         measure {
             for _ in 0..<fileCount {
-                _ = try? real.storedKeys()
+                guard (try? real.storedKeys())?.count == library.count else {
+                    XCTFail("the key library changed under the benchmark")
+                    return
+                }
             }
         }
     }
@@ -187,14 +235,39 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
     /// hopped to the main actor once per image, competing with the scrolling it
     /// was blocking.
     func testKeyWithUUIDQueryCostPerAlbumSweep() throws {
-        try skipUnlessPerfRun()
-        let real = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
-        let anyUUID = (try? real.storedKeys())?.first?.uuid ?? UUID()
+        let keychain = CountingKeychainWrapper()
+        let real = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(),
+                                   keychainWrapper: keychain)
+        let stored = try real.storedKeys()
+        let heldUUID = stored.first?.uuid
+        let lookupUUID = heldUUID ?? UUID()
+
+        keychain.reset()
+        let lookups = expectation(description: "counted keyWith lookups")
+        Task { @MainActor in
+            var mismatches = 0
+            for _ in 0..<self.fileCount {
+                if real.keyWith(uuid: lookupUUID)?.uuid != heldUUID {
+                    mismatches += 1
+                }
+            }
+            XCTAssertEqual(mismatches, 0,
+                           "keyWith(uuid:) must resolve exactly the key the library holds, or nothing when it holds none")
+            // A uuid the library does not contain must miss whatever the library
+            // holds: the lookup is not allowed to fall back to whichever key
+            // happens to be current.
+            XCTAssertNil(real.keyWith(uuid: UUID()))
+            lookups.fulfill()
+        }
+        wait(for: [lookups], timeout: 300)
+        XCTAssertEqual(keychain.copyMatchingCount, fileCount + 1,
+                       "every keyWith(uuid:) is a full keychain query of its own")
+
         measure {
             let expectation = expectation(description: "keyWith sweep")
             Task { @MainActor in
                 for _ in 0..<self.fileCount {
-                    _ = real.keyWith(uuid: anyUUID)
+                    _ = real.keyWith(uuid: lookupUUID)
                 }
                 expectation.fulfill()
             }
@@ -208,16 +281,30 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
     // array read. These two run the identical sweep against a real
     // `KeychainManager`, differing only in whether the key library is read once
     // for the album or once per file. Read-only — neither writes a key.
+    //
+    // The claim the pair exists to make — the hoist removes keychain queries —
+    // is asserted from a query counter, not from the two timings, which have no
+    // baseline to fail against.
 
     /// Old behavior: discovery reads the keychain itself, per file.
     func testRealKeychainSweepWithoutSnapshot() throws {
-        try skipUnlessPerfRun()
-        let real = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
+        let keychain = CountingKeychainWrapper()
+        let real = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(),
+                                   keychainWrapper: keychain)
+
+        let queries = try sweepAlbumCountingQueries(keyManager: real, keychain: keychain, useSnapshot: false)
+        XCTAssertEqual(queries, fixtures.count,
+                       "without a snapshot the key library is read once per file")
+
         measure {
             let expectation = expectation(description: "sweep")
             Task {
                 for url in self.fixtures {
-                    _ = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: real)
+                    let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: real)
+                    guard case .noKnownKey = outcome else {
+                        XCTFail("fixture should be unopenable by every stored key, got \(outcome)")
+                        return expectation.fulfill()
+                    }
                 }
                 expectation.fulfill()
             }
@@ -227,16 +314,30 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
 
     /// New behavior: the caller reads the key library once for the sweep.
     func testRealKeychainSweepWithSnapshot() throws {
-        try skipUnlessPerfRun()
-        let real = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
+        let keychain = CountingKeychainWrapper()
+        let real = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(),
+                                   keychainWrapper: keychain)
+
+        let snapshotQueries = try sweepAlbumCountingQueries(keyManager: real, keychain: keychain, useSnapshot: true)
+        XCTAssertEqual(snapshotQueries, 1,
+                       "the key library is read once for the whole album")
+
+        let perFileQueries = try sweepAlbumCountingQueries(keyManager: real, keychain: keychain, useSnapshot: false)
+        XCTAssertLessThan(snapshotQueries, perFileQueries,
+                          "hoisting the key library out of the per-file path must remove keychain queries")
+
         measure {
             let expectation = expectation(description: "sweep")
             Task {
                 let snapshot = (try? real.storedKeys()) ?? []
                 for url in self.fixtures {
-                    _ = await KeyDiscovery.discoverKeyOutcome(for: url,
-                                                              keyManager: real,
-                                                              storedKeysSnapshot: snapshot)
+                    let outcome = await KeyDiscovery.discoverKeyOutcome(for: url,
+                                                                        keyManager: real,
+                                                                        storedKeysSnapshot: snapshot)
+                    guard case .noKnownKey = outcome else {
+                        XCTFail("fixture should be unopenable by every stored key, got \(outcome)")
+                        return expectation.fulfill()
+                    }
                 }
                 expectation.fulfill()
             }
@@ -244,17 +345,45 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
         }
     }
 
+    /// One album sweep through `discoverKeyOutcome`, asserting the outcome of
+    /// every file and reporting how many keychain queries the sweep made.
+    private func sweepAlbumCountingQueries(keyManager: KeyManager,
+                                           keychain: CountingKeychainWrapper,
+                                           useSnapshot: Bool,
+                                           file: StaticString = #filePath,
+                                           line: UInt = #line) throws -> Int {
+        keychain.reset()
+        var snapshot: [PrivateKey]?
+        if useSnapshot {
+            snapshot = try keyManager.storedKeys()
+        }
+        let expectation = expectation(description: "counted sweep")
+        Task {
+            for url in self.fixtures {
+                let outcome = await KeyDiscovery.discoverKeyOutcome(for: url,
+                                                                    keyManager: keyManager,
+                                                                    storedKeysSnapshot: snapshot)
+                guard case .noKnownKey = outcome else {
+                    XCTFail("fixture should be unopenable by every stored key, got \(outcome)",
+                            file: file, line: line)
+                    return expectation.fulfill()
+                }
+            }
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 300)
+        return keychain.copyMatchingCount
+    }
+
     /// Runs the album sweep on a loop long enough for a sampling profiler to
     /// collect a usable number of samples. Not an assertion about speed — it
     /// exists so `xctrace record --template 'Time Profiler' --attach Encamera`
-    /// has something steady to sample. Opt-in separately from the benchmarks
-    /// above, since it deliberately burns wall-clock.
+    /// has something steady to sample, and asserts only that the workload the
+    /// trace is recorded against really swept the album. One second by default
+    /// so the ordinary suite still executes it; set ENCAMERA_PERF_SOAK_SECONDS
+    /// to the length a trace needs.
     func testSoakDiscoverKeyOutcomeForProfiler() throws {
-        try skipUnlessPerfRun()
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["ENCAMERA_PERF_SOAK"] == "1",
-                          "Profiler soak — set ENCAMERA_PERF_SOAK=1 to run.")
-
-        let soakSeconds = TimeInterval(ProcessInfo.processInfo.environment["ENCAMERA_PERF_SOAK_SECONDS"] ?? "") ?? 25
+        let soakSeconds = TimeInterval(ProcessInfo.processInfo.environment["ENCAMERA_PERF_SOAK_SECONDS"] ?? "") ?? 1
         // Soaks the REAL keychain path, because that is where the cost was.
         // ENCAMERA_PERF_SOAK_NOSNAPSHOT=1 reproduces the pre-fix shape (the key
         // library re-read per file) so two traces of the same workload can be
@@ -263,30 +392,35 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
         let real = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
         print("[KeyDiscoveryPerf] soak mode: \(useSnapshot ? "WITH snapshot (fixed)" : "WITHOUT snapshot (pre-fix)")")
 
+        let counters = SoakCounters()
         let expectation = expectation(description: "soak complete")
         Task {
             let deadline = Date().addingTimeInterval(soakSeconds)
-            var sweeps = 0
             while Date() < deadline {
                 let snapshot = useSnapshot ? ((try? real.storedKeys()) ?? []) : nil
                 for url in self.fixtures {
-                    _ = await KeyDiscovery.discoverKeyOutcome(for: url,
-                                                              keyManager: real,
-                                                              storedKeysSnapshot: snapshot)
+                    let outcome = await KeyDiscovery.discoverKeyOutcome(for: url,
+                                                                        keyManager: real,
+                                                                        storedKeysSnapshot: snapshot)
+                    counters.record(outcome)
                 }
-                sweeps += 1
+                counters.finishSweep()
             }
-            print("[KeyDiscoveryPerf] completed \(sweeps) sweeps of \(self.fileCount) files in \(Int(soakSeconds))s")
+            print("[KeyDiscoveryPerf] completed \(counters.sweeps) sweeps of \(self.fileCount) files in \(Int(soakSeconds))s")
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: soakSeconds + 120)
+
+        XCTAssertGreaterThan(counters.sweeps, 0, "the profiled workload completed no sweeps")
+        XCTAssertEqual(counters.files, counters.sweeps * fileCount,
+                       "every sweep must cover the whole album")
+        XCTAssertEqual(counters.unexpectedOutcomes, 0,
+                       "the profiled workload must exercise the full candidate sweep, not an early return")
     }
 
     /// The additive-key-entry path: `GalleryGridViewModel.proveKey` probes every
     /// item in the album, and a rejected phrase never short-circuits.
     func testProveFirstBlockAcrossAlbumWithWrongKey() throws {
-        try skipUnlessPerfRun()
-
         let wrongKey = PrivateKey(name: "wrong",
                                   keyBytes: Array(repeating: 0x99, count: 32),
                                   creationDate: Date(timeIntervalSince1970: 0))
@@ -301,5 +435,99 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
             }
             wait(for: [expectation], timeout: 300)
         }
+    }
+}
+
+/// A fixture that was written but does not decrypt under the key it was written
+/// with — the benchmarks would time it as a failed open.
+private struct UnusableFixture: Error, CustomStringConvertible {
+    let url: URL
+    var description: String {
+        "fixture \(url.lastPathComponent) does not decrypt under the key it was written with"
+    }
+}
+
+/// A real keychain with its `SecItemCopyMatching` calls counted, so "one query
+/// per file" and "one query per album" can be asserted instead of inferred from
+/// two wall-clock numbers. Every call goes straight through.
+private final class CountingKeychainWrapper: KeychainWrapperProtocol {
+
+    private let underlying = KeychainWrapper()
+    private let lock = NSLock()
+    private var count = 0
+
+    var copyMatchingCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return count
+    }
+
+    func reset() {
+        lock.lock()
+        defer { lock.unlock() }
+        count = 0
+    }
+
+    func secItemAdd(_ attributes: CFDictionary, _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        underlying.secItemAdd(attributes, result)
+    }
+
+    func secItemCopyMatching(_ query: CFDictionary, _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        lock.lock()
+        count += 1
+        lock.unlock()
+        return underlying.secItemCopyMatching(query, result)
+    }
+
+    func secItemUpdate(_ query: CFDictionary, _ attributesToUpdate: CFDictionary) -> OSStatus {
+        underlying.secItemUpdate(query, attributesToUpdate)
+    }
+
+    func secItemDelete(_ query: CFDictionary) -> OSStatus {
+        underlying.secItemDelete(query)
+    }
+}
+
+/// Tally of what the soak workload actually did, so a trace recorded against it
+/// can be shown to have swept the album rather than returned early.
+private final class SoakCounters {
+
+    private let lock = NSLock()
+    private var sweepCount = 0
+    private var visitedFiles = 0
+    private var unexpected = 0
+
+    var sweeps: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return sweepCount
+    }
+
+    var files: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return visitedFiles
+    }
+
+    var unexpectedOutcomes: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return unexpected
+    }
+
+    func record(_ outcome: KeyDiscoveryOutcome) {
+        lock.lock()
+        defer { lock.unlock() }
+        visitedFiles += 1
+        if case .noKnownKey = outcome {
+            return
+        }
+        unexpected += 1
+    }
+
+    func finishSweep() {
+        lock.lock()
+        defer { lock.unlock() }
+        sweepCount += 1
     }
 }
