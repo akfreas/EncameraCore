@@ -86,14 +86,37 @@ public enum AppConstants {
             URL(string: rawValue)!
         }
 
-        /// URLs that require authentication, special request bodies, are
-        /// seasonal assets, or block automated requests.
+        /// URLs an anonymous request cannot get a trustworthy health answer
+        /// out of. They are excluded from `publicCases`, so nothing probes them.
+        ///
+        /// A case belongs here when:
+        ///
+        /// - It needs credentials or a particular request body, so an anonymous
+        ///   request's status says nothing about the endpoint: `feedbackApi`
+        ///   answers 200 to any GET and invokes the script, the Supabase hosts
+        ///   answer 401 without an API key, `appleAdsAttribution` answers 404
+        ///   without an attribution body.
+        /// - Its host serves browsers but deflects automated clients from
+        ///   shared addresses. `twitter` and `reddit` answer 403 to any request
+        ///   that is not a browser session, whatever user agent it presents;
+        ///   `telegram` refuses the TLS handshake outright from CI runner
+        ///   addresses while serving ordinary clients normally. A probe cannot
+        ///   tell any of the three apart from a dead link, so it does not watch
+        ///   them.
+        /// - It is a seasonal promo asset that is not always published: the
+        ///   `blackFriday*` cases under `encamera.app/assets/`.
+        ///
+        /// Everything else is public. `URLIntegrationTests` re-derives this
+        /// classification from each case's host and path and fails if the list
+        /// disagrees.
         public static let authenticated: Set<URLs> = [
             .feedbackApi,
             .supabaseFunctionsBase,
             .supabaseAnalyticsTrack,
             .appleAdsAttribution,
             .twitter,
+            .reddit,
+            .telegram,
             .blackFridayHeaderImage,
             .blackFridayTopLeft,
             .blackFridayTopRight,
@@ -105,7 +128,9 @@ public enum AppConstants {
             Self.authenticated.contains(self)
         }
 
-        /// Public URLs that should be reachable without credentials.
+        /// URLs an unauthenticated request may expect a 2xx from, and the exact
+        /// surface the live reachability probe watches. The complement of
+        /// `authenticated`, whose doc comment carries the classification rule.
         public static var publicCases: [URLs] {
             allCases.filter { !$0.isAuthenticated }
         }
