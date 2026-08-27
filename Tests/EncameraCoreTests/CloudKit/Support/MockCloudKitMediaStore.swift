@@ -208,8 +208,10 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     func seedAlbum(_ album: CloudKitAlbumMetadata) { locked { _albums[album.albumID] = album } }
 
     var saveAlbumError: Error?
+    /// The account check belongs to the caller, so this mock deliberately does not
+    /// repeat it — an empty `savedAlbumCalls` then means "the caller's guard held",
+    /// not "the store refused".
     func saveAlbum(_ album: CloudKitAlbumUpload) async throws {
-        guard accountAvailableValue else { throw CloudKitMediaStoreError.accountUnavailable }
         if let saveAlbumError { throw saveAlbumError }
         locked {
             _savedAlbumCalls.append(album)
@@ -294,8 +296,13 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     }
 
     var registerSubscriptionError: Error?
+    private var _registerSubscriptionAttempts = 0
+    /// Every call that reached the store, whether or not it succeeded — so a test
+    /// can tell "attempted and failed" from "never attempted". The account check
+    /// belongs to the caller, so this mock deliberately does not repeat it.
+    var registerSubscriptionAttempts: Int { locked { _registerSubscriptionAttempts } }
     func registerZoneSubscription() async throws {
-        guard accountAvailableValue else { return }
+        locked { _registerSubscriptionAttempts += 1 }
         if let registerSubscriptionError { throw registerSubscriptionError }
         locked { _registerSubscriptionCount += 1 }
     }

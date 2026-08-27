@@ -40,8 +40,21 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
     private(set) var deleteCount = 0
     private(set) var fetchCount = 0
 
+    /// Record names the server currently holds. `save` inserts, `delete` removes.
+    private(set) var storedRecordIDs: Set<CKRecord.ID> = []
+
+    /// Asset bytes read at save time, keyed by field, for the last save.
+    /// CloudKit reads an asset's file while the operation runs, so a test that
+    /// asserts on the uploaded bytes has to see them here: the store deletes the
+    /// private snapshot it uploaded from as soon as `upload` returns.
+    private(set) var lastSavedAssetPayloads: [CKRecord.FieldKey: Data] = [:]
+
     // Programmable behavior
     var saveError: Error?
+    /// Models the server's uniqueness constraint: saving a record name it already
+    /// holds fails with `serverRecordChanged` (the 14/2004 shape) instead of
+    /// silently overwriting.
+    var rejectsSavesOfOccupiedRecordNames = false
     /// Errors for successive `save` calls, consumed from the front (`nil` = that
     /// attempt succeeds). Lets a test model a save that fails once and succeeds on
     /// the retry; falls back to `saveError` once exhausted.
@@ -63,11 +76,23 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
         saveCount += 1
         lastSavePolicy = savePolicy
         savedRecordBatches.append(records)
+        lastSavedAssetPayloads = [:]
         for record in records {
+            for key in record.allKeys() {
+                guard let url = (record[key] as? CKAsset)?.fileURL,
+                      let data = try? Data(contentsOf: url) else { continue }
+                lastSavedAssetPayloads[key] = data
+            }
             for value in saveProgressValues { perRecordProgress(record.recordID, value) }
+        }
+        if rejectsSavesOfOccupiedRecordNames,
+           let occupied = records.first(where: { storedRecordIDs.contains($0.recordID) }) {
+            throw CKErrorFactory.error(.serverRecordChanged,
+                                       userInfo: [CKRecordChangedErrorServerRecordKey: occupied])
         }
         let attemptError = saveErrorSequence.isEmpty ? saveError : saveErrorSequence.removeFirst()
         if let attemptError { throw attemptError }
+        for record in records { storedRecordIDs.insert(record.recordID) }
         return records
     }
 
@@ -75,6 +100,7 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
         deleteCount += 1
         deletedRecordIDBatches.append(recordIDs)
         if let deleteError { throw deleteError }
+        for recordID in recordIDs { storedRecordIDs.remove(recordID) }
         return recordIDs
     }
 

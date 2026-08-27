@@ -182,6 +182,12 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
 
         await sync.syncAll()
 
+        // The 0 has to come from the key matching, not from any path that returns
+        // 0 without looking: the remote album was decrypted and materialized.
+        XCTAssertEqual(albumManager.adoptedAlbums.map { $0.name }, ["RemoteOne"],
+                       "the album whose key is present is materialized, not counted as locked out")
+        let reported = await sync.albumsNeedingKey
+        XCTAssertEqual(reported, 0)
         XCTAssertEqual(LockedAlbumsReporter.shared.lockedAlbumCount, 0)
     }
 
@@ -192,20 +198,21 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
     @MainActor
     func testLockedOutCountClearsWhenTheCloudKitPlaneGoesInactive() async {
         let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
         defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
+        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
 
-        LockedAlbumsReporter.shared.report(lockedAlbumCount: 2)
+        LockedAlbumsReporter.shared.report(lockedAlbumCount: 0)
 
         let keyManager = DemoKeyManager()
         keyManager.storedKeysValue = [makeKey(1)]
         keyManager.currentKey = keyManager.storedKeysValue.first
         let albumManager = MockAlbumManager(keyManager: keyManager)
-        // No local `.cloudKit` album, so with the flag off the guard skips the
+        // No local `.cloudKit` album, so once the flag goes off the guard skips the
         // whole run — exactly the path that left the count standing.
         albumManager.albumsOnDisk = []
 
         let store = MockCloudKitMediaStore()
+        store.seedAlbum(remoteRecord(name: "Remote", key: makeKey(9)))
         let queue = freshDeleteQueue()
         let registry = freshPublishRegistry()
         let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false, makeReconciler: { manager in
@@ -216,9 +223,17 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                     publishRegistry: registry)
         })
 
+        // A flag-on pass first, so both counts are standing at 1 before the plane
+        // goes inactive — otherwise "cleared" is indistinguishable from "never set".
+        await sync.syncAll()
+        var reported = await sync.albumsNeedingKey
+        XCTAssertEqual(reported, 1, "the unreadable remote album is counted while the plane is active")
+        XCTAssertEqual(LockedAlbumsReporter.shared.lockedAlbumCount, 1)
+
+        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
         await sync.syncAll()
 
-        let reported = await sync.albumsNeedingKey
+        reported = await sync.albumsNeedingKey
         XCTAssertEqual(reported, 0)
         XCTAssertEqual(LockedAlbumsReporter.shared.lockedAlbumCount, 0,
                        "a skipped run must not leave the grid claiming albums are locked out")
@@ -234,7 +249,19 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let lockedOut = await reconciler.reconcileAlbums()
 
         XCTAssertEqual(lockedOut, 0)
+        XCTAssertEqual(store.fetchChangesCount, 0, "no account means the zone is never read")
+        XCTAssertEqual(store.fetchAllAlbumsCount, 0)
         XCTAssertTrue(store.savedAlbumCalls.isEmpty)
+
+        // The same fixture with an account: everything the guard suppressed happens,
+        // so the emptiness above is the guard's doing and not the fixture's.
+        store.accountAvailableValue = true
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertEqual(store.fetchChangesCount, 1)
+        XCTAssertEqual(store.fetchAllAlbumsCount, 1)
+        XCTAssertEqual(store.savedAlbumCalls.map { $0.albumID },
+                       [SyncedStoreEncryptionHandler.keyedHash("Offline", keyBytes: key.keyBytes)!])
     }
 
     func test_reconcile_doesNotRePushAlbumAlreadyRemote() async {
@@ -346,6 +373,12 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
 
         _ = await reconciler.reconcileAlbums()
 
+        // Pins the branch the assertions below are about: the pull loop saw the
+        // record (so nothing was self-heal pushed) and recognised the album as
+        // already materialized (so nothing was adopted).
+        XCTAssertTrue(store.savedAlbumCalls.isEmpty, "the album was recognised as already remote")
+        XCTAssertTrue(albumManager.deletedAlbums.isEmpty, "and not treated as absent from the query")
+        XCTAssertTrue(albumManager.adoptedAlbums.isEmpty, "an already-materialized album is not re-adopted")
         XCTAssertTrue(albumManager.setHiddenCalls.isEmpty,
                       "an existing album's hidden state must not be driven by the EncAlbum record")
         XCTAssertTrue(albumManager.isAlbumHidden(local))
@@ -387,6 +420,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
 
         _ = await reconciler.reconcileAlbums()
 
+        XCTAssertEqual(store.deletedAlbumCalls, [hash], "the delete was attempted and refused")
         XCTAssertEqual(queue.pending(), [hash], "an unconfirmed delete stays queued for the next pass")
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty)
         XCTAssertTrue(store.savedAlbumCalls.isEmpty, "a pending-delete album must not be pushed back up")

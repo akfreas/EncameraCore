@@ -36,6 +36,7 @@ final class CloudKitMediaStoreTests: XCTestCase {
                             mediaType: MediaType = .video,
                             fileURL: URL = URL(fileURLWithPath: "/tmp/enc.blob"),
                             thumbURL: URL = URL(fileURLWithPath: "/tmp/enc.thumb"),
+                            recordName: String? = nil,
                             keyFingerprint: String = "") -> CloudKitMediaUpload {
         CloudKitMediaUpload(albumID: albumID,
                             mediaID: mediaID,
@@ -44,7 +45,21 @@ final class CloudKitMediaStoreTests: XCTestCase {
                             sizeBytes: 4096,
                             encryptedFileURL: fileURL,
                             encryptedThumbURL: thumbURL,
+                            recordName: recordName,
                             keyFingerprint: keyFingerprint)
+    }
+
+    /// Writes real ciphertext on disk, cleaned up when the test ends. The store
+    /// snapshots the preview before uploading it, which it can only do when the
+    /// file actually exists.
+    private func makeCiphertextFile(_ name: String, contents: Data) throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ckmediastore-tests-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent(name)
+        try contents.write(to: url)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        return url
     }
 
     /// Real keys, so assertions use the same fingerprint production writes
@@ -86,8 +101,10 @@ final class CloudKitMediaStoreTests: XCTestCase {
     func testUploadBuildsRecordWithBothAssetsAndIndexFields() async throws {
         let mock = MockCloudKitDatabase()
         let store = makeStore(adapter: mock, defaults: freshDefaults())
-        let fileURL = URL(fileURLWithPath: "/tmp/enc-\(UUID()).blob")
-        let thumbURL = URL(fileURLWithPath: "/tmp/enc-\(UUID()).thumb")
+        let blobBytes = Data("blob-ciphertext".utf8)
+        let thumbBytes = Data("preview-ciphertext".utf8)
+        let fileURL = try makeCiphertextFile("enc.blob", contents: blobBytes)
+        let thumbURL = try makeCiphertextFile("enc.thumb", contents: thumbBytes)
 
         let ref = try await store.upload(makeUpload(fileURL: fileURL, thumbURL: thumbURL), progress: { _ in })
         XCTAssertEqual(ref.recordName, "media-1")
@@ -97,27 +114,84 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(saved[CloudKitSchema.EncMedia.mediaID] as? String, "media-1")
         XCTAssertEqual(saved[CloudKitSchema.EncMedia.mediaType] as? Int64, Int64(MediaType.video.rawValue))
         XCTAssertEqual(saved[CloudKitSchema.EncMedia.sizeBytes] as? Int64, 4096)
+        XCTAssertEqual(saved[CloudKitSchema.EncMedia.createdAt] as? Date, Date(timeIntervalSince1970: 555))
         XCTAssertEqual(saved[CloudKitSchema.EncMedia.schemaVersion] as? Int64, CloudKitSchema.currentSchemaVersion)
 
-        let blob = saved[CloudKitSchema.EncMedia.encBlob] as? CKAsset
-        let thumb = saved[CloudKitSchema.EncMedia.encThumbnail] as? CKAsset
-        XCTAssertEqual(blob?.fileURL, fileURL)
-        XCTAssertEqual(thumb?.fileURL, thumbURL)
+        let blob = try XCTUnwrap(saved[CloudKitSchema.EncMedia.encBlob] as? CKAsset)
+        XCTAssertEqual(blob.fileURL, fileURL, "The blob uploads straight from the encrypted file")
+        XCTAssertEqual(mock.lastSavedAssetPayloads[CloudKitSchema.EncMedia.encBlob], blobBytes)
+
+        // The preview is shared — a Live Photo's two components point at one file —
+        // and is rewritten whenever it is regenerated, so it uploads from a private
+        // copy. CloudKit rejects a record whose asset changed mid-upload (17/3003).
+        let thumb = try XCTUnwrap(saved[CloudKitSchema.EncMedia.encThumbnail] as? CKAsset)
+        let thumbAssetURL = try XCTUnwrap(thumb.fileURL)
+        XCTAssertNotEqual(thumbAssetURL, thumbURL,
+                          "The thumbnail must upload from a snapshot, not from the live preview file")
+        XCTAssertEqual(mock.lastSavedAssetPayloads[CloudKitSchema.EncMedia.encThumbnail], thumbBytes,
+                       "The snapshot must carry the preview's bytes")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: thumbAssetURL.path),
+                       "The snapshot is the upload's alone and must not outlive it")
+
+        // The cascade that makes deleting an album take its media with it.
+        let albumRef = try XCTUnwrap(saved[CloudKitSchema.EncMedia.albumRef] as? CKRecord.Reference)
+        XCTAssertEqual(albumRef.recordID.recordName, "album-hash")
+        XCTAssertEqual(albumRef.action, .deleteSelf)
+        XCTAssertEqual(saved.parent?.recordID, albumRef.recordID)
 
         XCTAssertEqual(mock.lastSavePolicy?.rawValue,
                        CKModifyRecordsOperation.RecordSavePolicy.ifServerRecordUnchanged.rawValue)
     }
 
-    func testUploadReportsProgressMonotonic0to1() async throws {
+    /// Preview generation can fail, leaving nothing on disk to copy. The record
+    /// still has to carry a thumbnail rather than lose it to the failed snapshot.
+    func testUploadFallsBackToTheLivePreviewWhenItCannotBeSnapshotted() async throws {
         let mock = MockCloudKitDatabase()
-        mock.saveProgressValues = [0.0, 0.4, 1.0]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+        let missingThumb = URL(fileURLWithPath: "/tmp/enc-\(UUID()).thumb")
+
+        _ = try await store.upload(makeUpload(thumbURL: missingThumb), progress: { _ in })
+
+        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
+        let thumb = try XCTUnwrap(saved[CloudKitSchema.EncMedia.encThumbnail] as? CKAsset)
+        XCTAssertEqual(thumb.fileURL, missingThumb)
+    }
+
+    /// A Live Photo is two blobs under one `mediaID`, so the record name — not the
+    /// media id — is what keeps them apart. Uploading the second component must add
+    /// a record, never overwrite the first.
+    func testLivePhotoComponentsUploadAsTwoRecordsUnderOneMediaID() async throws {
+        let mock = MockCloudKitDatabase()
+        mock.rejectsSavesOfOccupiedRecordNames = true
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        let photo = makeUpload(mediaID: "live-1", mediaType: .photo, recordName: "live-1")
+        let video = makeUpload(mediaID: "live-1", mediaType: .video, recordName: "live-1.video")
+        let photoRef = try await store.upload(photo, progress: { _ in })
+        let videoRef = try await store.upload(video, progress: { _ in })
+
+        XCTAssertEqual(photoRef.recordName, "live-1")
+        XCTAssertEqual(videoRef.recordName, "live-1.video")
+        XCTAssertEqual(mock.storedRecordIDs.count, 2, "Both components must survive on the server")
+
+        let saved = mock.savedRecordBatches.compactMap { $0.first }
+        XCTAssertEqual(saved.map { $0[CloudKitSchema.EncMedia.mediaID] as? String }, ["live-1", "live-1"])
+        XCTAssertEqual(saved.map { $0[CloudKitSchema.EncMedia.mediaType] as? Int64 },
+                       [Int64(MediaType.photo.rawValue), Int64(MediaType.video.rawValue)])
+    }
+
+    /// The store hands the caller whatever fractions the adapter reports, in order
+    /// and unaltered — it clamps nothing, reorders nothing, and synthesises no
+    /// terminal value, so a stalled or backwards upload is visible to the caller.
+    func testUploadForwardsAdapterProgressUnchanged() async throws {
+        let mock = MockCloudKitDatabase()
+        mock.saveProgressValues = [0.4, 0.1, 0.9]
         let store = makeStore(adapter: mock, defaults: freshDefaults())
 
         let box = Box()
         _ = try await store.upload(makeUpload(), progress: { box.values.append($0) })
 
-        XCTAssertEqual(box.values, [0.0, 0.4, 1.0])
-        XCTAssertEqual(box.values.last, 1.0)
+        XCTAssertEqual(box.values, [0.4, 0.1, 0.9])
     }
 
     // MARK: - The iCloud -> local -> iCloud round trip
@@ -131,12 +205,27 @@ final class CloudKitMediaStoreTests: XCTestCase {
     /// Deleting for real is what makes the name free again.
     func testUploadAfterAMoveOutIsAPlainInsertWithNoConflictHandling() async throws {
         let mock = MockCloudKitDatabase()
+        mock.rejectsSavesOfOccupiedRecordNames = true
         let store = makeStore(adapter: mock, defaults: freshDefaults())
 
+        // The album is in iCloud: the name is taken, and re-inserting over it is the
+        // failure a tombstone used to leave behind forever.
+        _ = try await store.upload(makeUpload(), progress: { _ in })
+        do {
+            _ = try await store.upload(makeUpload(), progress: { _ in })
+            XCTFail("Re-inserting an occupied record name must not succeed")
+        } catch let error as CloudKitMediaStoreError {
+            guard case .conflict = error else { return XCTFail("Wrong error: \(error)") }
+        }
+
+        // Moving the album out deletes the records, which frees the names again.
         try await store.delete(recordName: "media-1")
+        XCTAssertTrue(mock.storedRecordIDs.isEmpty, "The move out must remove the record, not tombstone it")
+
+        let fetchesBefore = mock.fetchCount
         _ = try await store.upload(makeUpload(), progress: { _ in })
 
-        XCTAssertEqual(mock.fetchCount, 0,
+        XCTAssertEqual(mock.fetchCount, fetchesBefore,
                        "A freed record name needs no fetch-then-revive round trip")
         let saved = try XCTUnwrap(mock.savedRecordBatches.last?.first)
         XCTAssertEqual(saved.recordID.recordName, "media-1")
@@ -463,13 +552,19 @@ final class CloudKitMediaStoreTests: XCTestCase {
     }
 
     func testPartialFailureKeepsSucceeded() {
-        let itemError = CKErrorFactory.error(.serverRecordChanged)
+        // A three-record batch where m1 and m3 failed for different reasons and m2
+        // went through: the caller re-drives only what the map names.
         let mapped = mapCKError(CKErrorFactory.error(
             .partialFailure,
-            userInfo: [CKPartialErrorsByItemIDKey: [CloudKitTestFactory.recordID("m1"): itemError]]
+            userInfo: [CKPartialErrorsByItemIDKey: [
+                CloudKitTestFactory.recordID("m1"): CKErrorFactory.error(.serverRecordChanged),
+                CloudKitTestFactory.recordID("m3"): CKErrorFactory.error(.quotaExceeded)
+            ] as [AnyHashable: Error]]
         ))
         guard case .partial(let failed) = mapped else { return XCTFail("Expected partial, got \(mapped)") }
-        XCTAssertNotNil(failed["m1"], "The failed record must be reported")
+        XCTAssertEqual(Set(failed.keys), ["m1", "m3"], "Exactly the failed records are reported")
+        XCTAssertEqual((failed["m1"] as? NSError)?.code, CKError.Code.serverRecordChanged.rawValue)
+        XCTAssertEqual((failed["m3"] as? NSError)?.code, CKError.Code.quotaExceeded.rawValue)
         XCTAssertNil(failed["m2"], "Records not in partialErrors are considered succeeded")
     }
 
@@ -570,14 +665,21 @@ final class CloudKitMediaStoreTests: XCTestCase {
         // The coordinator retries registration on every sync and relies on THIS
         // persisted-flag check to make the genuinely-registered case free.
         let defaults = freshDefaults()
-        defaults.set(true, forKey: "cloudkit_zone_subscription_v1_" + CloudKitSchema.containerID)
+        let subKey = "cloudkit_zone_subscription_v1_" + CloudKitSchema.containerID
         let mock = MockCloudKitDatabase()
         let store = makeStore(adapter: mock, defaults: defaults)
 
+        // The first registration is the positive control: the same store, the same
+        // available account, so a later no-op can only come from the persisted flag.
+        try await store.registerZoneSubscription()
+        XCTAssertEqual(mock.savedSubscriptions.count, 1)
+        XCTAssertTrue(defaults.bool(forKey: subKey),
+                      "a successful registration must persist the flag it later reads")
+
         try await store.registerZoneSubscription()
 
-        XCTAssertTrue(mock.savedSubscriptions.isEmpty,
-                      "an already-registered subscription must not be saved again")
+        XCTAssertEqual(mock.savedSubscriptions.count, 1,
+                       "an already-registered subscription must not be saved again")
     }
 
     func testCancelledErrorMaps() {
@@ -680,8 +782,12 @@ final class CloudKitMediaStoreTests: XCTestCase {
     /// the next attempt at the same record misbehave — the retry is an ordinary save.
     func testInterruptedUploadLeavesNoStateThatBreaksTheNextSave() async throws {
         let defaults = freshDefaults()
+        // What a kill mid-upload on an older build left on disk.
+        defaults.set(["media-1": "3090886DAE392CF7"], forKey: longLivedMapKey)
         let mock = MockCloudKitDatabase()
         let store = makeStore(adapter: mock, defaults: defaults)
+        XCTAssertNil(defaults.object(forKey: longLivedMapKey),
+                     "Constructing the store must drop the map before anything can hand it back")
 
         mock.saveError = CKErrorFactory.error(.networkFailure)
         do {
@@ -690,8 +796,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
         } catch {
             // expected
         }
-        XCTAssertNil(defaults.object(forKey: longLivedMapKey),
-                     "An interrupted upload must not record a long-lived operation")
 
         // The resumed migration re-drives the same record.
         mock.saveError = nil
@@ -699,7 +803,8 @@ final class CloudKitMediaStoreTests: XCTestCase {
 
         XCTAssertEqual(ref.recordName, "media-1")
         XCTAssertEqual(mock.saveCount, 2, "The retry is a fresh, ordinary save")
-        XCTAssertNil(defaults.object(forKey: longLivedMapKey))
+        XCTAssertNil(defaults.object(forKey: longLivedMapKey),
+                     "An interrupted upload must not record a long-lived operation")
     }
 
     /// The full repro shape: an upload is interrupted, the app is "relaunched"
@@ -710,18 +815,26 @@ final class CloudKitMediaStoreTests: XCTestCase {
         let firstMock = MockCloudKitDatabase()
         let firstStore = makeStore(adapter: firstMock, defaults: defaults)
         firstMock.saveError = CKErrorFactory.error(.networkFailure)
-        _ = try? await firstStore.upload(makeUpload(), progress: { _ in })
+        do {
+            _ = try await firstStore.upload(makeUpload(), progress: { _ in })
+            XCTFail("Expected the upload to be interrupted")
+        } catch {
+            // expected
+        }
+        // The build that died mid-upload recorded the in-flight operation.
+        defaults.set(["media-1": "3090886DAE392CF7"], forKey: longLivedMapKey)
 
         // Relaunch: the album list, albums sync and the migration each build a store.
         let secondMock = MockCloudKitDatabase()
         var stores: [CloudKitMediaStore] = []
         for _ in 0..<3 { stores.append(makeStore(adapter: secondMock, defaults: defaults)) }
         XCTAssertEqual(secondMock.saveCount, 0, "No store construction may issue a CloudKit operation")
+        XCTAssertNil(defaults.object(forKey: longLivedMapKey),
+                     "The relaunch must drop the recorded operation rather than re-attach to it")
 
         let ref = try await XCTUnwrap(stores.last).upload(makeUpload(), progress: { _ in })
 
         XCTAssertEqual(ref.recordName, "media-1")
         XCTAssertEqual(secondMock.saveCount, 1)
-        XCTAssertNil(defaults.object(forKey: longLivedMapKey))
     }
 }

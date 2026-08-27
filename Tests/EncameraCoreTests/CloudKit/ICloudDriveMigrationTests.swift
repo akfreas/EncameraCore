@@ -202,6 +202,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
 
         let plan = try await h.manager.plan(album: h.album)
 
+        XCTAssertEqual(plan.items.count, 2, "both evicted files must be planned — an empty plan would satisfy the sizing check below without checking anything")
         for item in plan.items {
             let name = encURL(album: h.album, id: item.mediaID).lastPathComponent
             XCTAssertEqual(item.sizeBytes, realSizes[name],
@@ -240,6 +241,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
         // record's size matches the planned size.
         let sizes = await h.materializer.logicalSizes(
             inAlbumDirectory: iCloudStorageModel(album: h.album).baseURL)
+        XCTAssertEqual(plan.items.count, 2, "both evicted files must be planned — an empty plan would satisfy the sizing check below without checking anything")
         for item in plan.items {
             let expected = sizes[encURL(album: h.album, id: item.mediaID).lastPathComponent]
             XCTAssertEqual(item.sizeBytes, expected,
@@ -286,6 +288,8 @@ final class ICloudDriveMigrationTests: XCTestCase {
         await h.manager.start(album: h.album)
 
         XCTAssertEqual(h.manager.state, .completed)
+        XCTAssertEqual(h.store.uploadedItems.count, 2,
+                       "both files must actually reach CloudKit — a run that skipped every item also reports .completed")
         for upload in h.store.uploadedItems {
             XCTAssertEqual(upload.sizeBytes, plannedSizes[upload.mediaID],
                            "the size that reaches CloudKit must be the size verification checks against")
@@ -352,22 +356,34 @@ final class ICloudDriveMigrationTests: XCTestCase {
     func testGenuinelyMissingFileIsStillSkipped() async throws {
         // The other side of the same coin: a stale index entry with no file in
         // EITHER form has nothing to migrate and must not wedge the album forever.
-        let h = try await makeHarness(count: 2)
-        let plan = try await h.manager.plan(album: h.album)
-        let ghostID = h.mediaIDs[0]
-        // Truly absent: gone in BOTH forms, and no longer reported as merely evicted.
+        //
+        // The file has to disappear AFTER planning. Enumeration reads the
+        // filesystem, so deleting it first means it is never planned at all and the
+        // skip decision never runs — the account preflight, awaited between planning
+        // and the item loop, is the window that puts the ghost in front of it.
+        let h = try await makeHarness(count: 2, evicting: 1)
+        let survivorID = h.mediaIDs[0]
+        let ghostID = h.mediaIDs[1]
         let ghostURL = encURL(album: h.album, id: ghostID)
-        try? FileManager.default.removeItem(at: ghostURL)
-        try? FileManager.default.removeItem(at: placeholderURL(album: h.album, id: ghostID))
-        ICloudPlaceholderName.testEvictedURLs?.remove(ghostURL.standardizedFileURL)
-        XCTAssertFalse(ICloudPlaceholderName.existsInAnyForm(ghostURL),
-                       "precondition: this file is genuinely gone, not merely evicted")
-        XCTAssertEqual(plan.items.count, 2)
+        let ghostPlaceholder = placeholderURL(album: h.album, id: ghostID)
+        h.store.accountAvailableGate = {
+            // Truly absent: gone in BOTH forms, so it is not merely evicted.
+            try? FileManager.default.removeItem(at: ghostURL)
+            try? FileManager.default.removeItem(at: ghostPlaceholder)
+        }
 
         await h.manager.start(album: h.album)
 
+        XCTAssertFalse(ICloudPlaceholderName.existsInAnyForm(ghostURL),
+                       "precondition: this file is genuinely gone, not merely evicted")
+        XCTAssertEqual(h.manager.progress.totalCount, 2,
+                       "the ghost was in the plan this run executed, so the skip branch is what decided it")
+        XCTAssertEqual(h.manager.progress.failedCount, 0,
+                       "an absent source is a terminal skip, not a failure that blocks the album forever")
         XCTAssertEqual(h.manager.state, .completed, "a genuinely absent file must not block completion")
         XCTAssertEqual(h.albumManager.finalizeCallCount, 1)
+        XCTAssertEqual(h.store.uploadCalls, [survivorID],
+                       "and the file that really is there still migrates")
     }
 
     // MARK: - Batching
@@ -521,6 +537,8 @@ final class ICloudDriveMigrationTests: XCTestCase {
         await manager.start(album: album)
 
         XCTAssertEqual(manager.state, .completed)
+        XCTAssertEqual(store.uploadCalls.count, 2,
+                       "both local files really migrated — otherwise \"never materialized\" is just \"never did anything\"")
         XCTAssertTrue(materializer.batchSizes.isEmpty,
                       "a local album must never enter the download path")
     }

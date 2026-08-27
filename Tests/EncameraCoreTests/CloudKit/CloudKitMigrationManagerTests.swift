@@ -150,10 +150,12 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         let (manager, albumManager) = makeManager(for: album)
         defer { cleanup(album) }
 
-        _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+        let ids = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
         let first = try await manager.plan(album: album)
         let second = try await manager.plan(album: album)
 
+        XCTAssertEqual(Set(first.items.map(\.mediaID)), Set(ids),
+                       "the plans being compared must cover every seeded component")
         XCTAssertEqual(first.items.map(\.recordName).sorted(), second.items.map(\.recordName).sorted())
         XCTAssertEqual(first.items.map(\.mediaID).sorted(), second.items.map(\.mediaID).sorted())
     }
@@ -190,6 +192,15 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         XCTAssertTrue(MigrationPlanStore.hasPlan(for: album))
         let reloaded = await MigrationPlanStore(album: album).load()
         XCTAssertEqual(reloaded?.items.count, 1)
+
+        // The checkpoint embeds the cleartext album name, so the bytes on disk must
+        // be ciphertext — not merely round-trippable through the store.
+        let raw = try Data(contentsOf: MigrationPlanStore.planURL(for: album))
+        XCTAssertFalse(raw.isEmpty)
+        XCTAssertNil(try? JSONSerialization.jsonObject(with: raw),
+                     "the checkpoint must not be readable as plaintext JSON")
+        XCTAssertFalse(String(decoding: raw, as: UTF8.self).contains(album.name),
+                       "the album name must not be recoverable from the checkpoint on disk")
     }
 
     // MARK: - Execution
@@ -707,6 +718,9 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         }
         await manager.start(album: album)
 
+        XCTAssertEqual(store.ensureZoneCalls, 1, "the run must have reached the preflight the cancel lands in")
+        let persisted = await MigrationPlanStore(album: album).load()
+        XCTAssertNotNil(persisted?.cancelledAt, "the cancel, not an unrelated abort, must be what stopped the run")
         XCTAssertEqual(albumManager.finalizeCallCount, 0,
                        "an explicit cancel must not flip the album to CloudKit")
         XCTAssertEqual(manager.state, .idle)
@@ -768,8 +782,10 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         try await planStore.save(persisted)
 
         _ = try await manager.plan(album: album)
-        XCTAssertNotEqual(manager.state, .completed,
-                          "plan() must leave terminal states to run()")
+        XCTAssertEqual(manager.progress.verifiedCount, 1,
+                       "precondition: the re-plan observed the all-terminal checkpoint")
+        XCTAssertEqual(manager.state, .idle,
+                       "plan() must leave terminal states to run()")
     }
 
     // MARK: - Estimate (pre-flight)
@@ -788,9 +804,16 @@ final class CloudKitMigrationManagerTests: XCTestCase {
                        "previewing the estimate must not leave a checkpoint that could auto-resume")
     }
 
-    func testEstimateIsZeroForCloudKitAlbum() async {
+    func testEstimateIsZeroForCloudKitAlbum() async throws {
         let album = makeAlbum(storage: .cloudKit)
-        let (manager, _, _) = makeExecutableManager(for: album)
+        let (manager, albumManager, _) = makeExecutableManager(for: album)
+        defer { cleanup(album) }
+
+        // Real components on disk, so the storage-type guard is the only thing that
+        // can produce a zero estimate: an album already at the destination has no
+        // work regardless of what its directory holds.
+        _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+
         let estimate = await manager.estimate(album: album)
         XCTAssertEqual(estimate.itemCount, 0)
         XCTAssertEqual(estimate.totalBytes, 0)
@@ -816,6 +839,14 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         let (manager, albumManager, _) = makeExecutableManager(for: album)
         albumManager.albumsOnDisk = [album]
         defer { cleanup(album) }
+
+        _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
+        _ = try await manager.plan(album: album)
+        let pendingWithCheckpoint = await manager.pendingPlans()
+        XCTAssertEqual(pendingWithCheckpoint.map(\.id), [album.id],
+                       "precondition: the album is reachable by the enumeration while a checkpoint exists")
+
+        await MigrationPlanStore(album: album).delete()
 
         let pending = await manager.pendingPlans()
         XCTAssertTrue(pending.isEmpty)
@@ -876,7 +907,13 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         defer { cleanup(album) }
 
         _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
+        _ = try await manager.plan(album: album)
+        let pendingBeforeRun = await manager.pendingPlans()
+        XCTAssertEqual(pendingBeforeRun.map(\.id), [album.id],
+                       "precondition: the checkpoint is resumable until a run finishes it")
+
         await manager.start(album: album)
+        XCTAssertEqual(manager.state, .completed, "precondition: the migration actually completed")
 
         let pending = await manager.pendingPlans()
         XCTAssertTrue(pending.isEmpty, "a completed migration leaves no checkpoint to resume")
@@ -937,9 +974,12 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         do {
             _ = try await manager.moveCloudKitAlbumToLocal(album: album)
             XCTFail("a failed reconcile must abort the move, not run the cloud teardown against a stale index")
-        } catch {
-            // Any thrown error is acceptable; the teardown assertions below are the contract.
+        } catch AlbumError.cloudReconcileFailed {
+            // The only acceptable abort. Any other error propagates and fails the
+            // test: it would mean the move stopped before it reached the reconcile.
         }
+        XCTAssertGreaterThan(store.fetchChangesCount, 0,
+                             "the abort must come from an attempted reconcile, not an earlier guard")
         XCTAssertTrue(store.deletedAlbumCalls.isEmpty,
                       "the album record must not be deleted after a failed reconcile")
         XCTAssertTrue(store.deleteCalls.isEmpty,
@@ -1271,11 +1311,19 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         store.reflectUploadsInMetadata = true
         defer { cleanup(album) }
 
-        _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
-        _ = try await manager.plan(album: album)
+        _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+        // Cancel from inside the first upload, so the run is genuinely mid-phase when
+        // the between-items control check stops it.
+        store.onUploadStarted = { [weak manager] in
+            await manager?.cancel(album: album)
+        }
 
-        await manager.cancel(album: album)
+        let seen = await recordingProgress(of: manager) {
+            await manager.start(album: album)
+        }
 
+        XCTAssertTrue(seen.contains { $0.phase != nil }, "precondition: the run published a phase before the cancel")
+        XCTAssertEqual(manager.state, .idle)
         XCTAssertNil(manager.progress.phase, "a cancelled migration must not still claim a phase")
     }
 
