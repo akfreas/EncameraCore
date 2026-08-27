@@ -1856,6 +1856,8 @@ public enum L10n {
     public static let added = L10n.tr("Localizable", "MissingKey.Added", fallback: "Key added. Your media should open now.")
     /// Add this key
     public static let addKey = L10n.tr("Localizable", "MissingKey.AddKey", fallback: "Add this key")
+    /// Missing Key
+    public static let albumTitle = L10n.tr("Localizable", "MissingKey.AlbumTitle", fallback: "Missing Key")
     /// Enter the key phrase for key %@. It will only be used to open existing media — new photos keep using this device's key.
     public static func addKeyPrompt(_ p1: Any) -> String {
       return L10n.tr("Localizable", "MissingKey.AddKeyPrompt", String(describing: p1), fallback: "Enter the key phrase for key %@. It will only be used to open existing media — new photos keep using this device's key.")

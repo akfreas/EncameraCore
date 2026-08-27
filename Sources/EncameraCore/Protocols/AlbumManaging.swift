@@ -47,6 +47,7 @@ public protocol AlbumManaging {
     /// keeping `albumOperationPublisher` observers and `currentAlbum` consistent —
     /// instead of mutating the filesystem behind its back.
     func adoptCloudKitAlbum(name: String, key: PrivateKey, createdAt: Date, isHidden: Bool)
+    var lockedAlbums: [LockedAlbumPlaceholder] { get }
 }
 
 public extension AlbumManaging {
@@ -104,4 +105,7 @@ public extension AlbumManaging {
 
     /// Default no-op so lightweight test/demo conformers need not implement it.
     func adoptCloudKitAlbum(name: String, key: PrivateKey, createdAt: Date, isHidden: Bool) {}
+
+    /// Default empty: conformers that don't track locked albums return none.
+    var lockedAlbums: [LockedAlbumPlaceholder] { [] }
 }

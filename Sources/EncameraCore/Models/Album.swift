@@ -169,3 +169,22 @@ public struct Album: Codable, Identifiable, Hashable {
 /// migrated album's source directory — on a device that message is the difference
 /// between a diagnosis and a guess.
 extension Album: DebugPrintable {}
+
+/// An album whose encryption key is not on this device. Carries enough metadata
+/// to render a locked placeholder in the grid without exposing any decrypted
+/// content or requiring a `PrivateKey`.
+public struct LockedAlbumPlaceholder: Identifiable, Hashable {
+    public let encryptedDirectoryName: String
+    public let storageOption: StorageType
+    public let creationDate: Date
+
+    public var id: String {
+        "\(encryptedDirectoryName)_\(storageOption.rawValue)"
+    }
+
+    public init(encryptedDirectoryName: String, storageOption: StorageType, creationDate: Date) {
+        self.encryptedDirectoryName = encryptedDirectoryName
+        self.storageOption = storageOption
+        self.creationDate = creationDate
+    }
+}

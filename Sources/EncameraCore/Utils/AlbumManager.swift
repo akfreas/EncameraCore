@@ -120,8 +120,12 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// They are deliberately absent from `fetchAlbumsFromSources` — an album cannot be
     /// shown, counted, or written to without the key that encrypted it — but dropping
     /// them silently would tell a user their photos are gone when the album is intact
-    /// and only its key is missing. `MissingKey.LockedAlbums` is the copy for this.
+    /// and only its key is missing.
     public private(set) var lockedAlbumCount: Int = 0
+
+    /// The locked album placeholders collected during the last scan, carrying enough
+    /// metadata to render a "Missing Key" tile in the album grid.
+    public private(set) var lockedAlbums: [LockedAlbumPlaceholder] = []
 
     /// The synced data store for album settings (optional, uses legacy UserDefaults if nil)
     private var albumsSyncedStore: AlbumsSyncedStore?
@@ -170,7 +174,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         // Read once for the whole scan: resolving a name is a cheap AEAD op, but
         // `storedKeys()` is a full keychain query and this runs on every broadcast.
         let storedKeys = (try? keyManager.storedKeys()) ?? []
-        var locked = 0
+        var lockedPlaceholders: [LockedAlbumPlaceholder] = []
         let mapToAlbum: (URL, StorageType) -> Album? = { url, storageType in
             let directoryName = url.lastPathComponent
             let attributes = try? fileManager.attributesOfItem(atPath: url.path)
@@ -181,7 +185,13 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                                                      storageType: storageType,
                                                      creationDate: creationDate,
                                                      storedKeys: storedKeys)
-            if album == nil { locked += 1 }
+            if album == nil {
+                lockedPlaceholders.append(LockedAlbumPlaceholder(
+                    encryptedDirectoryName: directoryName,
+                    storageOption: storageType,
+                    creationDate: creationDate
+                ))
+            }
             return album
         }
 
@@ -204,7 +214,8 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             .compactMap { url -> Album? in
                 return mapToAlbum(url, .cloudKit)
             }
-        lockedAlbumCount = locked
+        lockedAlbumCount = lockedPlaceholders.count
+        lockedAlbums = lockedPlaceholders
         return Set(localAlbums)
             .union(Set(iCloudAlbums))
             .union(Set(cloudKitAlbums))

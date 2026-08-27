@@ -1273,6 +1273,7 @@
 "MissingKey.SubtitleUnknown" = "It was encrypted with a key that isn't on this device.";
 "MissingKey.AddKey" = "Add this key";
 "MissingKey.ShortLabel" = "Missing key";
+"MissingKey.AlbumTitle" = "Missing Key";
 "MissingKey.LockedAlbums" = "%d album(s) can't be shown because their key isn't on this device.";
 "MissingKey.AddKeyTitle" = "Add a key";
 "MissingKey.AddKeyPrompt" = "Enter the key phrase for key %@. It will only be used to open existing media — new photos keep using this device's key.";

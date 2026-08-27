@@ -69,6 +69,8 @@ public class DemoAlbumManager: AlbumManaging {
     private var albumSubject = PassthroughSubject<[Album], Never>()
 
 
+    public var lockedAlbums: [LockedAlbumPlaceholder] = []
+
     public var defaultStorageForAlbum: StorageType
     public var currentAlbum: Album?
 
