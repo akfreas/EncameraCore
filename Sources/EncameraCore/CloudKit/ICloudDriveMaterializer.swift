@@ -56,7 +56,13 @@ public protocol ICloudDriveMaterializing: AnyObject {
     /// Used when a migration is paused or cancelled mid-batch: without it, stopping
     /// a move would leave behind exactly the pile of downloaded files that batching
     /// exists to prevent. Eviction is not deletion — the file stays in iCloud Drive.
-    func evict(_ urls: [URL])
+    ///
+    /// - Returns: the URLs whose bytes were actually given back. Best effort is not
+    ///   the same as done: iCloud refuses to evict an item it considers busy, so a
+    ///   caller that wants to report how much space came back must count what this
+    ///   returns rather than what it was asked to do.
+    @discardableResult
+    func evict(_ urls: [URL]) -> [URL]
 }
 
 // MARK: - Batch size
@@ -90,6 +96,66 @@ public enum ICloudDriveMigrationBatchSize {
 
 // MARK: - Observability
 
+/// Every counter the on-device suite reads, in the order the marker publishes
+/// them.
+///
+/// One struct rather than eight properties on the observer so the list is
+/// written down ONCE. `reset()` is `counters = .init()`, which cannot miss a
+/// member, and `markerLabel` is generated from these same declarations, so a
+/// ninth counter is reset and published by adding it here and nothing else.
+///
+/// The property names ARE the marker's field names; the device tests look every
+/// field up by name (`AlbumDetailScreen.materializationCounter`), so renaming one
+/// renames the wire format.
+public struct MaterializationCounters: Equatable {
+
+    /// Download batches requested.
+    public var batches = 0
+    /// The largest batch requested, for the "batches never exceed N" bound.
+    public var maxBatch = 0
+    /// The most source files found already on disk at the start of any batch. If
+    /// batching works this stays at 0 — each batch's files are uploaded, verified
+    /// and deleted before the next batch is requested. A number that climbs with
+    /// the album size means the bound is broken.
+    public var peakOnDisk = 0
+    /// Files whose bytes were actually pushed back out to iCloud when a run was
+    /// paused or cancelled — counted from what `evict` reports it succeeded on,
+    /// after the fact. Not what the engine intended to evict.
+    public var evicted = 0
+    /// How many of those files had their bytes on disk at the moment the run
+    /// stopped. `evicted == onDiskAtStop` is "the user got the space back"; a zero
+    /// here means nothing had been downloaded, so an eviction counter of zero says
+    /// nothing either way.
+    public var onDiskAtStop = 0
+    /// Of the files `evict` accepted, how many are confirmed to have lost their
+    /// bytes — re-read from iCloud's own download status afterwards rather than
+    /// inferred from a call that did not throw.
+    public var evictedVerified = 0
+    /// Batches that finished because iCloud reported every file downloaded.
+    public var observedBatches = 0
+    /// Batches that only ended when the per-batch deadline expired. The files may
+    /// well have arrived anyway, so nothing downstream notices — which is exactly
+    /// why this is counted: a migration running on the deadline instead of on the
+    /// `NSMetadataQuery` notifications is a broken observation wearing a working
+    /// migration's clothes.
+    public var deadlineBatches = 0
+
+    public init() {}
+
+    /// `batches=3:maxBatch=10:...`, the payload of the app's
+    /// `iCloudDriveMaterialization` marker.
+    ///
+    /// Reflected off the stored properties rather than concatenated by hand, so
+    /// the field list cannot drift from the declarations above. Order follows
+    /// declaration order; every reader looks fields up by name, so it is not
+    /// load-bearing.
+    public var markerLabel: String {
+        Mirror(reflecting: self).children
+            .compactMap { child in child.label.map { "\($0)=\(child.value)" } }
+            .joined(separator: ":")
+    }
+}
+
 /// Counters the on-device tests assert against.
 ///
 /// The claims this feature makes — "batches never exceed N", "batch k+1 does not
@@ -106,32 +172,61 @@ public final class ICloudDriveMigrationObserver: ObservableObject {
     /// Off in production. The app turns it on under UI-test mode only.
     public var isEnabled = false
 
-    @Published public private(set) var batchCount = 0
-    @Published public private(set) var largestBatch = 0
-    /// The most source files found already on disk at the start of any batch. If
-    /// batching works this stays at 0 — each batch's files are uploaded, verified
-    /// and deleted before the next batch is requested. A number that climbs with
-    /// the album size means the bound is broken.
-    @Published public private(set) var peakMaterializedAtBatchStart = 0
-    @Published public private(set) var evictedCount = 0
+    @Published public private(set) var counters = MaterializationCounters()
 
     public func reset() {
-        batchCount = 0
-        largestBatch = 0
-        peakMaterializedAtBatchStart = 0
-        evictedCount = 0
+        counters = .init()
     }
 
     func recordBatch(size: Int, alreadyMaterialized: Int) {
         guard isEnabled else { return }
-        batchCount += 1
-        largestBatch = max(largestBatch, size)
-        peakMaterializedAtBatchStart = max(peakMaterializedAtBatchStart, alreadyMaterialized)
+        counters.batches += 1
+        counters.maxBatch = max(counters.maxBatch, size)
+        counters.peakOnDisk = max(counters.peakOnDisk, alreadyMaterialized)
     }
 
-    func recordEviction(count: Int) {
+    func recordBatchResolved(byDeadline: Bool) {
         guard isEnabled else { return }
-        evictedCount += count
+        if byDeadline {
+            counters.deadlineBatches += 1
+        } else {
+            counters.observedBatches += 1
+        }
+    }
+
+    func recordEviction(evicted: Int, materializedAtStop: Int) {
+        guard isEnabled else { return }
+        counters.evicted += evicted
+        counters.onDiskAtStop += materializedAtStop
+    }
+
+    /// Re-reads, off the stop path, how many of the evicted files really gave their
+    /// bytes back.
+    ///
+    /// `evictUbiquitousItem` returning without throwing is not the same as the space
+    /// being back: it is asynchronous, and a file iCloud considers busy simply stays
+    /// put — the seeder that manufactures this suite's fixtures had to learn the same
+    /// thing. So the number a test asserts on is read from iCloud's download status
+    /// afterwards, not from the API's silence. Inert unless the observer is switched
+    /// on, so a shipped build never runs the poll.
+    ///
+    /// Each call contributes only its OWN progress: it tracks what it has already
+    /// credited and adds the difference. Reading a base outside the task instead
+    /// would let two overlapping calls both compute from the same starting value,
+    /// and the second would overwrite the first's contribution.
+    func confirmEviction(of urls: [URL]) {
+        guard isEnabled, !urls.isEmpty else { return }
+        Task { @MainActor in
+            var credited = 0
+            for _ in 0..<40 {
+                let remaining = urls.filter { ICloudPlaceholderName.isMaterialized($0) }
+                let confirmed = urls.count - remaining.count
+                counters.evictedVerified += confirmed - credited
+                credited = confirmed
+                if remaining.isEmpty { return }
+                try? await Task.sleep(nanoseconds: 250_000_000)
+            }
+        }
     }
 }
 
@@ -330,17 +425,24 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
         return results.merging(observed) { _, new in new }
     }
 
-    public func evict(_ urls: [URL]) {
+    @discardableResult
+    public func evict(_ urls: [URL]) -> [URL] {
+        // `isMaterialized`, not `fileExists`: an evicted file's path still resolves,
+        // so `fileExists` would have this ask iCloud to evict placeholders it has
+        // already evicted — and count them as space given back.
         let fileManager = FileManager.default
-        for url in urls where fileManager.fileExists(atPath: url.path) {
+        var evicted: [URL] = []
+        for url in urls where ICloudPlaceholderName.isMaterialized(url) {
             do {
                 try fileManager.evictUbiquitousItem(at: url)
+                evicted.append(url)
             } catch {
                 // Best effort: failing to reclaim space is not a reason to fail a
                 // pause or cancel the user asked for.
                 printDebug("evict FAILED \(url.lastPathComponent) error=\(error)")
             }
         }
+        return evicted
     }
 
     // MARK: - Query plumbing
@@ -435,6 +537,7 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
                 /// Resolve everything still outstanding as a timeout and finish.
                 let finishByDeadline: @MainActor () -> Void = {
                     guard state.claim() else { return }
+                    ICloudDriveMigrationObserver.shared.recordBatchResolved(byDeadline: true)
                     for (name, url) in outstanding {
                         results[url] = .failure(ICloudMaterializationError.timedOut(filename: name))
                     }
@@ -488,6 +591,7 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
                     onProgress(totalCount > 0 ? min(1, (done + inFlight) / (totalCount * 100)) : 1)
 
                     if outstanding.isEmpty, state.claim() {
+                        ICloudDriveMigrationObserver.shared.recordBatchResolved(byDeadline: false)
                         teardown()
                         continuation.resume(returning: results)
                     }

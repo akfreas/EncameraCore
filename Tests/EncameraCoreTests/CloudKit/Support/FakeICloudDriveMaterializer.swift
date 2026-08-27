@@ -134,10 +134,18 @@ final class FakeICloudDriveMaterializer: ICloudDriveMaterializing {
         return results
     }
 
-    func evict(_ urls: [URL]) {
+    @discardableResult
+    func evict(_ urls: [URL]) -> [URL] {
+        var evicted: [URL] = []
         for url in urls where ICloudPlaceholderName.isMaterialized(url) {
             evictedOnStop.append(url.lastPathComponent)
-            try? evictForTest(url)
+            do {
+                try evictForTest(url)
+                evicted.append(url)
+            } catch {
+                continue
+            }
         }
+        return evicted
     }
 }

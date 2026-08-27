@@ -780,10 +780,15 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             .filter { $0.state == .pending || $0.state == .failed }
             .map { sourceModel.driveURLForMedia(withID: $0.mediaID, type: $0.mediaType) }
         guard !urls.isEmpty else { return }
-        let onDisk = urls.filter { FileManager.default.fileExists(atPath: $0.path) }.count
-        printDebug("evicting \(onDisk) materialized-but-unuploaded file(s) after stop")
-        ICloudDriveMigrationObserver.shared.recordEviction(count: onDisk)
-        materializer.evict(urls)
+        // `isMaterialized`, not `fileExists`: an evicted file's path resolves too, so
+        // `fileExists` counts every pending item whether or not a byte of it was ever
+        // downloaded — and the tests that assert "cancelling gave the space back"
+        // would read a full house against an album nothing had been downloaded from.
+        let onDisk = urls.filter { ICloudPlaceholderName.isMaterialized($0) }.count
+        let evicted = materializer.evict(urls)
+        printDebug("evicted \(evicted.count) of \(onDisk) materialized-but-unuploaded file(s) after stop")
+        ICloudDriveMigrationObserver.shared.recordEviction(evicted: evicted.count, materializedAtStop: onDisk)
+        ICloudDriveMigrationObserver.shared.confirmEviction(of: evicted)
     }
 
     private func markFailed(_ plan: inout MigrationPlan, _ index: Int, _ error: Error) {
