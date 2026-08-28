@@ -2127,6 +2127,12 @@ public enum L10n {
     }
     /// Import & Encrypt
     public static let importButton = L10n.tr("Localizable", "PendingImport.ImportButton", fallback: "Import & Encrypt")
+    /// Type to create or open
+    public static let newOrHiddenAlbumSubtitle = L10n.tr("Localizable", "PendingImport.NewOrHiddenAlbumSubtitle", fallback: "Type to create or open")
+    /// New or hidden album
+    public static let newOrHiddenAlbumTitle = L10n.tr("Localizable", "PendingImport.NewOrHiddenAlbumTitle", fallback: "New or hidden album")
+    /// Create an album to import into.
+    public static let noAlbumsDescription = L10n.tr("Localizable", "PendingImport.NoAlbumsDescription", fallback: "Create an album to import into.")
     /// Select destination album:
     public static let selectAlbum = L10n.tr("Localizable", "PendingImport.SelectAlbum", fallback: "Select destination album:")
     /// ./Encamera/MediaImport/PendingImportView.swift - Pending Import

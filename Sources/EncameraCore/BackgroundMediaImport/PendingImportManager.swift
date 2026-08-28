@@ -9,6 +9,33 @@ import Foundation
 import Combine
 import UIKit
 
+/// Outcome of the most recent pending import, published so the app can expose it
+/// as an accessibility marker. The import runs detached and its failures are only
+/// logged, so without this a dropped import is indistinguishable from a slow one.
+@MainActor
+public final class PendingImportOutcome: ObservableObject {
+    public static let shared = PendingImportOutcome()
+    private init() {}
+
+    /// "none" until an import finishes; then "ok=<n>:fail=<n>:album=<id>" or
+    /// "error=<description>:album=<id>".
+    @Published public private(set) var summary: String = "none"
+
+    public func record(_ summary: String) {
+        self.summary = summary
+    }
+}
+
+/// The pending-import operations a destination picker drives, so a view model can
+/// be exercised without the App Group container or a real background import.
+@MainActor
+public protocol PendingImportPerforming {
+    var pendingMedia: [CleartextMedia] { get }
+    func loadPendingMedia() async
+    func importPendingMedia(toAlbumId albumId: String, albumManager: AlbumManaging) async throws -> Int
+    func cancelPendingImports() async throws
+}
+
 /// Manages pending media imports from the Share Extension to the main app.
 /// This class coordinates the detection and processing of media files that were
 /// shared to Encamera from other apps via the Share Extension.
@@ -112,7 +139,12 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
         albumManager: AlbumManaging
     ) async throws -> Int {
         printDebug("Starting import of pending media to album: \(albumId)")
-        
+
+        // The handler is otherwise only configured when an album is opened, so a
+        // share-sheet import on a launch that restored no current album would fail
+        // validation and drop the media with nothing shown to the user.
+        MediaImportHandler.shared.configure(albumManager: albumManager)
+
         // Ensure we have the latest pending media
         await loadPendingMedia()
         
@@ -136,16 +168,20 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
         Task.detached { [weak self] in
             do {
                 // Use the MediaImportHandler for the actual import
-                try await MediaImportHandler.shared.startImport(
+                let result = try await MediaImportHandler.shared.startImport(
                     media: mediaToImport,
                     albumId: albumId,
                     source: .shareExtension,
                     assetIdentifiers: []
                 )
-                
+                await PendingImportOutcome.shared.record(
+                    "ok=\(result.success):fail=\(result.failure):album=\(albumId)"
+                )
+
                 // Clean up the app group container after import completes
                 await self?.cleanupAfterImport(importedMedia: mediaToImport)
             } catch {
+                await PendingImportOutcome.shared.record("error=\(error):album=\(albumId)")
                 await self?.printDebug("Import failed: \(error)")
             }
         }
@@ -246,3 +282,4 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
     }
 }
 
+extension PendingImportManager: PendingImportPerforming {}

@@ -1106,6 +1106,9 @@
 "PendingImport.CancelConfirmTitle" = "Cancel Import?";
 "PendingImport.DeleteMedia" = "Delete Media";
 "PendingImport.CancelConfirmMessage" = "This will cancel the import of this media. Do you want to continue?";
+"PendingImport.NewOrHiddenAlbumTitle" = "New or hidden album";
+"PendingImport.NewOrHiddenAlbumSubtitle" = "Type to create or open";
+"PendingImport.NoAlbumsDescription" = "Create an album to import into.";
 
 /* ./Encamera/Lightbox/Views/MediaInfoDetailView.swift - Media Info */
 "MediaInfo.UnknownDevice" = "Unknown Device";
