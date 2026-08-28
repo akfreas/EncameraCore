@@ -844,10 +844,6 @@
 "BackgroundTaskProgress.EditCancelled" = "Edit cancelled";
 "BackgroundTaskProgress.Editing" = "Editing...";
 
-/* ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Index Build */
-"BackgroundTaskProgress.BuildingIndex" = "Optimizing your photo library...";
-"BackgroundTaskProgress.IndexCompleted" = "Photo library optimized";
-
 /* ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - CloudKit Migration */
 "BackgroundTaskProgress.MigrateCompleted" = "Moved to iCloud";
 "BackgroundTaskProgress.MigrateStopped" = "Move to iCloud stopped";

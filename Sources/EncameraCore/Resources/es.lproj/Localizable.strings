@@ -983,11 +983,9 @@
 "FeatureToggles.EditRotationDescription" = "Habilitar el botón de edición en la caja de luz para rotar medios";
 "AlbumSelectionModal.NewOrHiddenAlbumTitle" = "Álbum nuevo u oculto";
 "FeatureToggles.EditRotation" = "Editar rotación";
-"BackgroundTaskProgress.BuildingIndex" = "Optimizando tu biblioteca de fotos...";
 "FeatureToggles.DetectDuplicates" = "Detectar duplicados";
 "Join Discord" = "Unirse a Discord";
 "FeatureToggles.DetectDuplicatesDescription" = "Habilitar la opción de encontrar duplicados en los menús de álbumes";
-"BackgroundTaskProgress.IndexCompleted" = "Biblioteca de fotos optimizada";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "Álbumes ocultos en la cámara";
 "AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "Escribe para crear o abrir";
 "AlbumDetailView.ImportReasonUnsupportedFormat" = "formato no compatible";

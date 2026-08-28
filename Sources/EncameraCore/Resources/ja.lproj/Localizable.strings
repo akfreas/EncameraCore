@@ -865,11 +865,9 @@
 "FeatureToggles.EditRotationDescription" = "ライトボックスで編集ボタンを有効にしてメディアを回転する";
 "AlbumSelectionModal.NewOrHiddenAlbumTitle" = "新規または非表示のアルバム";
 "FeatureToggles.EditRotation" = "回転を編集";
-"BackgroundTaskProgress.BuildingIndex" = "写真ライブラリを最適化しています...";
 "FeatureToggles.DetectDuplicates" = "重複を検出";
 "Join Discord" = "Discordに参加する";
 "FeatureToggles.DetectDuplicatesDescription" = "アルバムメニューで重複を探すオプションを有効にする";
-"BackgroundTaskProgress.IndexCompleted" = "フォトライブラリが最適化されました";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "カメラの非表示アルバム";
 "AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "入力して作成または開く";
 "AlbumDetailView.ImportReasonUnsupportedFormat" = "サポートされていない形式";

@@ -984,11 +984,9 @@
 "FeatureToggles.EditRotationDescription" = "Aktivieren Sie die Bearbeiten-Schaltfläche im Lightbox-Modus, um Medien zu drehen";
 "AlbumSelectionModal.NewOrHiddenAlbumTitle" = "Neues oder verstecktes Album";
 "FeatureToggles.EditRotation" = "Rotation bearbeiten";
-"BackgroundTaskProgress.BuildingIndex" = "Ihre Fotobibliothek wird optimiert...";
 "FeatureToggles.DetectDuplicates" = "Duplikate erkennen";
 "Join Discord" = "Discord beitreten";
 "FeatureToggles.DetectDuplicatesDescription" = "Option zum Finden von Duplikaten in Albenmenüs aktivieren";
-"BackgroundTaskProgress.IndexCompleted" = "Fotobibliothek optimiert";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "Versteckte Alben in der Kamera";
 "AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "Tippen, um zu erstellen oder zu öffnen";
 "AlbumDetailView.ImportReasonUnsupportedFormat" = "nicht unterstütztes Format";

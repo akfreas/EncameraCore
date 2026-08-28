@@ -853,11 +853,9 @@
 "FeatureToggles.EditRotationDescription" = "라이트박스에서 미디어를 회전하려면 편집 버튼을 활성화하세요";
 "AlbumSelectionModal.NewOrHiddenAlbumTitle" = "새 앨범 또는 숨겨진 앨범";
 "FeatureToggles.EditRotation" = "회전 편집";
-"BackgroundTaskProgress.BuildingIndex" = "사진 라이브러리를 최적화하는 중...";
 "FeatureToggles.DetectDuplicates" = "중복 항목 감지";
 "Join Discord" = "디스코드 참여하기";
 "FeatureToggles.DetectDuplicatesDescription" = "앨범 메뉴에서 중복 찾기 옵션 활성화";
-"BackgroundTaskProgress.IndexCompleted" = "사진 라이브러리 최적화됨";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "카메라의 숨김 앨범";
 "AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "입력하여 생성 또는 열기";
 "AlbumDetailView.ImportReasonUnsupportedFormat" = "지원되지 않는 형식";

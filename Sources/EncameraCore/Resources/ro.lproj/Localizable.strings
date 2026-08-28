@@ -849,11 +849,9 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "FeatureToggles.EditRotationDescription" = "Activează butonul de editare în lightbox pentru a roti fișierele media";
 "AlbumSelectionModal.NewOrHiddenAlbumTitle" = "Album nou sau ascuns";
 "FeatureToggles.EditRotation" = "Editează rotația";
-"BackgroundTaskProgress.BuildingIndex" = "Se optimizează biblioteca foto...";
 "FeatureToggles.DetectDuplicates" = "Detectează duplicatele";
 "Join Discord" = "Alătură-te pe Discord";
 "FeatureToggles.DetectDuplicatesDescription" = "Activează opțiunea de găsire a duplicatelor în meniurile albumelor";
-"BackgroundTaskProgress.IndexCompleted" = "Biblioteca foto optimizată";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "Albume ascunse în Cameră";
 "AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "Tastează pentru a crea sau deschide";
 "AlbumDetailView.ImportReasonUnsupportedFormat" = "format neacceptat";

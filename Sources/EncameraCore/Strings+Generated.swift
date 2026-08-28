@@ -1090,8 +1090,6 @@ public enum L10n {
     public static let tryAgain = L10n.tr("Localizable", "AuthenticationView.TryAgain", fallback: "Try Again")
   }
   public enum BackgroundTaskProgress {
-    /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Index Build
-    public static let buildingIndex = L10n.tr("Localizable", "BackgroundTaskProgress.BuildingIndex", fallback: "Optimizing your photo library...")
     /// Edit cancelled
     public static let editCancelled = L10n.tr("Localizable", "BackgroundTaskProgress.EditCancelled", fallback: "Edit cancelled")
     /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Edit Operations
@@ -1100,8 +1098,6 @@ public enum L10n {
     public static let editing = L10n.tr("Localizable", "BackgroundTaskProgress.Editing", fallback: "Editing...")
     /// Edit stopped
     public static let editStopped = L10n.tr("Localizable", "BackgroundTaskProgress.EditStopped", fallback: "Edit stopped")
-    /// Photo library optimized
-    public static let indexCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.IndexCompleted", fallback: "Photo library optimized")
     /// Move to iCloud canceled
     public static let migrateCanceled = L10n.tr("Localizable", "BackgroundTaskProgress.MigrateCanceled", fallback: "Move to iCloud canceled")
     /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - CloudKit Migration

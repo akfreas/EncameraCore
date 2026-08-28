@@ -834,11 +834,9 @@
 "FeatureToggles.EditRotationDescription" = "تفعيل زر التعديل في نافذة العرض لتدوير الوسائط";
 "AlbumSelectionModal.NewOrHiddenAlbumTitle" = "ألبوم جديد أو مخفي";
 "FeatureToggles.EditRotation" = "تعديل التدوير";
-"BackgroundTaskProgress.BuildingIndex" = "جارٍ تحسين مكتبة الصور الخاصة بك...";
 "FeatureToggles.DetectDuplicates" = "كشف التكرارات";
 "Join Discord" = "انضم إلى ديسكورد";
 "FeatureToggles.DetectDuplicatesDescription" = "فعّل خيار العثور على التكرارات في قوائم الألبوم";
-"BackgroundTaskProgress.IndexCompleted" = "تم تحسين مكتبة الصور";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "الألبومات المخفية في الكاميرا";
 "AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "اكتب لإنشاء أو فتح";
 "AlbumDetailView.ImportReasonUnsupportedFormat" = "تنسيق غير مدعوم";

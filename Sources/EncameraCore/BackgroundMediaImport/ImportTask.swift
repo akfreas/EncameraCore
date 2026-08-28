@@ -33,7 +33,6 @@ public enum FileTaskType: String, CaseIterable {
     case moveMedia
     case exportMedia
     case editMedia
-    case buildIndex
     case migrateStorage
 }
 
