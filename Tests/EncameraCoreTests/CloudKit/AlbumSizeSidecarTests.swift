@@ -37,7 +37,7 @@ final class AlbumSizeSidecarTests: XCTestCase {
     private func makeDeleteQueue() -> CloudKitMediaDeleteQueue {
         let suite = "sidecar-delete-\(UUID().uuidString)"
         deleteQueueSuites.append(suite)
-        return CloudKitMediaDeleteQueue(defaults: UserDefaults(suiteName: suite)!)
+        return CloudKitMediaDeleteQueue(suiteName: suite)
     }
 
     private func makeCoordinator(store: MockCloudKitMediaStore,

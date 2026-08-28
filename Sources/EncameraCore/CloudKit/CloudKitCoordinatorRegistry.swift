@@ -5,8 +5,8 @@
 //  One `CloudKitSyncCoordinator` per album id, shared across the active album's
 //  `CloudKitFileAccess` and the push fan-out (`CloudKitAlbumsSync`). Without this,
 //  the fan-out would build ephemeral coordinators that update the on-disk index but
-//  not the live coordinator's in-memory `changeTags`/`deletedRecordNames`, so the
-//  active instance could serve stale blobs or miss cross-device deletes.
+//  not the live coordinator's in-memory `changeTags`, so the active instance could
+//  serve stale blobs or miss cross-device deletes.
 //
 
 import Foundation
@@ -27,9 +27,9 @@ public actor CloudKitCoordinatorRegistry: DebugPrintable {
             printDebug("coordinator hit albumID=\(albumID) registrySize=\(coordinators.count)")
             return existing
         }
-        // A miss means a brand-new coordinator with empty in-memory changeTags /
-        // deletedRecordNames; an unexpected miss for an active album is exactly the
-        // stale-blob bug this registry exists to prevent.
+        // A miss means a brand-new coordinator with empty in-memory changeTags; an
+        // unexpected miss for an active album is exactly the stale-blob bug this
+        // registry exists to prevent.
         let created = make()
         coordinators[albumID] = created
         printDebug("coordinator MISS albumID=\(albumID) created registrySize=\(coordinators.count)")

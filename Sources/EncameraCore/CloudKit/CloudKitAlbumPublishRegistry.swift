@@ -30,7 +30,14 @@ public struct CloudKitAlbumPublishRegistry: DebugPrintable {
 
     private let defaults: UserDefaults
 
-    public init(defaults: UserDefaults = UserDefaults(suiteName: UserDefaultUtils.appGroup) ?? .standard) {
+    public init() {
+        guard let defaults = UserDefaults(suiteName: UserDefaultUtils.appGroup) else {
+            preconditionFailure("No UserDefaults suite named \(UserDefaultUtils.appGroup) — a bundle id cannot be a suite name")
+        }
+        self.defaults = defaults
+    }
+
+    init(defaults: UserDefaults) {
         self.defaults = defaults
     }
 

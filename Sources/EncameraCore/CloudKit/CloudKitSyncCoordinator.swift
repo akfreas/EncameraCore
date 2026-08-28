@@ -108,27 +108,35 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// same record share one `fetchBlob` instead of issuing duplicates — while
     /// each keeps its own progress stream and its own right to walk away.
     private var downloads: [String: BlobDownload] = [:]
-    /// Records known-deleted locally — a delete that lands mid-fetch wins. Purely a
-    /// within-session race guard; the delete INTENT is durable and lives in
-    /// `deleteQueue`.
-    private var deletedRecordNames: Set<String> = []
     /// Latest server change tag per record, used to invalidate stale cache copies.
     private var changeTags: [String: String] = [:]
-    /// Deletes the server has not confirmed, persisted so an intent formed offline
-    /// or interrupted by termination is retried on a later sync.
+    /// Both halves of the delete bookkeeping, and both process-wide: the deletes
+    /// the server has not confirmed, persisted so an intent formed offline or
+    /// interrupted by termination is retried on a later sync, and the names a
+    /// delete has already claimed locally, which reads fail closed on. The latter
+    /// is a within-session race guard — a delete that lands mid-fetch wins — but
+    /// it has to be as shared as the queue, because an album is served by more
+    /// than one coordinator and the one that republishes a name is not the one
+    /// that marked it.
     private let deleteQueue: CloudKitMediaDeleteQueue
 
+    /// Whether a delete has already claimed this record name on this device —
+    /// possibly on another coordinator for the same album.
+    private func isKnownDeleted(_ recordName: String) -> Bool {
+        deleteQueue.isKnownDeleted(recordName)
+    }
+
     /// Drops every trace of a delete for `recordName`, because the record is live
-    /// again. Both marks have to go together: `deletedRecordNames` alone would keep
-    /// refusing to read the record, and a queued delete alone would still remove it.
+    /// again. Both marks have to go together: the known-deleted mark alone would
+    /// keep refusing to read the record, and a queued delete alone would still
+    /// remove it.
     ///
     /// This is what makes a republished record name safe without asking the server
     /// whether it is live: an explicit upload of a name supersedes any delete still
-    /// pending for it, and because the queue is process-wide the coordinator that
+    /// pending for it, and because both marks are process-wide the coordinator that
     /// republishes need not be the one that queued the delete.
     private func forgetDeletion(of recordName: String) {
-        deletedRecordNames.remove(recordName)
-        deleteQueue.remove(recordName)
+        deleteQueue.forgetDeletion(of: recordName)
     }
 
     /// Deletes the local encrypted preview for a media id.
@@ -296,7 +304,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 let recordName = MediaRecordName.componentRecordName(mediaID: component.mediaID,
                                                                      type: component.mediaType)
                 let entryRemoved = entries.removeComponent(recordName: recordName)
-                deletedRecordNames.insert(recordName)
+                deleteQueue.claimDeletion(of: recordName, queueRemoteDelete: false)
                 changeTags[recordName] = nil
                 sizeRemovals.insert(recordName)
                 await cache.evict(recordName: recordName)
@@ -400,7 +408,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 }
 
                 if let tag = meta.recordChangeTag { changeTags[meta.recordName] = tag }
-                deletedRecordNames.remove(meta.recordName)
+                deleteQueue.clearKnownDeletedIfNotQueued(meta.recordName)
                 // Recorded even when the index entry is unchanged: a re-sync is how a
                 // sidecar that fell behind the index catches back up.
                 sizeUpdates[meta.recordName] = meta.sizeBytes
@@ -443,7 +451,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
                 // Clear only this component; keep the entry if the other survives.
                 let entryRemoved = entries.removeComponent(recordName: recordName)
-                deletedRecordNames.insert(recordName)
+                deleteQueue.markDeletedFromFeed(recordName)
                 changeTags[recordName] = nil
                 sizeUpdates[recordName] = nil
                 sizeRemovals.insert(recordName)
@@ -520,19 +528,26 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// idempotent, so this needs no "is it still there?" round-trip. Only
     /// transient failures stay queued.
     private func drainPendingDeletes() async -> Set<String> {
-        var outstanding = deleteQueue.pending()
+        // The claim each entry is held under, taken with the snapshot: a record
+        // republished and deleted again while this drain is suspended is a NEW
+        // intent, and confirming by claim leaves that one queued.
+        let claims = deleteQueue.pendingClaims()
+        var outstanding = Set(claims.keys)
         guard !outstanding.isEmpty else { return [] }
         printDebug("drainPendingDeletes start albumID=\(self.albumID) pending=\(outstanding.count)")
 
         for recordName in outstanding.sorted() {
+            guard let claim = claims[recordName] else { continue }
             do {
                 try await store.delete(recordName: recordName)
-                deleteQueue.remove(recordName)
-                outstanding.remove(recordName)
+                if deleteQueue.confirmDelete(of: recordName, claimedAs: claim) {
+                    outstanding.remove(recordName)
+                }
                 printDebug("drainPendingDeletes ok recordName=\(recordName)")
             } catch CloudKitMediaStoreError.notFound {
-                deleteQueue.remove(recordName)
-                outstanding.remove(recordName)
+                if deleteQueue.confirmDelete(of: recordName, claimedAs: claim) {
+                    outstanding.remove(recordName)
+                }
                 printDebug("drainPendingDeletes skip recordName=\(recordName) — already gone from the zone")
             } catch {
                 // Stays queued; log so a permanently stuck delete (which also
@@ -568,7 +583,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     public func ensureBlobLocal(recordName: String,
                                 albumID: String,
                                 progress: @escaping @Sendable (Double) -> Void) async throws -> URL {
-        if deletedRecordNames.contains(recordName) {
+        if isKnownDeleted(recordName) {
             printDebug("ensureBlobLocal FAILED recordName=\(recordName) reason=knownDeletedLocally")
             throw CloudKitMediaStoreError.notFound
         }
@@ -702,7 +717,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         switch result {
         case .success(let url):
             // A delete that landed mid-fetch wins: discard the fetched copy.
-            if deletedRecordNames.contains(recordName) {
+            if isKnownDeleted(recordName) {
                 printDebug("ensureBlobLocal FAILED recordName=\(recordName) reason=deletedDuringFetch — evicting the just-fetched copy")
                 await cache.evict(recordName: recordName)
                 download.waiters.forEach { $0.deliver(.failure(CloudKitMediaStoreError.notFound)) }
@@ -797,17 +812,23 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         // A delete that raced this upload wins: the user removed the item while
         // its bytes were in flight, so the record that just landed must not be
         // indexed, cached, or announced — and the server copy is reclaimed.
-        // Without this check the success path below would re-upsert the entry and
-        // clear the deletion marker, resurrecting a deleted photo locally AND on
-        // every other device.
-        if deletedRecordNames.contains(item.recordName) {
+        // Without this check the success path below would re-upsert the entry,
+        // resurrecting a deleted photo locally AND on every other device.
+        //
+        // The success path deliberately leaves the delete bookkeeping alone. This
+        // upload already forgot the deletion before its store call, so a mark here
+        // can only have been set by a delete that arrived after it — one that is
+        // supposed to win, and whose reclaim is queued.
+        if isKnownDeleted(item.recordName) {
             printDebug("upload landed after delete recordName=\(item.recordName) — deleting the fresh record and discarding the result")
             // Queue first, so the reclaim survives a failure here or a kill before
-            // the delete lands. Retried by the next sync's drain.
-            deleteQueue.enqueue(item.recordName)
+            // the delete lands. Retried by the next sync's drain. Re-asserted as a
+            // pair, so a republish racing this cannot strip the mark and leave the
+            // reclaim queued against a record nothing refuses to read.
+            let claim = deleteQueue.claimDeletion(of: item.recordName, queueRemoteDelete: true)
             do {
                 try await store.delete(recordName: item.recordName)
-                deleteQueue.remove(item.recordName)
+                deleteQueue.confirmDelete(of: item.recordName, claimedAs: claim)
             } catch {
                 printDebug("upload postDeleteReclaim FAILED recordName=\(item.recordName) — left queued raw=\(error)")
             }
@@ -815,7 +836,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         }
 
         if let tag = ref.recordChangeTag { changeTags[ref.recordName] = tag }
-        deletedRecordNames.remove(ref.recordName)
         // Cache the just-uploaded encrypted file (the authoring device keeps its copy).
         do {
             try await cache.store(recordName: ref.recordName,
@@ -862,27 +882,29 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// - Parameter wasPending: true when the item was still in the upload queue,
     ///   i.e. it (almost certainly) never reached CloudKit, so there is nothing to
     ///   delete remotely. "Almost": an upload may land while this delete runs, so
-    ///   the record is still marked in `deletedRecordNames`, which `upload` checks
-    ///   after its store call.
+    ///   the record is still marked known-deleted, which `upload` checks after its
+    ///   store call.
     public func remove(recordName: String, albumID: String, wasPending: Bool = false) async throws {
         printDebug("remove start recordName=\(recordName) albumID=\(albumID) wasPending=\(wasPending)")
-        deletedRecordNames.insert(recordName)
+        // Claim BOTH halves before anything can suspend: the mark reads fail closed
+        // on, and — unless the item never reached CloudKit — the queued intent, so a
+        // delete that never gets issued (offline, or the process dies here) is still
+        // retried and the record is not pulled back in meanwhile. One operation
+        // because a concurrent republish of the same name must see either both or
+        // neither.
+        let claim = deleteQueue.claimDeletion(of: recordName, queueRemoteDelete: !wasPending)
         changeTags[recordName] = nil
         await cache.evict(recordName: recordName)
 
         if !wasPending {
-            // Enqueue BEFORE the call: a delete that never gets issued (offline, or
-            // the process dies here) must still be retried, and the queue is what
-            // keeps the record from being pulled back in meanwhile.
-            deleteQueue.enqueue(recordName)
             do {
                 try await store.delete(recordName: recordName)
-                deleteQueue.remove(recordName)
+                deleteQueue.confirmDelete(of: recordName, claimedAs: claim)
                 printDebug("remove delete ok recordName=\(recordName)")
             } catch CloudKitMediaStoreError.notFound {
                 // Already absent — deleted from another device, or never uploaded.
                 // Nothing to delete is success for a delete.
-                deleteQueue.remove(recordName)
+                deleteQueue.confirmDelete(of: recordName, claimedAs: claim)
                 printDebug("remove delete skip recordName=\(recordName) — record already absent from the zone")
             } catch {
                 // Left queued on purpose. The local cleanup below still runs.

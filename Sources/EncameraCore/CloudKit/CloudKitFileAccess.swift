@@ -34,6 +34,11 @@ public enum CloudKitStoreProvider {
 
 public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
+    /// Stable per-process suite name for test-mode delete bookkeeping so every
+    /// test-mode instance shares a single queue (mirroring the app-group suite
+    /// that production instances share) and the suite can be cleaned up by PID.
+    private static let testDeleteSuiteName = "ck-delete-test-\(ProcessInfo.processInfo.processIdentifier)"
+
     private let album: Album
     private let albumIDHash: String
     private let keyBytes: [UInt8]
@@ -129,13 +134,19 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             )
             self.uploadQueue = isolatedQueue
             let isolatedRegistry = CloudKitCoordinatorRegistry()
+            // The delete bookkeeping is isolated for the same reason: on the shared
+            // one a test's deletes land in the app group's real pending-delete key
+            // and its marks outlive the test, so a later read of the same record
+            // name fails closed.
+            let isolatedDeletes = CloudKitMediaDeleteQueue(suiteName: Self.testDeleteSuiteName)
             self.coordinator = await isolatedRegistry.coordinator(forAlbumID: albumIDHash) {
                 CloudKitSyncCoordinator(albumID: albumIDHash,
                                         store: resolvedStore,
                                         cache: CloudKitBlobCache(),
                                         indexStore: index,
                                         sizeSidecar: sizeSidecar,
-                                        uploadQueue: isolatedQueue)
+                                        uploadQueue: isolatedQueue,
+                                        deleteQueue: isolatedDeletes)
             }
             self.uploader = CloudKitUploader(queue: isolatedQueue, registry: isolatedRegistry)
         } else {

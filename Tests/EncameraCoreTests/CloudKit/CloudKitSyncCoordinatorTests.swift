@@ -25,6 +25,10 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
             UserDefaults().removePersistentDomain(forName: suite)
         }
         deleteQueueSuites = []
+        // The tests that build a coordinator without an isolated queue get the
+        // process-wide marks, which outlive every test in the run. A name left
+        // marked here makes a later test's read of the same name fail closed.
+        CloudKitKnownDeletedRecords.shared.removeAll()
     }
 
     // MARK: - Builders
@@ -52,13 +56,15 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
 
     /// The delete queue is durable and process-wide, so tests must not share one:
     /// an entry left behind by one test would suppress another's upserts and issue
-    /// phantom deletes. Each gets its own defaults suite, removed in teardown.
+    /// phantom deletes. Each gets its own defaults suite, removed in teardown, and
+    /// its own known-deleted set — otherwise a name one test marked would make
+    /// another's reads of the same name fail closed.
     private var deleteQueueSuites: [String] = []
 
     private func makeDeleteQueue() -> CloudKitMediaDeleteQueue {
         let suite = "ck-delete-\(UUID().uuidString)"
         deleteQueueSuites.append(suite)
-        return CloudKitMediaDeleteQueue(defaults: UserDefaults(suiteName: suite)!)
+        return CloudKitMediaDeleteQueue(suiteName: suite)
     }
 
     private func meta(_ name: String,
@@ -104,6 +110,16 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                 lock.lock(); _values.append(fraction); lock.unlock()
             }
         }
+    }
+
+    /// Records whether a second paired update completed inside the first one.
+    private final class MidUpdateWitness: @unchecked Sendable {
+        private let lock = NSLock()
+        private var _landed = false
+
+        var landed: Bool { lock.withLock { _landed } }
+
+        func record() { lock.withLock { _landed = true } }
     }
 
     private struct TestTimeout: Error {}
@@ -481,7 +497,9 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let store = MockCloudKitMediaStore()
         let index = makeIndexStore()
         let cache = makeCache()
-        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index, bus: FileOperationBus())
+        let deleteQueue = makeDeleteQueue()
+        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
+                                            bus: FileOperationBus(), deleteQueue: deleteQueue)
 
         store.changeSet = CloudKitChangeSet(changed: [meta("m1", tag: "t1")], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
@@ -491,7 +509,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         // "Relaunch": a fresh coordinator over the SAME persisted cache, before any
         // delta sync has repopulated its in-memory change-tag map. The persisted
         // entry must be trusted (nil expectation), not re-downloaded wholesale.
-        let relaunched = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index, bus: FileOperationBus())
+        let relaunched = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
+                                                 bus: FileOperationBus(), deleteQueue: deleteQueue)
         _ = try await relaunched.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
         XCTAssertEqual(store.fetchBlobCount, 1, "A persisted cache entry with no newer known tag must be a hit after relaunch")
     }
@@ -576,7 +595,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
 
         let index = makeIndexStore()
         let cache = makeCache()
-        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index, bus: bus)
+        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
+                                            bus: bus, deleteQueue: makeDeleteQueue())
 
         // First add m1 and m2, then delete m2 — a delete only fires for an item this
         // album actually held (deletes are album-scoped against the shared zone).
@@ -733,7 +753,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
 
         let index = makeIndexStore()
         let cache = makeCache()
-        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index, bus: bus)
+        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
+                                            bus: bus, deleteQueue: makeDeleteQueue())
 
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")   // first time: create
@@ -755,7 +776,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
 
         let index = makeIndexStore()
         let cache = makeCache()
-        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index, bus: bus)
+        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
+                                            bus: bus, deleteQueue: makeDeleteQueue())
 
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
@@ -854,7 +876,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         defer { cancellable.cancel() }
 
         let index = makeIndexStore()
-        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: makeCache(), indexStore: index, bus: bus)
+        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: makeCache(), indexStore: index,
+                                            bus: bus, deleteQueue: makeDeleteQueue())
 
         store.changeSet = CloudKitChangeSet(changed: [
             metaComponent(recordName: "v1#1", mediaID: "v1", type: .video)
@@ -921,7 +944,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                                             cache: makeCache(),
                                             indexStore: index,
                                             bus: FileOperationBus(),
-                                            uploadQueue: queue)
+                                            uploadQueue: queue,
+                                            deleteQueue: makeDeleteQueue())
 
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
@@ -975,7 +999,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
 
         let index = makeIndexStore()
         let cache = makeCache()
-        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index, bus: bus)
+        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
+                                            bus: bus, deleteQueue: makeDeleteQueue())
 
         store.changeSet = CloudKitChangeSet(changed: [metaComponent(recordName: "live#0", mediaID: "live", type: .photo)], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")   // photo arrives -> create
@@ -1034,9 +1059,12 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
     /// re-published. Verified on the rig, where a migration reporting COMPLETED was
     /// followed by three `purge ok` lines and an album showing zero items.
     ///
-    /// Making the queue durable and process-wide is what fixes it: republishing a
-    /// record name clears the pending delete for that name whichever coordinator
-    /// does the publishing, so no "is it still there?" round trip is needed.
+    /// Making both halves of the delete bookkeeping process-wide is what fixes it:
+    /// republishing a record name clears the pending delete AND the known-deleted
+    /// mark for that name whichever coordinator does the publishing, so no "is it
+    /// still there?" round trip is needed. The mark is the half that was still per
+    /// instance — the registry coordinator went on refusing every read of a photo
+    /// the migration had just put back.
     func testARepublishedRecordCancelsAPendingDeleteQueuedByAnotherCoordinator() async throws {
         let store = MockCloudKitMediaStore()
         let queue = makeDeleteQueue()
@@ -1070,6 +1098,122 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         // coordinator that queued the delete, which is the one serving reads for
         // the album — or reading the revived photo still fails closed.
         _ = try await registryCoord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
+    }
+
+    /// The two halves of a delete move together, or they do not move.
+    ///
+    /// Claiming a delete sets the mark reads fail closed on and queues the server
+    /// delete; republishing the name drops both. Done as separate calls they can
+    /// interleave — the republish clears the mark, a claim sets it and queues, the
+    /// republish's queue drop lands last — leaving the record marked but unqueued:
+    /// refused for reads for the rest of the session, and never retried by any
+    /// sync. That is the original symptom, resurrected under a race.
+    ///
+    /// Pinned by forcing the interleaving rather than racing for it: the seam runs
+    /// in the middle of a `forgetDeletion`, and from there a claim of the same name
+    /// is attempted from another thread. While the pair is atomic that claim cannot
+    /// complete — it blocks on the lock the republish holds — so the window the bug
+    /// needs does not exist. Split the pair into two acquisitions and the claim
+    /// lands inside the window every time.
+    func testAPairedUpdateCannotBeInterleavedByAnother() {
+        let queue = makeDeleteQueue()
+
+        // A republish, interrupted by a delete of the same name.
+        queue.claimDeletion(of: "m1", queueRemoteDelete: true)
+        assertNoInterleaving(of: queue,
+                             outer: { queue.forgetDeletion(of: "m1") },
+                             interloper: { queue.claimDeletion(of: "m1", queueRemoteDelete: true) })
+
+        // And the other way round, so neither half can be split unnoticed.
+        assertNoInterleaving(of: queue,
+                             outer: { queue.claimDeletion(of: "m1", queueRemoteDelete: true) },
+                             interloper: { queue.forgetDeletion(of: "m1") })
+    }
+
+    /// Runs `outer` with a one-shot seam installed in the middle of it, and from
+    /// that seam attempts `interloper` on another thread. While paired updates are
+    /// atomic the interloper cannot finish inside the window — it blocks on the
+    /// lock `outer` holds — so the assertion is deterministic rather than a race
+    /// the test hopes to catch.
+    private func assertNoInterleaving(of queue: CloudKitMediaDeleteQueue,
+                                      outer: () -> Void,
+                                      interloper: @escaping @Sendable () -> Void,
+                                      file: StaticString = #filePath,
+                                      line: UInt = #line) {
+        // Two semaphores, not one: the seam consumes the first, and the join below
+        // needs a signal of its own or it waits for one already taken.
+        let landed = DispatchSemaphore(value: 0)
+        let finished = DispatchSemaphore(value: 0)
+        let landedMidUpdate = MidUpdateWitness()
+
+        CloudKitMediaDeleteQueue.pairedUpdateSeam = {
+            // One shot: the interloper's own paired update must not re-enter this.
+            CloudKitMediaDeleteQueue.pairedUpdateSeam = nil
+            DispatchQueue.global().async {
+                interloper()
+                landed.signal()
+                finished.signal()
+            }
+            if landed.wait(timeout: .now() + 0.5) == .success { landedMidUpdate.record() }
+        }
+        defer { CloudKitMediaDeleteQueue.pairedUpdateSeam = nil }
+
+        outer()
+        finished.wait()
+
+        XCTAssertFalse(landedMidUpdate.landed,
+                       "A paired update completed while another was between its two halves",
+                       file: file, line: line)
+        let state = queue.deletionState(of: "m1")
+        XCTAssertEqual(state.knownDeleted, state.queued,
+                       "However the two updates ordered, the halves must agree",
+                       file: file, line: line)
+    }
+
+    /// Two queues over one suite are one queue. The durable half comes from the
+    /// suite's defaults and the session half from the same suite's marks, so a
+    /// caller cannot end up with a private pending-delete list and the shared
+    /// marks — the split that would let one coordinator queue a delete another
+    /// never learns to stop refusing.
+    func testQueuesOverTheSameSuiteShareBothHalves() {
+        let suite = "ck-delete-\(UUID().uuidString)"
+        deleteQueueSuites.append(suite)
+        let a = CloudKitMediaDeleteQueue(suiteName: suite)
+        let b = CloudKitMediaDeleteQueue(suiteName: suite)
+
+        a.claimDeletion(of: "m1", queueRemoteDelete: true)
+
+        let seenByB = b.deletionState(of: "m1")
+        XCTAssertTrue(seenByB.queued, "The durable half must be the suite's")
+        XCTAssertTrue(seenByB.knownDeleted, "The session half must be the suite's too")
+
+        b.forgetDeletion(of: "m1")
+        let seenByA = a.deletionState(of: "m1")
+        XCTAssertFalse(seenByA.queued)
+        XCTAssertFalse(seenByA.knownDeleted, "A republish on either instance clears both halves")
+    }
+
+    /// A delete confirmed against the server must only clear the intent it was
+    /// issued for. The record can be republished and deleted again while the first
+    /// delete is in flight, and an unconditional drop then removes the SECOND
+    /// delete's queue entry — leaving the record marked, still live in the zone,
+    /// and refused for reads for the rest of the session with nothing to retry.
+    func testAConfirmedDeleteCannotClearTheIntentOfALaterOne() async {
+        let queue = makeDeleteQueue()
+
+        let first = queue.claimDeletion(of: "m1", queueRemoteDelete: true)
+        // The record comes back (a migration republishes it) and is deleted again,
+        // all while the first delete is still in flight.
+        queue.forgetDeletion(of: "m1")
+        queue.claimDeletion(of: "m1", queueRemoteDelete: true)
+
+        // The first delete's server call returns now, carrying its stale claim.
+        queue.confirmDelete(of: "m1", claimedAs: first)
+
+        let state = queue.deletionState(of: "m1")
+        XCTAssertTrue(state.knownDeleted, "The second delete still owns the record")
+        XCTAssertTrue(state.queued,
+                      "A stale confirmation must not dequeue the delete that superseded it")
     }
 
     /// The guard the fix above must NOT weaken: a delete issued while the bytes are
@@ -1195,7 +1339,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let registry = CloudKitCoordinatorRegistry()
         let make: () -> CloudKitSyncCoordinator = {
             CloudKitSyncCoordinator(albumID: "a1", store: MockCloudKitMediaStore(),
-                                    cache: CloudKitBlobCache.shared, indexStore: self.makeIndexStore())
+                                    cache: CloudKitBlobCache.shared, indexStore: self.makeIndexStore(),
+                                    deleteQueue: self.makeDeleteQueue())
         }
         let c1 = await registry.coordinator(forAlbumID: "a1", make: make)
         let c2 = await registry.coordinator(forAlbumID: "a1", make: make)
@@ -1211,7 +1356,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let index = MediaIndexStore(keyBytes: Array(repeating: 7, count: 32), indexURL: url)
         let store = MockCloudKitMediaStore()
         let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: makeCache(),
-                                            indexStore: index, bus: FileOperationBus())
+                                            indexStore: index, bus: FileOperationBus(),
+                                            deleteQueue: makeDeleteQueue())
 
         let upload = CloudKitMediaUpload(albumID: "a1", mediaID: "u1", mediaType: .photo,
                                          createdAt: Date(timeIntervalSince1970: 1), sizeBytes: 1,
