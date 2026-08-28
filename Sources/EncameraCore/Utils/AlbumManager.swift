@@ -237,6 +237,10 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         albumOperationSubject.send(.albumsUpdated(albums: fetchAlbumsFromSources()))
     }
 
+    public func notifyAlbumsChanged() {
+        broadcastAlbumsUpdated()
+    }
+
     /// Creates a new AlbumManager
     /// - Parameters:
     ///   - keyManager: The key manager for encryption operations

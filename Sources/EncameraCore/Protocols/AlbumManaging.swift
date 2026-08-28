@@ -48,9 +48,14 @@ public protocol AlbumManaging {
     /// instead of mutating the filesystem behind its back.
     func adoptCloudKitAlbum(name: String, key: PrivateKey, createdAt: Date, isHidden: Bool)
     var lockedAlbums: [LockedAlbumPlaceholder] { get }
+
+    /// Rescans the filesystem and broadcasts the updated album list.
+    func notifyAlbumsChanged()
 }
 
 public extension AlbumManaging {
+    /// Default no-op for lightweight conformers (previews, test doubles).
+    func notifyAlbumsChanged() {}
     func fetchAlbumsFromSources() -> [Album] {
         fetchAlbumsFromSources(includingHidden: false)
     }

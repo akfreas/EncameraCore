@@ -322,6 +322,14 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         // item on the very device that deleted it.
         let undrainedDeletes = await drainPendingDeletes()
 
+        // `forgetDeletion` on another coordinator clears the shared queue but not this actor's `deletedRecordNames`.
+        let stillQueued = deleteQueue.pending()
+        let stale = deletedRecordNames.subtracting(stillQueued)
+        if !stale.isEmpty {
+            deletedRecordNames.subtract(stale)
+            printDebug("performSync reconciled deletedRecordNames albumID=\(albumID) cleared=\(stale.count)")
+        }
+
         // Diff from the authoritative on-disk index, refreshing the store's cache.
         let loaded = await indexStore.reloadFromDisk()
         var entries = loaded?.entries ?? []
