@@ -115,6 +115,7 @@ extension DataStorageModel {
         rootURL.appendingPathComponent(AlbumDirectoryNaming.albumsDirectory, isDirectory: true)
     }
 
+
     /// Every album directory in this storage plane, in both layouts.
     ///
     /// Membership is `AlbumDirectoryNaming`'s rule, not a name prefix: albums
