@@ -12,7 +12,6 @@ public enum UserDefaultKey {
     
     case currentKey
     case onboardingState
-    case directoryTypeKeyFor(album: Album)
     case savedSettings
     case capturedPhotos
     case featureToggle(feature: Feature)
@@ -32,8 +31,6 @@ public enum UserDefaultKey {
     case livePhotosActivated
     case defaultStorageLocation
     case showPushNotificationPrompt
-    case isAlbumHidden(name: String)
-    case albumCoverImage(albumName: String)
     case passcodeType
     case gridZoomLevel
     case gridSortOption
@@ -82,8 +79,6 @@ public enum UserDefaultKey {
 
     var rawValue: String {
         switch self {
-        case .directoryTypeKeyFor(let album):
-            return "\(UserDefaultKey.directoryPrefix)\(album.name)"
         case .featureToggle(feature: let feature):
             return "featureToggle_\(feature)"
         case .dismissedBanners:
@@ -120,12 +115,6 @@ public enum UserDefaultKey {
              .currentKey,
              .hasCompletedFirstLockout,
              .hasBeenShownHideAlbumTutorial:
-            return true
-            
-        // ALBUM-SPECIFIC: Sync album settings
-        case .directoryTypeKeyFor,
-             .isAlbumHidden,
-             .albumCoverImage:
             return true
             
         // LOCAL ONLY: Device-specific metrics, counts, and temporary state
@@ -181,9 +170,6 @@ public enum UserDefaultKey {
         }
     }
     
-    private static var directoryPrefix: String {
-        "encamera.keydirectory."
-    }
 }
 
 extension UserDefaultKey: Equatable {

@@ -138,18 +138,14 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         if let syncedStore = albumsSyncedStore {
             do {
                 try syncedStore.setAlbumHidden(album.name, isHidden: isAlbumHidden)
+                removeLegacyHiddenKey(albumName: album.name)
             } catch {
-                // Fallback to legacy if encryption key unavailable
                 printDebug("Failed to use synced store, falling back to UserDefaults: \(error)")
-                UserDefaultUtils.set(isAlbumHidden, forKey: .isAlbumHidden(name: album.name))
+                legacyDefaults.set(isAlbumHidden, forKey: Self.legacyHiddenKey(albumName: album.name))
             }
         } else {
-            // Legacy path
-            UserDefaultUtils.set(isAlbumHidden, forKey: .isAlbumHidden(name: album.name))
+            legacyDefaults.set(isAlbumHidden, forKey: Self.legacyHiddenKey(albumName: album.name))
         }
-        // Keep the `EncAlbum` record's isHidden current (last-writer-wins) so a
-        // fresh device materializing the album picks up the latest state. The
-        // record is otherwise frozen at create-time. No-op for non-CloudKit albums.
         pushCloudKitAlbumRecord(album)
         broadcastAlbumsUpdated()
     }
@@ -159,14 +155,26 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     public func isAlbumHidden(_ album: Album) -> Bool {
         if let syncedStore = albumsSyncedStore {
             do {
-                return try syncedStore.isAlbumHidden(album.name)
+                let hidden = try syncedStore.isAlbumHidden(album.name)
+                // If the synced store has a record, it's authoritative
+                if try syncedStore.fetchAlbum(name: album.name) != nil {
+                    return hidden
+                }
+                // No record yet — check legacy and migrate if found
+                let legacyKey = Self.legacyHiddenKey(albumName: album.name)
+                if legacyDefaults.object(forKey: legacyKey) != nil {
+                    let legacyValue = legacyDefaults.bool(forKey: legacyKey)
+                    try syncedStore.setAlbumHidden(album.name, isHidden: legacyValue)
+                    removeLegacyHiddenKey(albumName: album.name)
+                    return legacyValue
+                }
+                return false
             } catch {
-                // Fallback to legacy
                 printDebug("Failed to read from synced store, falling back to UserDefaults: \(error)")
-                return UserDefaultUtils.bool(forKey: .isAlbumHidden(name: album.name))
+                return legacyDefaults.bool(forKey: Self.legacyHiddenKey(albumName: album.name))
             }
         }
-        return UserDefaultUtils.bool(forKey: .isAlbumHidden(name: album.name))
+        return legacyDefaults.bool(forKey: Self.legacyHiddenKey(albumName: album.name))
     }
 
     public func fetchAlbumsFromSources(includingHidden: Bool) -> [Album] {
@@ -284,11 +292,9 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             try? fileManager.removeItem(at: albumURL)
         }
 
-        // Remove the album's persisted metadata (including its hidden state) so
-        // it doesn't linger in places that read from the synced store / legacy
-        // UserDefaults — e.g. the Settings "Hidden Albums" list.
         albumsSyncedStore?.deleteAlbum(name: album.name)
-        UserDefaultUtils.set(nil, forKey: .isAlbumHidden(name: album.name))
+        removeLegacyHiddenKey(albumName: album.name)
+        removeLegacyCoverImageKey(albumName: album.name)
         // CloudKit albums: also remove the discovery marker + synced index, and
         // delete the `EncAlbum` record so the deletion propagates to other devices
         // and its media cascade away with it. `.local` albums skip this entirely.
@@ -391,23 +397,93 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     public func setAlbumCoverImage(album: Album, image: InteractableMedia<EncryptedMedia>) {
-        UserDefaultUtils.set(image.id, forKey: .albumCoverImage(albumName: album.name))
+        if let syncedStore = albumsSyncedStore {
+            do {
+                try syncedStore.setCoverImageId(album.name, coverImageId: image.id)
+                removeLegacyCoverImageKey(albumName: album.name)
+                return
+            } catch {
+                printDebug("Failed to set cover image in synced store: \(error)")
+            }
+        }
+        legacyDefaults.set(image.id, forKey: Self.legacyCoverImageKey(albumName: album.name))
     }
-    
+
     public func removeAlbumCover(album: Album) {
-        UserDefaultUtils.set("none", forKey: .albumCoverImage(albumName: album.name))
+        if let syncedStore = albumsSyncedStore {
+            do {
+                try syncedStore.setCoverImageId(album.name, coverImageId: "none")
+                removeLegacyCoverImageKey(albumName: album.name)
+                return
+            } catch {
+                printDebug("Failed to remove cover image in synced store: \(error)")
+            }
+        }
+        legacyDefaults.set("none", forKey: Self.legacyCoverImageKey(albumName: album.name))
     }
-    
+
     public func resetAlbumCover(album: Album) {
-        UserDefaultUtils.set(nil, forKey: .albumCoverImage(albumName: album.name))
+        if let syncedStore = albumsSyncedStore {
+            do {
+                try syncedStore.setCoverImageId(album.name, coverImageId: nil)
+                removeLegacyCoverImageKey(albumName: album.name)
+                return
+            } catch {
+                printDebug("Failed to reset cover image in synced store: \(error)")
+            }
+        }
+        legacyDefaults.removeObject(forKey: Self.legacyCoverImageKey(albumName: album.name))
     }
-    
+
     public func getAlbumCoverImageId(album: Album) -> String? {
-        return UserDefaultUtils.string(forKey: .albumCoverImage(albumName: album.name))
+        if let syncedStore = albumsSyncedStore {
+            do {
+                if let id = try syncedStore.getCoverImageId(album.name) {
+                    return id
+                }
+                // Check legacy UserDefaults and migrate if found
+                let legacyKey = Self.legacyCoverImageKey(albumName: album.name)
+                if let legacyValue = legacyDefaults.string(forKey: legacyKey) {
+                    try syncedStore.setCoverImageId(album.name, coverImageId: legacyValue)
+                    removeLegacyCoverImageKey(albumName: album.name)
+                    return legacyValue
+                }
+                return nil
+            } catch {
+                printDebug("Failed to read cover image from synced store: \(error)")
+            }
+        }
+        return legacyDefaults.string(forKey: Self.legacyCoverImageKey(albumName: album.name))
     }
 
     public func isAlbumCoverImageDisabled(album: Album) -> Bool {
-        return UserDefaultUtils.string(forKey: .albumCoverImage(albumName: album.name)) == "none"
+        return getAlbumCoverImageId(album: album) == "none"
+    }
+
+    // MARK: - Legacy key helpers
+
+    private static func legacyCoverImageKey(albumName: String) -> String {
+        "albumCoverImage(albumName: \"\(albumName)\")"
+    }
+
+    private static func legacyHiddenKey(albumName: String) -> String {
+        "isAlbumHidden(name: \"\(albumName)\")"
+    }
+
+    private var legacyDefaults: UserDefaults {
+        UserDefaults(suiteName: UserDefaultUtils.appGroup) ?? .standard
+    }
+
+    private func removeLegacyCoverImageKey(albumName: String) {
+        let key = Self.legacyCoverImageKey(albumName: albumName)
+        legacyDefaults.removeObject(forKey: key)
+        NSUbiquitousKeyValueStore.default.removeObject(forKey: key)
+    }
+
+    private func removeLegacyHiddenKey(albumName: String) {
+        let key = Self.legacyHiddenKey(albumName: albumName)
+        legacyDefaults.removeObject(forKey: key)
+        NSUbiquitousKeyValueStore.default.removeObject(forKey: key)
     }
 
     @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album  {

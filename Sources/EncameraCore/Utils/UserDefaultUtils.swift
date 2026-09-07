@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-public struct UserDefaultUtils {
+public struct UserDefaultUtils: DebugPrintable {
 
     #if DEBUG
     public static var appGroup = "group.me.freas.encamera.debug"
@@ -69,7 +69,7 @@ public struct UserDefaultUtils {
         // Trigger initial synchronization with iCloud
         cloudStore.synchronize()
         
-        print("[UserDefaultUtils] iCloud sync initialized")
+        printDebug("[UserDefaultUtils] iCloud sync initialized")
     }
     
     public static func tearDowniCloudSync() {
@@ -92,10 +92,10 @@ public struct UserDefaultUtils {
                 // Valid sync changes - proceed with update
                 break
             case NSUbiquitousKeyValueStoreQuotaViolationChange:
-                print("[UserDefaultUtils] WARNING: iCloud quota violation")
+                printDebug("[UserDefaultUtils] WARNING: iCloud quota violation")
                 return
             case NSUbiquitousKeyValueStoreAccountChange:
-                print("[UserDefaultUtils] iCloud account changed - resyncing")
+                printDebug("[UserDefaultUtils] iCloud account changed - resyncing")
             default:
                 break
             }
@@ -108,7 +108,7 @@ public struct UserDefaultUtils {
                 // We'll update the local defaults with iCloud values
                 if let value = cloudStore.object(forKey: keyString) {
                     defaults.set(value, forKey: keyString)
-                    print("[UserDefaultUtils] Synced from iCloud: \(keyString)")
+                    printDebug("[UserDefaultUtils] Synced from iCloud: \(keyString)")
 
                     // Notify observers about the change
                     // Note: We can't reconstruct the full UserDefaultKey enum from string easily
@@ -145,23 +145,10 @@ public struct UserDefaultUtils {
     }
     
     public static func integer(forKey key: UserDefaultKey) -> Int {
-        // First try iCloud if key should sync, fallback to local
-        if key.shouldSyncToiCloud {
-            let cloudValue = cloudStore.longLong(forKey: key.rawValue)
-            if cloudValue != 0 {
-                return Int(cloudValue)
-            }
-        }
         return defaults.integer(forKey: key.rawValue)
     }
-    
+
     public static func string(forKey key: UserDefaultKey) -> String? {
-        // First try iCloud if key should sync, fallback to local
-        if key.shouldSyncToiCloud {
-            if let cloudValue = cloudStore.string(forKey: key.rawValue) {
-                return cloudValue
-            }
-        }
         return defaults.string(forKey: key.rawValue)
     }
     
@@ -176,11 +163,11 @@ public struct UserDefaultUtils {
             if let value = value {
                 cloudStore.set(value, forKey: keyString)
                 cloudStore.synchronize() // Request immediate sync
-                print("[UserDefaultUtils] Set to iCloud: \(keyString)")
+                printDebug("[UserDefaultUtils] Set to iCloud: \(keyString)")
             } else {
                 cloudStore.removeObject(forKey: keyString)
                 cloudStore.synchronize()
-                print("[UserDefaultUtils] Removed from iCloud: \(keyString)")
+                printDebug("[UserDefaultUtils] Removed from iCloud: \(keyString)")
             }
         }
         
@@ -188,29 +175,13 @@ public struct UserDefaultUtils {
     }
     
     public static func value(forKey key: UserDefaultKey) -> Any? {
-        // First try iCloud if key should sync, fallback to local
-        if key.shouldSyncToiCloud {
-            if let cloudValue = cloudStore.object(forKey: key.rawValue) {
-                return cloudValue
-            }
-        }
         return defaults.value(forKey: key.rawValue)
     }
     public static func boolNullable(forKey key: UserDefaultKey) -> Bool? {
-        // First try iCloud if key should sync, fallback to local
-        if key.shouldSyncToiCloud {
-            let cloudValue = cloudStore.bool(forKey: key.rawValue)
-            // NSUbiquitousKeyValueStore returns false for non-existent keys
-            // Check if key actually exists in cloud
-            if cloudStore.object(forKey: key.rawValue) != nil {
-                return cloudValue
-            }
-        }
         if defaults.object(forKey: key.rawValue) == nil {
             return nil
         }
         return defaults.bool(forKey: key.rawValue)
-
     }
     public static func bool(forKey key: UserDefaultKey) -> Bool {
         return boolNullable(forKey: key) ?? false
@@ -224,29 +195,17 @@ public struct UserDefaultUtils {
         if key.shouldSyncToiCloud {
             cloudStore.removeObject(forKey: keyString)
             cloudStore.synchronize()
-            print("[UserDefaultUtils] Removed from iCloud: \(keyString)")
+            printDebug("[UserDefaultUtils] Removed from iCloud: \(keyString)")
         }
         
         defaultsSubject.send((key, nil))
     }
 
     public static func dictionary(forKey key: UserDefaultKey) -> [String: Any]? {
-        // First try iCloud if key should sync, fallback to local
-        if key.shouldSyncToiCloud {
-            if let cloudValue = cloudStore.dictionary(forKey: key.rawValue) {
-                return cloudValue
-            }
-        }
         return defaults.dictionary(forKey: key.rawValue)
     }
 
     public static func data(forKey key: UserDefaultKey) -> Data? {
-        // First try iCloud if key should sync, fallback to local
-        if key.shouldSyncToiCloud {
-            if let cloudValue = cloudStore.data(forKey: key.rawValue) {
-                return cloudValue
-            }
-        }
         return defaults.data(forKey: key.rawValue)
     }
     
@@ -294,7 +253,7 @@ public struct UserDefaultUtils {
 
     /// Entries iOS writes into an app's own persistent domain. Not ours to delete,
     /// and several reappear the instant the app touches a text field or a locale.
-    private static let systemOwnedDefaultsPrefixes = [
+    static let systemOwnedDefaultsPrefixes = [
         "Apple", "NS", "com.apple.", "AK", "ACD", "PK", "INNext", "MSV", "WebKit",
         "AddingEmojiKeybord", "shouldShowRSVPDataDetectors"
     ]
@@ -319,9 +278,9 @@ public struct UserDefaultUtils {
                 }
                 groupDefaults.set(true, forKey: didMigrateToAppGroups)
                 groupDefaults.synchronize()
-                print("Successfully migrated defaults to app groups")
+                printDebug("Successfully migrated defaults to app groups")
             } else {
-                print("No need to migrate defaults to app groups")
+                printDebug("No need to migrate defaults to app groups")
             }
         } else {
             print("Unable to create NSUserDefaults with given app group")
@@ -333,48 +292,48 @@ public struct UserDefaultUtils {
         return !defaults.bool(forKey: iCloudMigrationKey)
     }
     
-    /// Migrates eligible keys from local UserDefaults to NSUbiquitousKeyValueStore
+    /// The syncable keys whose raw values are known at compile time. Per-album
+    /// settings now live in `SyncedDataStore` and are no longer individual KVS keys.
+    private static let syncableKeys: [UserDefaultKey] = [
+        .onboardingState, .savedSettings, .currentAlbumID, .showCurrentAlbumOnLaunch,
+        .keyTutorialClosed, .hasOpenedAlbum, .defaultStorageLocation, .livePhotosActivated,
+        .gridZoomLevel, .gridSortOption, .currentKey, .hasCompletedFirstLockout,
+        .hasBeenShownHideAlbumTutorial
+    ]
+
+    /// Migrates eligible keys from local UserDefaults to NSUbiquitousKeyValueStore.
+    /// Only keys whose `shouldSyncToiCloud == true` are migrated; per-album settings
+    /// are handled by `SyncedDataStore` and are not part of this migration.
     public static func migrateToiCloudStorage() {
         guard needsiCloudMigration() else {
-            print("[UserDefaultUtils] iCloud migration already completed")
+            printDebug("[UserDefaultUtils] iCloud migration already completed")
             return
         }
-        
-        print("[UserDefaultUtils] Starting iCloud migration...")
-        
+
+        printDebug("[UserDefaultUtils] Starting iCloud migration...")
+
         var migratedCount = 0
-        let allKeys = defaults.dictionaryRepresentation().keys
-        
-        for keyString in allKeys {
-            // Try to match against known keys that should sync
-            // We'll migrate keys that match our known patterns
+
+        for key in syncableKeys {
+            let keyString = key.rawValue
             guard let value = defaults.value(forKey: keyString) else { continue }
-            
-            // Check if this key already exists in iCloud
-            let existsInCloud = cloudStore.object(forKey: keyString) != nil
-            
-            if !existsInCloud {
-                // Only migrate if not already in iCloud (avoid overwriting newer cloud data)
+
+            if cloudStore.object(forKey: keyString) == nil {
                 cloudStore.set(value, forKey: keyString)
                 migratedCount += 1
-                print("[UserDefaultUtils] Migrated to iCloud: \(keyString)")
-            } else {
-                // Cloud value exists - prefer cloud value (it might be from another device)
-                if let cloudValue = cloudStore.object(forKey: keyString) {
-                    defaults.set(cloudValue, forKey: keyString)
-                    print("[UserDefaultUtils] Synced from iCloud: \(keyString)")
-                }
+                printDebug("[UserDefaultUtils] Migrated to iCloud: \(keyString)")
+            } else if let cloudValue = cloudStore.object(forKey: keyString) {
+                defaults.set(cloudValue, forKey: keyString)
+                printDebug("[UserDefaultUtils] Synced from iCloud: \(keyString)")
             }
         }
-        
-        // Synchronize all changes to iCloud
+
         cloudStore.synchronize()
-        
-        // Mark migration as complete
+
         defaults.set(true, forKey: iCloudMigrationKey)
         defaults.synchronize()
-        
-        print("[UserDefaultUtils] iCloud migration completed. Migrated \(migratedCount) keys.")
+
+        printDebug("[UserDefaultUtils] iCloud migration completed. Migrated \(migratedCount) keys.")
     }
     
 }

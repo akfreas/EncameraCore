@@ -105,7 +105,8 @@ public enum SyncedStoreSchemas {
         fields: [
             SyncedField(name: "album_name", type: .string, isEncrypted: true),
             SyncedField(name: "date_added", type: .date, isEncrypted: false),
-            SyncedField(name: "is_hidden", type: .bool, isEncrypted: false)
+            SyncedField(name: "is_hidden", type: .bool, isEncrypted: false),
+            SyncedField(name: "cover_image_id", type: .string, isEncrypted: false)
         ]
     )
 }

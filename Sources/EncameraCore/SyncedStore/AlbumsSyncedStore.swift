@@ -14,25 +14,30 @@ import Combine
 public struct SyncedAlbumRecord: Codable, Equatable {
     /// The name of the album (encrypted in storage)
     public let albumName: String
-    
+
     /// When the album was added to the synced store
     public let dateAdded: Date
-    
+
     /// Whether the album is hidden from the main album list
     public let isHidden: Bool
-    
-    public init(albumName: String, dateAdded: Date, isHidden: Bool) {
+
+    /// The media ID of the album's cover image, or `"none"` when the cover is
+    /// explicitly disabled. `nil` means "use the latest image" (the default).
+    public let coverImageId: String?
+
+    public init(albumName: String, dateAdded: Date, isHidden: Bool, coverImageId: String? = nil) {
         self.albumName = albumName
         self.dateAdded = dateAdded
         self.isHidden = isHidden
+        self.coverImageId = coverImageId
     }
-    
+
     /// Creates a SyncedAlbumRecord from a dictionary representation
     public static func from(dictionary: [String: Any]) -> SyncedAlbumRecord? {
         guard let albumName = dictionary["album_name"] as? String else {
             return nil
         }
-        
+
         let dateAdded: Date
         if let date = dictionary["date_added"] as? Date {
             dateAdded = date
@@ -43,23 +48,29 @@ public struct SyncedAlbumRecord: Codable, Equatable {
         } else {
             dateAdded = Date()
         }
-        
+
         let isHidden = dictionary["is_hidden"] as? Bool ?? false
-        
+        let coverImageId = dictionary["cover_image_id"] as? String
+
         return SyncedAlbumRecord(
             albumName: albumName,
             dateAdded: dateAdded,
-            isHidden: isHidden
+            isHidden: isHidden,
+            coverImageId: coverImageId
         )
     }
-    
+
     /// Converts the record to a dictionary representation
     public func toDictionary() -> [String: Any] {
-        return [
+        var dict: [String: Any] = [
             "album_name": albumName,
             "date_added": dateAdded,
             "is_hidden": isHidden
         ]
+        if let coverImageId {
+            dict["cover_image_id"] = coverImageId
+        }
+        return dict
     }
 }
 
@@ -151,16 +162,7 @@ public class AlbumsSyncedStore: ObservableObject {
         return records.compactMap { SyncedAlbumRecord.from(dictionary: $0) }
     }
     
-    /// Fetches visible (non-hidden) albums with optional sorting
-    /// - Parameter sortedBy: The sort order (defaults to dateAddedAscending)
-    /// - Returns: Array of visible album records
-    /// - Throws: SyncedStoreError if fetch fails
-    public func visibleAlbums(sortedBy: AlbumSortOrder = .dateAddedAscending) throws -> [SyncedAlbumRecord] {
-        let predicate = NSPredicate(format: "is_hidden == NO OR is_hidden == nil")
-        let sortDescriptor = sortDescriptor(for: sortedBy)
-        let records = try store.fetchAll(schema: schema, predicate: predicate, sortDescriptors: [sortDescriptor])
-        return records.compactMap { SyncedAlbumRecord.from(dictionary: $0) }
-    }
+
     
     // MARK: - Convenience Methods
     
@@ -170,16 +172,15 @@ public class AlbumsSyncedStore: ObservableObject {
     ///   - isHidden: Whether the album should be hidden
     /// - Throws: SyncedStoreError if save fails
     public func setAlbumHidden(_ albumName: String, isHidden: Bool) throws {
-        // Try to fetch existing record to preserve dateAdded
         if let existing = try fetchAlbum(name: albumName) {
             let updated = SyncedAlbumRecord(
                 albumName: existing.albumName,
                 dateAdded: existing.dateAdded,
-                isHidden: isHidden
+                isHidden: isHidden,
+                coverImageId: existing.coverImageId
             )
             try save(updated)
         } else {
-            // Create new record
             let newRecord = SyncedAlbumRecord(
                 albumName: albumName,
                 dateAdded: Date(),
@@ -217,6 +218,43 @@ public class AlbumsSyncedStore: ObservableObject {
         }
     }
     
+    // MARK: - Cover Image
+
+    /// Sets the cover image for an album
+    /// - Parameters:
+    ///   - albumName: The album name
+    ///   - coverImageId: The media ID to use as cover, or `"none"` to disable
+    /// - Throws: SyncedStoreError if save fails
+    public func setCoverImageId(_ albumName: String, coverImageId: String?) throws {
+        if let existing = try fetchAlbum(name: albumName) {
+            let updated = SyncedAlbumRecord(
+                albumName: existing.albumName,
+                dateAdded: existing.dateAdded,
+                isHidden: existing.isHidden,
+                coverImageId: coverImageId
+            )
+            try save(updated)
+        } else {
+            let newRecord = SyncedAlbumRecord(
+                albumName: albumName,
+                dateAdded: Date(),
+                isHidden: false,
+                coverImageId: coverImageId
+            )
+            try save(newRecord)
+        }
+    }
+
+    /// Returns the cover image ID for an album, or nil if unset
+    public func getCoverImageId(_ albumName: String) throws -> String? {
+        try fetchAlbum(name: albumName)?.coverImageId
+    }
+
+    /// Whether the cover image is explicitly disabled (`"none"`)
+    public func isCoverImageDisabled(_ albumName: String) throws -> Bool {
+        try getCoverImageId(albumName) == "none"
+    }
+
     /// Gets the count of all albums
     /// - Returns: The total number of albums
     public func albumCount() throws -> Int {
