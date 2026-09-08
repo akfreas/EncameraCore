@@ -202,6 +202,19 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     private var activeSync: Task<Void, Error>?
     private var resyncRequested = false
 
+    public func shutdown() {
+        activeSync?.cancel()
+        activeSync = nil
+        for (_, download) in downloads {
+            download.task?.cancel()
+            for waiter in download.waiters {
+                waiter.deliver(.failure(CancellationError()))
+            }
+        }
+        downloads.removeAll()
+        printDebug("shutdown ok")
+    }
+
     public func sync(albumID: String) async throws {
         // Single-flight that JOINS: a sync requested while one runs flags a re-run and
         // then awaits the active task (which loops to honor the request), so callers

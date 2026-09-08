@@ -41,6 +41,31 @@ extension CKDatabase: RecordZoneProvisioning {
     }
 }
 
+public protocol RecordZoneListing {
+    func existingZoneIDs() async throws -> [CKRecordZone.ID]
+}
+
+extension CKDatabase: RecordZoneListing {
+    public func existingZoneIDs() async throws -> [CKRecordZone.ID] {
+        try await allRecordZones().map(\.zoneID)
+    }
+}
+
+public protocol SubscriptionProvisioning {
+    func allSubscriptionIDs() async throws -> [String]
+    func deleteSubscription(id: String) async throws
+}
+
+extension CKDatabase: SubscriptionProvisioning {
+    public func allSubscriptionIDs() async throws -> [String] {
+        try await allSubscriptions().map(\.subscriptionID)
+    }
+
+    public func deleteSubscription(id: String) async throws {
+        _ = try await deleteSubscription(withID: id)
+    }
+}
+
 // MARK: - Container
 
 /// Thin, defensive accessor for the app's CloudKit private database.
@@ -61,6 +86,8 @@ public final class CloudKitContainer: DebugPrintable {
 
     private let accountStatusProvider: AccountStatusProviding
     private let zoneProvisioner: RecordZoneProvisioning
+    private let zoneLister: RecordZoneListing
+    private let subscriptionProvisioner: SubscriptionProvisioning
     private let defaults: UserDefaults
 
     /// Persisted in the app-group defaults (same store `SyncedDataStore` uses) so
@@ -74,10 +101,14 @@ public final class CloudKitContainer: DebugPrintable {
     public init(
         accountStatusProvider: AccountStatusProviding = CloudKitContainer.defaultContainer,
         zoneProvisioner: RecordZoneProvisioning = CloudKitContainer.defaultContainer.privateCloudDatabase,
+        zoneLister: RecordZoneListing = CloudKitContainer.defaultContainer.privateCloudDatabase,
+        subscriptionProvisioner: SubscriptionProvisioning = CloudKitContainer.defaultContainer.privateCloudDatabase,
         defaults: UserDefaults = UserDefaults(suiteName: UserDefaultUtils.appGroup) ?? .standard
     ) {
         self.accountStatusProvider = accountStatusProvider
         self.zoneProvisioner = zoneProvisioner
+        self.zoneLister = zoneLister
+        self.subscriptionProvisioner = subscriptionProvisioner
         self.defaults = defaults
     }
 
@@ -180,6 +211,33 @@ public final class CloudKitContainer: DebugPrintable {
             printDebug("deleteAllCloudData ok zone=\(zoneID.zoneName) benignError=\(error)")
         }
         resetZoneCreatedFlag()
+    }
+
+    public static var ownedZoneNames: [String] {
+        [CloudKitSchema.zoneName]
+    }
+
+    public func remainingZoneNames() async throws -> [String] {
+        let existing = Set(try await zoneLister.existingZoneIDs().map(\.zoneName))
+        let remaining = Self.ownedZoneNames.filter { existing.contains($0) }
+        printDebug("remainingZoneNames ok remaining=\(remaining)")
+        return remaining
+    }
+
+    public func deleteAllSubscriptions() async throws {
+        let ids = try await subscriptionProvisioner.allSubscriptionIDs()
+        printDebug("deleteAllSubscriptions start count=\(ids.count)")
+        for id in ids {
+            do {
+                try await subscriptionProvisioner.deleteSubscription(id: id)
+            } catch {
+                guard Self.isBenignDeleteError(error) else { throw error }
+            }
+        }
+    }
+
+    public func remainingSubscriptionIDs() async throws -> [String] {
+        try await subscriptionProvisioner.allSubscriptionIDs()
     }
 
     /// Deleting a zone that is already gone is harmless; treat the corresponding

@@ -83,6 +83,9 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
         // would report a designed outcome as a failure.
         if scope == .allData {
             residue.keychainItems = keyManager.residualKeychainItemNames()
+                .filter { item in
+                    !Self.thirdPartyKeychainAccounts.contains(where: { item.hasSuffix("|\($0)") })
+                }
         }
 
         residue.files = survivingFiles(scope: scope)
@@ -94,7 +97,13 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
 
     // MARK: - Files
 
-    private func survivingFiles(scope: ErasureScope) -> [String] {
+    /// Test seam: the file half of `verify`, without the keychain and defaults
+    /// checks that need a provisioned account.
+    public func survivingFilesForTesting(scope: ErasureScope, containerPathLimit: Int = 20) -> [String] {
+        survivingFiles(scope: scope, containerPathLimit: containerPathLimit)
+    }
+
+    private func survivingFiles(scope: ErasureScope, containerPathLimit: Int = 20) -> [String] {
         var offenders: [String] = []
 
         // Cleartext first — these are the ones that matter most if they survive.
@@ -119,6 +128,50 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
                 offenders.append(entry.label)
             }
         }
+
+        // The named surfaces above only catch what someone thought to list. For
+        // the scope that claims EVERYTHING is gone, walk the containers instead
+        // and report whatever is actually still there — that is the only check
+        // that can see a directory nobody registered.
+        if scope == .allData {
+            offenders.append(contentsOf: survivingContainerPaths(limit: containerPathLimit))
+        }
+        return offenders
+    }
+
+    /// Paths still present under the app's container roots, as
+    /// `<root>/<relative path>` strings, capped so a pathological case reports a
+    /// usable summary rather than thousands of lines.
+    ///
+    /// Only files the app can actually delete count as residue. iOS protects
+    /// certain paths (e.g. `privateStoreKit/receipt`) with EPERM — maintaining a
+    /// whitelist for those is brittle, so we probe writability instead.
+    private func survivingContainerPaths(limit: Int = 20) -> [String] {
+        var offenders: [String] = []
+        let fileManager = FileManager.default
+
+        for root in EraserUtils.containerRoots {
+            guard let walker = fileManager.enumerator(at: root,
+                                                      includingPropertiesForKeys: [.isRegularFileKey, .isDirectoryKey],
+                                                      options: []) else { continue }
+            for case let url as URL in walker {
+                let name = url.lastPathComponent
+                if EraserUtils.preservedNames.contains(name) || Self.relaunchArtifactDirs.contains(name) {
+                    if (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
+                        walker.skipDescendants()
+                    }
+                    continue
+                }
+                guard (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
+                      name != ".DS_Store" else {
+                    continue
+                }
+                if !fileManager.isDeletableFile(atPath: url.path) { continue }
+                let relative = url.path.replacingOccurrences(of: root.path + "/", with: "")
+                offenders.append("container:\(root.lastPathComponent)/\(relative)")
+                if offenders.count >= limit { return offenders }
+            }
+        }
         return offenders
     }
 
@@ -138,19 +191,296 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
     /// presence is not residue.
     private func survivingDefaultsKeys() -> [String] {
         UserDefaultUtils.encameraOwnedKeysStillSet()
-            .filter { !Self.intentionalPostEraseKeys.contains($0) }
+            .filter { key in
+                !Self.intentionalPostEraseKeys.contains(key)
+                    && !Self.intentionalPostErasePrefixes.contains(where: { key.hasPrefix($0) })
+            }
             .sorted()
     }
 
-    /// Written deliberately AFTER the defaults wipe, so finding them is the system
-    /// working rather than residue.
-    ///
-    /// `pendingCloudDataWipe` is the durable "the zone delete still owes us a
-    /// retry" marker — the whole point of writing it last is that it survives the
-    /// wipe. Counting it would make every offline erase report failure and refuse
-    /// to quit, which is precisely backwards: that path already has its own honest
-    /// "iCloud data may not be deleted" alert.
+    /// Written deliberately AFTER the defaults wipe, or written by normal app
+    /// initialization on a fresh launch. Finding these is the system working rather
+    /// than residue — a fresh install writes every one of them on first launch.
     private static let intentionalPostEraseKeys: Set<String> = [
-        UserDefaultKey.pendingCloudDataWipe.rawValue
+        UserDefaultKey.pendingCloudDataWipe.rawValue,
+        UserDefaultKey.pendingDefaultsWipe.rawValue,
+        UserDefaultKey.launchCountKey.rawValue,
+        UserDefaultKey.lastVersionKey.rawValue,
+        UserDefaultKey.showPushNotificationPrompt.rawValue,
+        UserDefaultKey.reviewRequestedMetric.rawValue,
+        UserDefaultKey.biometricsConfirmedOnThisDevice.rawValue,
+        UserDefaultKey.biometricsSeedWindowClosed.rawValue,
+        "completedAlbumsDirectoryMigrationV2",
+        "DidMigrateToiCloud_v1",
+        "CKStartupTime",
+        "CKPerBootTasks",
+        "CloudKitAccountInfoCache",
+        "SKTransactionUpdatesLastChecked",
+        "SK2PurchaseIntentUpdatesLastChecked",
+        "com.encamera.skan.highestMilestone",
     ]
+
+    /// Prefix-matched defaults written on fresh launch with a dynamic suffix
+    /// (e.g. `cloudkit_zone_created_v1_<container>`, `featureToggle_*`).
+    private static let intentionalPostErasePrefixes: [String] = [
+        "cloudkit_zone_created_v1_",
+        "featureToggle_",
+    ]
+
+    /// Directories that iOS or third-party SDKs recreate on every launch. Their
+    /// presence in the container walk is not residue — the verify launch itself
+    /// creates them.
+    private static let relaunchArtifactDirs: Set<String> = [
+        "Caches",
+        "Saved Application State",
+        "HTTPStorages",
+        "SplashBoard",
+        "revenuecat",
+        "EncameraAnalytics",
+    ]
+
+    /// Keychain accounts written by third-party SDKs during app initialization,
+    /// not by Encamera. These appear on a fresh install too.
+    static let thirdPartyKeychainAccounts: Set<String> = [
+        "device_id",
+        "visitor_id",
+        "visitor_id_last_reported",
+    ]
+}
+
+// MARK: - Per-step verification
+
+/// One verification per erase step, each re-reading the surface the step just
+/// cleared. `EraserUtils` decides a step's outcome from these, never from
+/// whether the erase call threw.
+public protocol LocalDataVerifying {
+    func verifyCloudKitSyncShutdown() async -> ErasureVerdict
+    func verifyMigrationState() async -> ErasureVerdict
+    func verifyActiveBackendMedia() async -> ErasureVerdict
+    func verifyLocalMediaFiles() -> ErasureVerdict
+    func verifyMediaIndexes() -> ErasureVerdict
+    func verifyBlobCache() -> ErasureVerdict
+    func verifyThumbnails() -> ErasureVerdict
+    func verifyTempDirectories() -> ErasureVerdict
+    func verifySharedContainerImports() -> ErasureVerdict
+    /// Strict container walk: after the residual sweep nothing but the preserved
+    /// names and OS-owned state may remain.
+    func verifyResidualContainerFiles() -> ErasureVerdict
+    func verifyKeychain() -> ErasureVerdict
+    func verifyUserDefaults() -> ErasureVerdict
+    /// The whole-device sweep, run last: `DefaultErasureVerifier` plus the legacy
+    /// iCloud Drive probe.
+    func verifyDeviceClean() async -> ErasureVerdict
+}
+
+/// Production per-step verifier: queries the real keychain, filesystem, defaults
+/// and in-process sync state.
+public struct DefaultLocalDataVerifier: LocalDataVerifying, DebugPrintable {
+
+    private let keyManager: KeyManager
+    private let fileAccess: FileAccess
+
+    public init(keyManager: KeyManager, fileAccess: FileAccess) {
+        self.keyManager = keyManager
+        self.fileAccess = fileAccess
+    }
+
+    public func verifyCloudKitSyncShutdown() async -> ErasureVerdict {
+        let live = await CloudKitCoordinatorRegistry.shared.knownAlbumIDs()
+        return .residue("live sync coordinators", names: live, hint: .retry)
+    }
+
+    public func verifyMigrationState() async -> ErasureVerdict {
+        .residue("migration checkpoints", names: Self.files(under: MigrationPlanStore.directoryURL()), hint: .files)
+    }
+
+    public func verifyActiveBackendMedia() async -> ErasureVerdict {
+        let media: [InteractableMedia<EncryptedMedia>] = await fileAccess.enumerateMedia()
+        return .residue("media items in the current album", names: media.map(\.id), hint: .files)
+    }
+
+    public func verifyLocalMediaFiles() -> ErasureVerdict {
+        var names: [String] = []
+        names += Self.files(under: LocalStorageModel.albumsURL).map { "local/\($0)" }
+        if let ubiquity = FileManager.default.url(forUbiquityContainerIdentifier: nil) {
+            names += Self.files(under: ubiquity.appendingPathComponent("Documents")).map { "iCloudDrive/\($0)" }
+        }
+        return .residue("album files", names: names, hint: .files)
+    }
+
+    public func verifyMediaIndexes() -> ErasureVerdict {
+        .residue("index files", names: Self.files(under: MediaIndexStore.indexDirectoryURL()), hint: .files)
+    }
+
+    public func verifyBlobCache() -> ErasureVerdict {
+        var names = Self.files(under: CloudKitBlobCache.defaultBaseDir).map { "cache/\($0)" }
+        names += Self.files(under: CloudKitUploadQueue.defaultBaseDir).map { "uploads/\($0)" }
+        return .residue("cached or queued files", names: names, hint: .files)
+    }
+
+    public func verifyThumbnails() -> ErasureVerdict {
+        .residue("thumbnails", names: Self.files(under: LocalStorageModel.thumbnailDirectory), hint: .files)
+    }
+
+    public func verifyTempDirectories() -> ErasureVerdict {
+        var names: [String] = []
+        for url in [URL.tempMediaDirectory,
+                    URL.tempRecordingDirectory,
+                    URL.tempExportDirectory,
+                    CKDatabaseAdapter.assetSnapshotDirectory] {
+            names += Self.files(under: url).map { "\(url.lastPathComponent)/\($0)" }
+        }
+        return .residue("temporary files", names: names, hint: .files)
+    }
+
+    public func verifySharedContainerImports() -> ErasureVerdict {
+        guard let importDirectory = AppGroupFileAccess.shared.importDirectoryURL else {
+            return .pass("no App Group container")
+        }
+        return .residue("shared import files", names: Self.files(under: importDirectory), hint: .files)
+    }
+
+    public func verifyResidualContainerFiles() -> ErasureVerdict {
+        verifyResidualContainerFiles(roots: EraserUtils.containerRoots)
+    }
+
+    /// Root-injecting form so a test can prove the walk against a tree it owns.
+    public func verifyResidualContainerFiles(roots: [URL]) -> ErasureVerdict {
+        var names: [String] = []
+        let fileManager = FileManager.default
+        for root in roots {
+            guard let walker = fileManager.enumerator(at: root,
+                                                      includingPropertiesForKeys: [.isRegularFileKey, .isDirectoryKey],
+                                                      options: []) else { continue }
+            for case let url as URL in walker {
+                let name = url.lastPathComponent
+                if EraserUtils.preservedNames.contains(name) || Self.systemOwnedDirectories.contains(name) {
+                    if (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
+                        walker.skipDescendants()
+                    }
+                    continue
+                }
+                guard (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
+                      name != ".DS_Store",
+                      fileManager.isDeletableFile(atPath: url.path) else { continue }
+                let relative = url.path.replacingOccurrences(of: root.path + "/", with: "")
+                names.append("\(root.lastPathComponent)/\(relative)")
+            }
+        }
+        return .residue("container files", names: names, hint: .files)
+    }
+
+    public func verifyKeychain() -> ErasureVerdict {
+        .residue("keychain items", names: keyManager.residualKeychainItemNames(), hint: .keychain)
+    }
+
+    public func verifyUserDefaults() -> ErasureVerdict {
+        var keys = UserDefaultUtils.encameraOwnedKeysStillSet()
+            .filter { !Self.frameworkOwnedDefaultsKeys.contains($0) && !Self.tombstoneKeys.contains($0) }
+            .sorted()
+        // What cfprefsd reports is not what is on disk until it has flushed; the
+        // plist files are what survives a process exit, so they are re-read too.
+        keys += Self.keysStillOnDisk().map { "disk:\($0)" }
+        return .residue("settings keys", names: keys, hint: .settings)
+    }
+
+    /// Encamera-owned keys still present in the preference plists themselves.
+    /// cfprefsd writes them shortly after a flush, so a brief retry separates a
+    /// write still in flight from a key that was never removed.
+    static func keysStillOnDisk(attempts: Int = 10) -> [String] {
+        #if targetEnvironment(simulator)
+        // The simulator's cfprefsd does not rewrite the plists on request the
+        // way a device's does, so the file check would report a stale copy
+        // forever.
+        return []
+        #else
+        var files: [URL] = []
+        let home = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+        if let bundleID = Bundle.main.bundleIdentifier {
+            files.append(home.appendingPathComponent("Library/Preferences/\(bundleID).plist"))
+        }
+        if let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: UserDefaultUtils.appGroup) {
+            files.append(group.appendingPathComponent("Library/Preferences/\(UserDefaultUtils.appGroup).plist"))
+        }
+        var leftovers: [String] = []
+        for attempt in 0..<attempts {
+            leftovers = []
+            for file in files {
+                guard let data = try? Data(contentsOf: file),
+                      let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] else {
+                    continue
+                }
+                for key in plist.keys.sorted()
+                where !UserDefaultUtils.systemOwnedDefaultsPrefixes.contains(where: { key.hasPrefix($0) })
+                    && !frameworkOwnedDefaultsKeys.contains(key)
+                    && !tombstoneKeys.contains(key) {
+                    leftovers.append("\(file.lastPathComponent):\(key)")
+                }
+            }
+            if leftovers.isEmpty { break }
+            if attempt < attempts - 1 { Thread.sleep(forTimeInterval: 0.5) }
+        }
+        return leftovers
+        #endif
+    }
+
+    /// Deliberately no CloudKit query here: a CloudKit read after the zone
+    /// delete answers `zoneNotFound`, and the store reacts by rewriting the
+    /// zone-created flag into the defaults the previous step just emptied. The
+    /// zone and subscription were re-read by their own steps, before the sweep.
+    public func verifyDeviceClean() async -> ErasureVerdict {
+        let residue = await DefaultErasureVerifier(keyManager: keyManager).verify(scope: .allData)
+        var names = residue.keychainItems.map { "keychain:\($0)" }
+            + residue.files.map { "file:\($0)" }
+            + residue.defaultsKeys.map { "defaults:\($0)" }
+        if let ubiquity = FileManager.default.url(forUbiquityContainerIdentifier: nil) {
+            names += Self.files(under: ubiquity.appendingPathComponent("Documents")).map { "iCloudDrive:\($0)" }
+        }
+        let hint: ErasureRecoveryHint = residue.keychainItems.isEmpty ? .files : .keychain
+        return .residue("traces", names: names, hint: hint)
+    }
+
+    // MARK: - Helpers
+
+    /// Directories iOS owns inside the app container and rewrites on its own
+    /// schedule. Not user data, and not the app's to delete.
+    static let systemOwnedDirectories: Set<String> = [
+        "SystemData",
+        "SyncedPreferences",
+        "Saved Application State",
+        "SplashBoard",
+        "HTTPStorages",
+    ]
+
+    /// Defaults keys written by Apple frameworks into the app's domain whenever
+    /// they run, not by Encamera.
+    static let frameworkOwnedDefaultsKeys: Set<String> = [
+        "CKStartupTime",
+        "CKPerBootTasks",
+        "CloudKitAccountInfoCache",
+        "SKTransactionUpdatesLastChecked",
+        "SK2PurchaseIntentUpdatesLastChecked",
+    ]
+
+    /// Written deliberately after the defaults wipe so a later launch finishes
+    /// what this run could not.
+    static let tombstoneKeys: Set<String> = [
+        UserDefaultKey.pendingCloudDataWipe.rawValue,
+        UserDefaultKey.pendingDefaultsWipe.rawValue,
+    ]
+
+    /// Relative paths of every regular file under `directory`. A missing or
+    /// empty directory yields nothing.
+    static func files(under directory: URL) -> [String] {
+        guard let walker = FileManager.default.enumerator(at: directory,
+                                                          includingPropertiesForKeys: [.isRegularFileKey],
+                                                          options: []) else { return [] }
+        var names: [String] = []
+        for case let url as URL in walker {
+            guard (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
+                  url.lastPathComponent != ".DS_Store" else { continue }
+            names.append(url.path.replacingOccurrences(of: directory.path + "/", with: ""))
+        }
+        return names
+    }
 }

@@ -66,6 +66,16 @@ public actor CloudKitUploader: DebugPrintable {
         await drainTask?.value
     }
 
+    /// Cancels the drain task and prevents new kicks from starting. Called
+    /// during erase so no uploads race the zone delete.
+    public func shutdown() {
+        drainTask?.cancel()
+        drainTask = nil
+        rekickTask?.cancel()
+        rekickTask = nil
+        printDebug("shutdown ok")
+    }
+
     private func runDrain() async {
         defer {
             drainTask = nil

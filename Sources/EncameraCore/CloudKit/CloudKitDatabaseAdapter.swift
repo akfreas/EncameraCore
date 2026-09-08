@@ -276,6 +276,10 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
         }
     }
 
+    public static var assetSnapshotDirectory: URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("ckassets", isDirectory: true)
+    }
+
     // MARK: Query (handles cursor paging)
 
     public func query(recordType: String,

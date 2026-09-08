@@ -70,6 +70,7 @@ public enum UserDefaultKey {
     /// (offline / transient error). Written AFTER the defaults wipe so it survives
     /// it; the app retries the cloud wipe on launch until it succeeds.
     case pendingCloudDataWipe
+    case pendingDefaultsWipe
     /// Which typeface `EncameraFont` renders body text in. Debug-only, driven by
     /// the Font Configuration screen behind the `showFontConfig` toggle.
     case fontFamily
@@ -114,7 +115,8 @@ public enum UserDefaultKey {
              .gridSortOption,
              .currentKey,
              .hasCompletedFirstLockout,
-             .hasBeenShownHideAlbumTutorial:
+             .hasBeenShownHideAlbumTutorial,
+             .pendingDefaultsWipe:
             return true
             
         // LOCAL ONLY: Device-specific metrics, counts, and temporary state

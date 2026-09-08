@@ -209,18 +209,40 @@ public struct UserDefaultUtils: DebugPrintable {
         return defaults.data(forKey: key.rawValue)
     }
     
-    public static func removeAll() {
+    public static func removeAll(setTombstone: Bool) {
         defaults.dictionaryRepresentation().keys.forEach { key in
             defaults.removeObject(forKey: key)
         }
-        
-        // Also clear all iCloud keys
-        if let cloudDict = cloudStore.dictionaryRepresentation as? [String: Any] {
-            cloudDict.keys.forEach { key in
-                cloudStore.removeObject(forKey: key)
-            }
-            cloudStore.synchronize()
+
+        let cloudDict = cloudStore.dictionaryRepresentation
+        cloudDict.keys.forEach { key in
+            cloudStore.removeObject(forKey: key)
         }
+        self.set(setTombstone, forKey: .pendingDefaultsWipe)
+        cloudStore.synchronize()
+        defaults.synchronize()
+    }
+
+    /// Forces every pending write in the app-group suite and the standard
+    /// domain to cfprefsd. Called before an `exit(0)` so nothing the erase
+    /// removed comes back on the next launch.
+    public static func flushPendingWrites() {
+        defaults.synchronize()
+        UserDefaults.standard.synchronize()
+        var domains = [appGroup]
+        if let bundleID = Bundle.main.bundleIdentifier {
+            domains.append(bundleID)
+        }
+        for domain in domains {
+            CFPreferencesAppSynchronize(domain as CFString)
+            CFPreferencesSynchronize(domain as CFString, kCFPreferencesCurrentUser, kCFPreferencesAnyHost)
+        }
+    }
+
+    public static func checkTombstoneAndWipe() {
+        guard bool(forKey: .pendingDefaultsWipe) else { return }
+        removeAll(setTombstone: false)
+        removeObject(forKey: .pendingDefaultsWipe)
     }
 
     /// Keys still set in any domain this app writes to, excluding the ones the

@@ -99,6 +99,60 @@
 "Hold to erase" = "Hold to erase";
 "Erase App Data" = "Erase App Data";
 "Erasing in %@" = "Erasing in %@";
+
+/* ./Encamera/Settings/PromptToErase.swift — prompt */
+"PromptToErase.Question" = "Erase all Encamera data?";
+"PromptToErase.WillErase" = "This will erase";
+"PromptToErase.Item.Keys" = "All your stored keys";
+"PromptToErase.Item.Password" = "Your passcode";
+"PromptToErase.Item.Settings" = "App settings";
+"PromptToErase.Item.Media" = "Media stored on this device or in iCloud";
+"PromptToErase.BackupReminder" = "You can back up your keys from the key management screen before erasing.";
+"PromptToErase.RestartNote" = "Every step is checked as it runs. Encamera restarts when the erase is finished.";
+
+/* ./Encamera/Settings/EraseProgressView.swift */
+"EraseProgress.Title" = "Erasing All Data";
+"EraseProgress.Running" = "Erasing…";
+"EraseProgress.KeepOpen" = "Keep Encamera open until this finishes.";
+"EraseProgress.Complete" = "Erase complete";
+"EraseProgress.CompleteMessage" = "Everything was deleted and verified. Tap Finish to restart Encamera.";
+"EraseProgress.CompleteWithProblems" = "Erase finished with problems";
+"EraseProgress.ProblemsMessage" = "Some steps could not be verified. Follow the hints below, then tap Finish to restart Encamera.";
+"EraseProgress.Finish" = "Finish Erase (Restart)";
+"EraseProgress.CopyReport" = "Copy report";
+"EraseProgress.ReportCopied" = "Report copied";
+"EraseProgress.ShowDetails" = "Show details";
+"EraseProgress.HideDetails" = "Hide details";
+"EraseProgress.Section.Activity" = "Stopping activity";
+"EraseProgress.Section.Cloud" = "iCloud";
+"EraseProgress.Section.Media" = "Media & caches";
+"EraseProgress.Section.App" = "App services";
+"EraseProgress.Section.Keys" = "Keys & settings";
+"EraseProgress.Section.FinalCheck" = "Final check";
+"EraseProgress.Step.MigrationState" = "Cancel migrations";
+"EraseProgress.Step.SyncShutdown" = "Stop iCloud sync";
+"EraseProgress.Step.CloudZones" = "Delete iCloud data";
+"EraseProgress.Step.CloudSubscriptions" = "Remove iCloud notifications";
+"EraseProgress.Step.MediaActiveBackend" = "Delete current album media";
+"EraseProgress.Step.MediaLocalAlbums" = "Delete local and iCloud Drive albums";
+"EraseProgress.Step.MediaIndexes" = "Delete media indexes";
+"EraseProgress.Step.MediaBlobCache" = "Delete downloaded copies and pending uploads";
+"EraseProgress.Step.MediaThumbnails" = "Delete thumbnails";
+"EraseProgress.Step.MediaTemp" = "Delete temporary files";
+"EraseProgress.Step.MediaSharedImports" = "Delete shared imports";
+"EraseProgress.Step.AppPurchases" = "Sign out of purchases";
+"EraseProgress.Step.AppAnalytics" = "Delete analytics data";
+"EraseProgress.Step.AppSystem" = "Cancel background tasks and caches";
+"EraseProgress.Step.SweepResidual" = "Remove remaining files";
+"EraseProgress.Step.KeysKeychain" = "Delete keys and passcode";
+"EraseProgress.Step.SettingsDefaults" = "Reset settings";
+"EraseProgress.Step.FinalVerify" = "Verify the device is empty";
+"EraseProgress.Hint.CloudUnreachable" = "Encamera couldn't reach iCloud. Connect to the internet and open Encamera again; it will finish deleting your iCloud data automatically.";
+"EraseProgress.Hint.Keychain" = "Some keys could not be removed. Erase again; if this keeps happening, delete Encamera from your device and reinstall it.";
+"EraseProgress.Hint.Files" = "Some files could not be removed. Delete Encamera from your device to remove them.";
+"EraseProgress.Hint.Settings" = "Some settings could not be reset. Erase again, or delete and reinstall Encamera.";
+"EraseProgress.Hint.Retry" = "Try erasing again. If the problem persists, delete and reinstall Encamera.";
+"EraseProgress.Skipped" = "Skipped";
 /* ./Encamera/Tutorial/ChooseStorageModal.swift */
 "Congratulations!" = "Congratulations!";
 "ChooseYourStorage" = "Choose your storage";

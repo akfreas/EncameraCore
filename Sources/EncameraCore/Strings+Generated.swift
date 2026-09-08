@@ -68,19 +68,6 @@ public enum L10n {
   public static let albumNotFoundAtSourceLocation = L10n.tr("Localizable", "AlbumNotFoundAtSourceLocation", fallback: "Could not find the album at the source location. Use the Files app to ensure that it exists.")
   /// AlbumGrid
   public static let albumsTitle = L10n.tr("Localizable", "AlbumsTitle", fallback: "Albums")
-  /// Are you sure you want to erase ALL ENCAMERA DATA?
-  /// 
-  /// THIS WILL ERASE:
-  /// 
-  /// • ALL your stored keys 🔑
-  /// • Your password 🔐
-  /// • App settings 🎛
-  /// • MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD
-  /// 
-  /// You can create a backup of your keys from the key management screen.
-  /// 
-  /// The app will quit after erase is finished.
-  public static let allDataExplanation = L10n.tr("Localizable", "allDataExplanation", fallback: "Are you sure you want to erase ALL ENCAMERA DATA?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n• MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.")
   /// Are you sure you want to erase ALL app data?
   /// 
   /// THIS WILL ERASE:
@@ -1212,17 +1199,12 @@ public enum L10n {
     public static func driveAlertMessage(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.DriveAlertMessage", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Connect to fast Wi-Fi before you start. Moving %@ items (%@) off iCloud Drive downloads them to this device and then uploads them to iCloud, so every file travels twice — about %@ on a good connection, and much longer on cellular. Keep Encamera open; you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.")
     }
-    /// Not now
     public static let drivePromptDismiss = L10n.tr("Localizable", "CloudKitMigration.DrivePromptDismiss", fallback: "Not now")
-    /// iCloud Drive storage is no longer supported. Move your albums to iCloud to keep them syncing across your devices.
     public static let drivePromptMessage = L10n.tr("Localizable", "CloudKitMigration.DrivePromptMessage", fallback: "iCloud Drive storage is no longer supported. Move your albums to iCloud to keep them syncing across your devices.")
-    /// Move to iCloud
     public static let drivePromptMove = L10n.tr("Localizable", "CloudKitMigration.DrivePromptMove", fallback: "Move to iCloud")
-    /// %@ albums are still on iCloud Drive
     public static func drivePromptTitleMany(_ p1: Any) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.DrivePromptTitleMany", String(describing: p1), fallback: "%@ albums are still on iCloud Drive")
     }
-    /// ./Encamera/AlbumManagement/ICloudDriveMigrationPrompt.swift - placeholder prompt offering to move deprecated iCloud Drive albums to CloudKit (design pending)
     public static let drivePromptTitleOne = L10n.tr("Localizable", "CloudKitMigration.DrivePromptTitleOne", fallback: "1 album is still on iCloud Drive")
     /// less than a minute
     public static let estimateLessThanAMinute = L10n.tr("Localizable", "CloudKitMigration.EstimateLessThanAMinute", fallback: "less than a minute")
@@ -1386,6 +1368,98 @@ public enum L10n {
   public enum EnterTheNameOfTheKeyToDeleteItForever {
     /// Enter the name of the key to delete it forever. All media will remain saved.
     public static let allMediaWillRemainSaved = L10n.tr("Localizable", "Enter the name of the key to delete it forever. All media will remain saved.", fallback: "Enter the name of the key to delete it forever. All media will remain saved.")
+  }
+  public enum EraseProgress {
+    /// Erase complete
+    public static let complete = L10n.tr("Localizable", "EraseProgress.Complete", fallback: "Erase complete")
+    /// Everything was deleted and verified. Tap Finish to restart Encamera.
+    public static let completeMessage = L10n.tr("Localizable", "EraseProgress.CompleteMessage", fallback: "Everything was deleted and verified. Tap Finish to restart Encamera.")
+    /// Erase finished with problems
+    public static let completeWithProblems = L10n.tr("Localizable", "EraseProgress.CompleteWithProblems", fallback: "Erase finished with problems")
+    /// Copy report
+    public static let copyReport = L10n.tr("Localizable", "EraseProgress.CopyReport", fallback: "Copy report")
+    /// Finish Erase (Restart)
+    public static let finish = L10n.tr("Localizable", "EraseProgress.Finish", fallback: "Finish Erase (Restart)")
+    /// Hide details
+    public static let hideDetails = L10n.tr("Localizable", "EraseProgress.HideDetails", fallback: "Hide details")
+    /// Keep Encamera open until this finishes.
+    public static let keepOpen = L10n.tr("Localizable", "EraseProgress.KeepOpen", fallback: "Keep Encamera open until this finishes.")
+    /// Some steps could not be verified. Follow the hints below, then tap Finish to restart Encamera.
+    public static let problemsMessage = L10n.tr("Localizable", "EraseProgress.ProblemsMessage", fallback: "Some steps could not be verified. Follow the hints below, then tap Finish to restart Encamera.")
+    /// Report copied
+    public static let reportCopied = L10n.tr("Localizable", "EraseProgress.ReportCopied", fallback: "Report copied")
+    /// Erasing…
+    public static let running = L10n.tr("Localizable", "EraseProgress.Running", fallback: "Erasing…")
+    /// Show details
+    public static let showDetails = L10n.tr("Localizable", "EraseProgress.ShowDetails", fallback: "Show details")
+    /// Skipped
+    public static let skipped = L10n.tr("Localizable", "EraseProgress.Skipped", fallback: "Skipped")
+    /// ./Encamera/Settings/EraseProgressView.swift
+    public static let title = L10n.tr("Localizable", "EraseProgress.Title", fallback: "Erasing All Data")
+    public enum Hint {
+      /// Encamera couldn't reach iCloud. Connect to the internet and open Encamera again; it will finish deleting your iCloud data automatically.
+      public static let cloudUnreachable = L10n.tr("Localizable", "EraseProgress.Hint.CloudUnreachable", fallback: "Encamera couldn't reach iCloud. Connect to the internet and open Encamera again; it will finish deleting your iCloud data automatically.")
+      /// Some files could not be removed. Delete Encamera from your device to remove them.
+      public static let files = L10n.tr("Localizable", "EraseProgress.Hint.Files", fallback: "Some files could not be removed. Delete Encamera from your device to remove them.")
+      /// Some keys could not be removed. Erase again; if this keeps happening, delete Encamera from your device and reinstall it.
+      public static let keychain = L10n.tr("Localizable", "EraseProgress.Hint.Keychain", fallback: "Some keys could not be removed. Erase again; if this keeps happening, delete Encamera from your device and reinstall it.")
+      /// Try erasing again. If the problem persists, delete and reinstall Encamera.
+      public static let retry = L10n.tr("Localizable", "EraseProgress.Hint.Retry", fallback: "Try erasing again. If the problem persists, delete and reinstall Encamera.")
+      /// Some settings could not be reset. Erase again, or delete and reinstall Encamera.
+      public static let settings = L10n.tr("Localizable", "EraseProgress.Hint.Settings", fallback: "Some settings could not be reset. Erase again, or delete and reinstall Encamera.")
+    }
+    public enum Section {
+      /// Stopping activity
+      public static let activity = L10n.tr("Localizable", "EraseProgress.Section.Activity", fallback: "Stopping activity")
+      /// App services
+      public static let app = L10n.tr("Localizable", "EraseProgress.Section.App", fallback: "App services")
+      /// iCloud
+      public static let cloud = L10n.tr("Localizable", "EraseProgress.Section.Cloud", fallback: "iCloud")
+      /// Final check
+      public static let finalCheck = L10n.tr("Localizable", "EraseProgress.Section.FinalCheck", fallback: "Final check")
+      /// Keys & settings
+      public static let keys = L10n.tr("Localizable", "EraseProgress.Section.Keys", fallback: "Keys & settings")
+      /// Media & caches
+      public static let media = L10n.tr("Localizable", "EraseProgress.Section.Media", fallback: "Media & caches")
+    }
+    public enum Step {
+      /// Delete analytics data
+      public static let appAnalytics = L10n.tr("Localizable", "EraseProgress.Step.AppAnalytics", fallback: "Delete analytics data")
+      /// Sign out of purchases
+      public static let appPurchases = L10n.tr("Localizable", "EraseProgress.Step.AppPurchases", fallback: "Sign out of purchases")
+      /// Cancel background tasks and caches
+      public static let appSystem = L10n.tr("Localizable", "EraseProgress.Step.AppSystem", fallback: "Cancel background tasks and caches")
+      /// Remove iCloud notifications
+      public static let cloudSubscriptions = L10n.tr("Localizable", "EraseProgress.Step.CloudSubscriptions", fallback: "Remove iCloud notifications")
+      /// Delete iCloud data
+      public static let cloudZones = L10n.tr("Localizable", "EraseProgress.Step.CloudZones", fallback: "Delete iCloud data")
+      /// Verify the device is empty
+      public static let finalVerify = L10n.tr("Localizable", "EraseProgress.Step.FinalVerify", fallback: "Verify the device is empty")
+      /// Delete keys and passcode
+      public static let keysKeychain = L10n.tr("Localizable", "EraseProgress.Step.KeysKeychain", fallback: "Delete keys and passcode")
+      /// Delete current album media
+      public static let mediaActiveBackend = L10n.tr("Localizable", "EraseProgress.Step.MediaActiveBackend", fallback: "Delete current album media")
+      /// Delete downloaded copies and pending uploads
+      public static let mediaBlobCache = L10n.tr("Localizable", "EraseProgress.Step.MediaBlobCache", fallback: "Delete downloaded copies and pending uploads")
+      /// Delete media indexes
+      public static let mediaIndexes = L10n.tr("Localizable", "EraseProgress.Step.MediaIndexes", fallback: "Delete media indexes")
+      /// Delete local and iCloud Drive albums
+      public static let mediaLocalAlbums = L10n.tr("Localizable", "EraseProgress.Step.MediaLocalAlbums", fallback: "Delete local and iCloud Drive albums")
+      /// Delete shared imports
+      public static let mediaSharedImports = L10n.tr("Localizable", "EraseProgress.Step.MediaSharedImports", fallback: "Delete shared imports")
+      /// Delete temporary files
+      public static let mediaTemp = L10n.tr("Localizable", "EraseProgress.Step.MediaTemp", fallback: "Delete temporary files")
+      /// Delete thumbnails
+      public static let mediaThumbnails = L10n.tr("Localizable", "EraseProgress.Step.MediaThumbnails", fallback: "Delete thumbnails")
+      /// Cancel migrations
+      public static let migrationState = L10n.tr("Localizable", "EraseProgress.Step.MigrationState", fallback: "Cancel migrations")
+      /// Reset settings
+      public static let settingsDefaults = L10n.tr("Localizable", "EraseProgress.Step.SettingsDefaults", fallback: "Reset settings")
+      /// Remove remaining files
+      public static let sweepResidual = L10n.tr("Localizable", "EraseProgress.Step.SweepResidual", fallback: "Remove remaining files")
+      /// Stop iCloud sync
+      public static let syncShutdown = L10n.tr("Localizable", "EraseProgress.Step.SyncShutdown", fallback: "Stop iCloud sync")
+    }
   }
   public enum Error {
     public enum Alert {
@@ -1816,22 +1890,46 @@ public enum L10n {
     public static let additionalDetails = L10n.tr("Localizable", "MediaInfo.AdditionalDetails", fallback: "Additional Details")
     /// Burst Photo
     public static let burstPhoto = L10n.tr("Localizable", "MediaInfo.BurstPhoto", fallback: "Burst Photo")
+    /// Cached on Device
+    public static let cachedOnDevice = L10n.tr("Localizable", "MediaInfo.CachedOnDevice", fallback: "Cached on Device")
+    /// Chunks
+    public static let chunks = L10n.tr("Localizable", "MediaInfo.Chunks", fallback: "Chunks")
     /// Codec
     public static let codec = L10n.tr("Localizable", "MediaInfo.Codec", fallback: "Codec")
+    /// Delete Permanently
+    public static let deletePermanently = L10n.tr("Localizable", "MediaInfo.DeletePermanently", fallback: "Delete Permanently")
+    /// This media will be deleted everywhere it is stored, including iCloud. This cannot be undone.
+    public static let deletePermanentlyMessage = L10n.tr("Localizable", "MediaInfo.DeletePermanentlyMessage", fallback: "This media will be deleted everywhere it is stored, including iCloud. This cannot be undone.")
     /// Duration
     public static let duration = L10n.tr("Localizable", "MediaInfo.Duration", fallback: "Duration")
     /// Encrypted
     public static let encrypted = L10n.tr("Localizable", "MediaInfo.Encrypted", fallback: "Encrypted")
+    /// This media is stored only on this device, so there is no cached copy to remove.
+    public static let evictUnavailableLocalOnly = L10n.tr("Localizable", "MediaInfo.EvictUnavailableLocalOnly", fallback: "This media is stored only on this device, so there is no cached copy to remove.")
     /// Original File Name
     public static let filename = L10n.tr("Localizable", "MediaInfo.Filename", fallback: "Original File Name")
+    /// Format
+    public static let format = L10n.tr("Localizable", "MediaInfo.Format", fallback: "Format")
     /// Frame Rate
     public static let frameRate = L10n.tr("Localizable", "MediaInfo.FrameRate", fallback: "Frame Rate")
     /// Key Fingerprint
     public static let keyFingerprint = L10n.tr("Localizable", "MediaInfo.KeyFingerprint", fallback: "Key Fingerprint")
     /// Metadata Not Available
     public static let metadataNotAvailable = L10n.tr("Localizable", "MediaInfo.MetadataNotAvailable", fallback: "Metadata Not Available")
+    /// Not Cached
+    public static let notCached = L10n.tr("Localizable", "MediaInfo.NotCached", fallback: "Not Cached")
+    /// On Device
+    public static let onDevice = L10n.tr("Localizable", "MediaInfo.OnDevice", fallback: "On Device")
+    /// Remove Cached Copy
+    public static let removeCachedCopy = L10n.tr("Localizable", "MediaInfo.RemoveCachedCopy", fallback: "Remove Cached Copy")
+    /// The encrypted copy on this device will be removed. This media stays in iCloud and downloads again the next time you open it.
+    public static let removeCachedCopyMessage = L10n.tr("Localizable", "MediaInfo.RemoveCachedCopyMessage", fallback: "The encrypted copy on this device will be removed. This media stays in iCloud and downloads again the next time you open it.")
     /// Screenshot
     public static let screenshot = L10n.tr("Localizable", "MediaInfo.Screenshot", fallback: "Screenshot")
+    /// Storage
+    public static let storage = L10n.tr("Localizable", "MediaInfo.Storage", fallback: "Storage")
+    /// Couldn't Complete
+    public static let storageActionFailed = L10n.tr("Localizable", "MediaInfo.StorageActionFailed", fallback: "Couldn't Complete")
     /// Type
     public static let type = L10n.tr("Localizable", "MediaInfo.Type", fallback: "Type")
     /// ./Encamera/Lightbox/Views/MediaInfoDetailView.swift - Media Info
@@ -1852,8 +1950,6 @@ public enum L10n {
     public static let added = L10n.tr("Localizable", "MissingKey.Added", fallback: "Key added. Your media should open now.")
     /// Add this key
     public static let addKey = L10n.tr("Localizable", "MissingKey.AddKey", fallback: "Add this key")
-    /// Missing Key
-    public static let albumTitle = L10n.tr("Localizable", "MissingKey.AlbumTitle", fallback: "Missing Key")
     /// Enter the key phrase for key %@. It will only be used to open existing media — new photos keep using this device's key.
     public static func addKeyPrompt(_ p1: Any) -> String {
       return L10n.tr("Localizable", "MissingKey.AddKeyPrompt", String(describing: p1), fallback: "Enter the key phrase for key %@. It will only be used to open existing media — new photos keep using this device's key.")
@@ -1862,6 +1958,8 @@ public enum L10n {
     public static let addKeyPromptUnknown = L10n.tr("Localizable", "MissingKey.AddKeyPromptUnknown", fallback: "Enter the key phrase for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.")
     /// Add a key
     public static let addKeyTitle = L10n.tr("Localizable", "MissingKey.AddKeyTitle", fallback: "Add a key")
+    /// Missing Key
+    public static let albumTitle = L10n.tr("Localizable", "MissingKey.AlbumTitle", fallback: "Missing Key")
     /// You already have that key on this device.
     public static let alreadyHaveKey = L10n.tr("Localizable", "MissingKey.AlreadyHaveKey", fallback: "You already have that key on this device.")
     /// This key phrase couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.
@@ -2192,6 +2290,26 @@ public enum L10n {
     /// ./Encamera/Components/PromotionalBannerView.swift
     public static let imageLoadError = L10n.tr("Localizable", "PromotionalBanner.ImageLoadError", fallback: "Image failed to load")
   }
+  public enum PromptToErase {
+    /// You can back up your keys from the key management screen before erasing.
+    public static let backupReminder = L10n.tr("Localizable", "PromptToErase.BackupReminder", fallback: "You can back up your keys from the key management screen before erasing.")
+    /// ./Encamera/Settings/PromptToErase.swift — prompt
+    public static let question = L10n.tr("Localizable", "PromptToErase.Question", fallback: "Erase all Encamera data?")
+    /// Every step is checked as it runs. Encamera restarts when the erase is finished.
+    public static let restartNote = L10n.tr("Localizable", "PromptToErase.RestartNote", fallback: "Every step is checked as it runs. Encamera restarts when the erase is finished.")
+    /// This will erase
+    public static let willErase = L10n.tr("Localizable", "PromptToErase.WillErase", fallback: "This will erase")
+    public enum Item {
+      /// All your stored keys
+      public static let keys = L10n.tr("Localizable", "PromptToErase.Item.Keys", fallback: "All your stored keys")
+      /// Media stored on this device or in iCloud
+      public static let media = L10n.tr("Localizable", "PromptToErase.Item.Media", fallback: "Media stored on this device or in iCloud")
+      /// Your passcode
+      public static let password = L10n.tr("Localizable", "PromptToErase.Item.Password", fallback: "Your passcode")
+      /// App settings
+      public static let settings = L10n.tr("Localizable", "PromptToErase.Item.Settings", fallback: "App settings")
+    }
+  }
   public enum ProtectionLevel {
     /// ./EncameraCore/Authentication/PasscodeType.swift
     public static let low = L10n.tr("Localizable", "ProtectionLevel.Low", fallback: "Low protection")
@@ -2337,23 +2455,10 @@ public enum L10n {
     public static let copiedToClipboard = L10n.tr("Localizable", "Settings.CopiedToClipboard", fallback: "Copied to clipboard")
     /// Default Storage Option
     public static let defaultStorageOption = L10n.tr("Localizable", "Settings.DefaultStorageOption", fallback: "Default Storage Option")
-    /// Erasing finished, but some of your data is still on this device, so the app has not been reset. Please try again, and contact support if it keeps happening.
-    /// 
-    /// Still present:
-    /// %@
-    public static func eraseIncompleteMessage(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "Settings.EraseIncompleteMessage", String(describing: p1), fallback: "Erasing finished, but some of your data is still on this device, so the app has not been reset. Please try again, and contact support if it keeps happening.\n\nStill present:\n%@")
-    }
-    /// Some data could not be erased
-    public static let eraseIncompleteTitle = L10n.tr("Localizable", "Settings.EraseIncompleteTitle", fallback: "Some data could not be erased")
     /// Give Instant Feedback
     public static let giveInstantFeedback = L10n.tr("Localizable", "Settings.GiveInstantFeedback", fallback: "Give Instant Feedback")
     /// Hidden Albums
     public static let hiddenAlbums = L10n.tr("Localizable", "Settings.HiddenAlbums", fallback: "Hidden Albums")
-    /// Your data on this device was erased, but we couldn't remove your data from iCloud. Reconnect to the internet (and make sure you're signed in to iCloud), then run Erase All Data again.
-    public static let icloudDataMayRemainMessage = L10n.tr("Localizable", "Settings.IcloudDataMayRemainMessage", fallback: "Your data on this device was erased, but we couldn't remove your data from iCloud. Reconnect to the internet (and make sure you're signed in to iCloud), then run Erase All Data again.")
-    /// iCloud data may not be deleted
-    public static let icloudDataMayRemainTitle = L10n.tr("Localizable", "Settings.IcloudDataMayRemainTitle", fallback: "iCloud data may not be deleted")
     /// Import Key Phrase
     public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
     /// Loop Videos

@@ -51,4 +51,16 @@ public actor CloudKitCoordinatorRegistry: DebugPrintable {
     public func knownAlbumIDs() -> [String] {
         Array(coordinators.keys)
     }
+
+    /// Shuts down every coordinator and clears the registry. After this, new
+    /// coordinator requests will create fresh (shutdown) instances — but the
+    /// process is about to exit anyway.
+    public func shutdownAll() async {
+        for (_, coordinator) in coordinators {
+            await coordinator.shutdown()
+        }
+        let count = coordinators.count
+        coordinators.removeAll()
+        printDebug("shutdownAll ok coordinators=\(count)")
+    }
 }
