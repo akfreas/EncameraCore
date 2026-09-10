@@ -258,6 +258,7 @@ public protocol LocalDataVerifying {
     func verifyMigrationState() async -> ErasureVerdict
     func verifyActiveBackendMedia() async -> ErasureVerdict
     func verifyLocalMediaFiles() -> ErasureVerdict
+    func verifyICloudDriveMedia() -> ErasureVerdict
     func verifyMediaIndexes() -> ErasureVerdict
     func verifyBlobCache() -> ErasureVerdict
     func verifyThumbnails() -> ErasureVerdict
@@ -300,12 +301,16 @@ public struct DefaultLocalDataVerifier: LocalDataVerifying, DebugPrintable {
     }
 
     public func verifyLocalMediaFiles() -> ErasureVerdict {
-        var names: [String] = []
-        names += Self.files(under: LocalStorageModel.albumsURL).map { "local/\($0)" }
-        if let ubiquity = FileManager.default.url(forUbiquityContainerIdentifier: nil) {
-            names += Self.files(under: ubiquity.appendingPathComponent("Documents")).map { "iCloudDrive/\($0)" }
-        }
+        let names = Self.files(under: LocalStorageModel.albumsURL).map { "local/\($0)" }
         return .residue("album files", names: names, hint: .files)
+    }
+
+    public func verifyICloudDriveMedia() -> ErasureVerdict {
+        guard let ubiquity = FileManager.default.url(forUbiquityContainerIdentifier: nil) else {
+            return .pass("no ubiquity container")
+        }
+        let names = Self.files(under: ubiquity.appendingPathComponent("Documents")).map { "iCloudDrive/\($0)" }
+        return .residue("iCloud Drive files", names: names, hint: .files)
     }
 
     public func verifyMediaIndexes() -> ErasureVerdict {
@@ -374,54 +379,16 @@ public struct DefaultLocalDataVerifier: LocalDataVerifying, DebugPrintable {
         .residue("keychain items", names: keyManager.residualKeychainItemNames(), hint: .keychain)
     }
 
+    /// Asks cfprefsd, not the plist files. The daemon is the only writer and
+    /// rewrites a domain's file on its own cadence, around ten seconds after the
+    /// last change, which no synchronize call shortens; a file read from inside
+    /// the running app shows the pre-erase keys until then. The on-disk proof is
+    /// the container pull the rig harness makes after the app has exited.
     public func verifyUserDefaults() -> ErasureVerdict {
-        var keys = UserDefaultUtils.encameraOwnedKeysStillSet()
+        let keys = UserDefaultUtils.encameraOwnedKeysStillSet()
             .filter { !Self.frameworkOwnedDefaultsKeys.contains($0) && !Self.tombstoneKeys.contains($0) }
             .sorted()
-        // What cfprefsd reports is not what is on disk until it has flushed; the
-        // plist files are what survives a process exit, so they are re-read too.
-        keys += Self.keysStillOnDisk().map { "disk:\($0)" }
         return .residue("settings keys", names: keys, hint: .settings)
-    }
-
-    /// Encamera-owned keys still present in the preference plists themselves.
-    /// cfprefsd writes them shortly after a flush, so a brief retry separates a
-    /// write still in flight from a key that was never removed.
-    static func keysStillOnDisk(attempts: Int = 10) -> [String] {
-        #if targetEnvironment(simulator)
-        // The simulator's cfprefsd does not rewrite the plists on request the
-        // way a device's does, so the file check would report a stale copy
-        // forever.
-        return []
-        #else
-        var files: [URL] = []
-        let home = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
-        if let bundleID = Bundle.main.bundleIdentifier {
-            files.append(home.appendingPathComponent("Library/Preferences/\(bundleID).plist"))
-        }
-        if let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: UserDefaultUtils.appGroup) {
-            files.append(group.appendingPathComponent("Library/Preferences/\(UserDefaultUtils.appGroup).plist"))
-        }
-        var leftovers: [String] = []
-        for attempt in 0..<attempts {
-            leftovers = []
-            for file in files {
-                guard let data = try? Data(contentsOf: file),
-                      let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] else {
-                    continue
-                }
-                for key in plist.keys.sorted()
-                where !UserDefaultUtils.systemOwnedDefaultsPrefixes.contains(where: { key.hasPrefix($0) })
-                    && !frameworkOwnedDefaultsKeys.contains(key)
-                    && !tombstoneKeys.contains(key) {
-                    leftovers.append("\(file.lastPathComponent):\(key)")
-                }
-            }
-            if leftovers.isEmpty { break }
-            if attempt < attempts - 1 { Thread.sleep(forTimeInterval: 0.5) }
-        }
-        return leftovers
-        #endif
     }
 
     /// Deliberately no CloudKit query here: a CloudKit read after the zone

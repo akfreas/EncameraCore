@@ -66,6 +66,22 @@ public enum CloudKitSchema {
         /// this field existed carry no value and are not backfilled, so readers must
         /// fall back to the `KeyDiscovery` sweep rather than fail.
         public static let keyFingerprint = "keyFingerprint"   // String
+        /// The ENC3 header for a chunked video (framing only: magic, version, chunk
+        /// size, plaintext length, chunk count, random file id, and the *encrypted*
+        /// metadata section — no key material, no plaintext). Present exactly when
+        /// the blob is chunked; a chunked record carries NO `encBlob`, its payload
+        /// lives as `EncBlobChunk` records in `EncameraBlobZone`. Storing the header
+        /// here lets a player learn the plaintext length — which AVFoundation
+        /// demands before requesting a byte — with zero extra round trips, and
+        /// makes saving this record the commit point: until `EncMedia` lands with
+        /// `chunkCount` set, a partial chunk upload reads as "not chunked yet".
+        public static let encHeader      = "encHeader"        // Bytes (ENC3 header)
+        /// Number of `EncBlobChunk` records the blob occupies. 0/absent means
+        /// monolithic (`encBlob` carries the whole ciphertext, as always).
+        public static let chunkCount     = "chunkCount"       // Int64
+        /// Plaintext byte length of a chunked video (duplicated out of `encHeader`
+        /// so deletion and diagnostics never need to parse it).
+        public static let plaintextLength = "plaintextLength"  // Int64
     }
 
     /// The album record. Makes CloudKit the authoritative, cross-device source of
@@ -89,6 +105,11 @@ public enum CloudKitSchema {
         /// album needs can be named without reading a media record. Same "absent means
         /// unknown" contract as above.
         public static let keyFingerprint = "keyFingerprint"   // String
+        /// `CKRecord.Reference` to the `EncMedia` record the user chose as the
+        /// album's cover image. Action `.none` — deleting the cover photo must not
+        /// cascade-delete the album. Absent on records that predate this field or
+        /// when no explicit cover is set.
+        public static let coverMediaRef  = "coverMediaRef"   // CKRecord.Reference(.none) -> EncMedia
     }
 
     /// Bumped when the record layout changes; written to `schemaVersion`.

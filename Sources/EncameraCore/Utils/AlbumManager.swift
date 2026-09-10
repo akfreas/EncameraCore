@@ -327,11 +327,14 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
               let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes),
               let albumFingerprint = CloudKitKeyStamp.provenAlbumFingerprint(for: album,
                                                                             keyManager: keyManager) else { return }
+        let rawCover = getAlbumCoverImageId(album: album)
+        let coverMediaID = (rawCover == nil || rawCover == "none") ? nil : rawCover
         let upload = CloudKitAlbumUpload(albumID: hash,
                                          encName: album.encryptedPathComponent,
                                          createdAt: album.creationDate,
                                          isHidden: isAlbumHidden(album),
-                                         keyFingerprint: albumFingerprint)
+                                         keyFingerprint: albumFingerprint,
+                                         coverMediaID: coverMediaID)
         let store = CloudKitStoreProvider.makeStore(hash)
         Task {
             guard (try? await store.saveAlbum(upload)) != nil else { return }
@@ -365,6 +368,25 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         let publishRegistry = CloudKitAlbumPublishRegistry()
         let store = CloudKitStoreProvider.makeStore(hash)
         Task {
+            // Queue the chunked members' blob-zone reclaim BEFORE the album
+            // record goes: the `.deleteSelf` cascade covers every `EncMedia` and
+            // its assets, but chunk records live in a different zone with no
+            // references, so nothing cascades to them. Once queued, any album's
+            // next sync drains them (the cascaded `EncMedia` resolves as
+            // already-gone and the chunks are deleted). If the membership query
+            // fails, the album stays queued and the reconciler retries on its
+            // next pass — the destructive erase's blob-zone wipe remains the
+            // backstop.
+            do {
+                let members = try await store.fetchMetadata(albumID: hash, includeThumbnail: false)
+                let mediaDeleteQueue = CloudKitMediaDeleteQueue()
+                for meta in members where meta.chunkCount > 0 {
+                    mediaDeleteQueue.enqueue(meta.recordName, chunkCount: meta.chunkCount)
+                }
+            } catch {
+                Self.printDebug("deleteCloudKitAlbumRecord chunk enumeration FAILED albumID=\(hash) — chunked members' blob records may be orphaned until erase raw=\(error)")
+                return
+            }
             do {
                 try await store.deleteAlbum(albumID: hash)
                 queue.remove(hash)
@@ -401,12 +423,14 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             do {
                 try syncedStore.setCoverImageId(album.name, coverImageId: image.id)
                 removeLegacyCoverImageKey(albumName: album.name)
+                pushCloudKitAlbumRecord(album)
                 return
             } catch {
                 printDebug("Failed to set cover image in synced store: \(error)")
             }
         }
         legacyDefaults.set(image.id, forKey: Self.legacyCoverImageKey(albumName: album.name))
+        pushCloudKitAlbumRecord(album)
     }
 
     public func removeAlbumCover(album: Album) {
@@ -414,12 +438,14 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             do {
                 try syncedStore.setCoverImageId(album.name, coverImageId: "none")
                 removeLegacyCoverImageKey(albumName: album.name)
+                pushCloudKitAlbumRecord(album)
                 return
             } catch {
                 printDebug("Failed to remove cover image in synced store: \(error)")
             }
         }
         legacyDefaults.set("none", forKey: Self.legacyCoverImageKey(albumName: album.name))
+        pushCloudKitAlbumRecord(album)
     }
 
     public func resetAlbumCover(album: Album) {
@@ -427,12 +453,14 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             do {
                 try syncedStore.setCoverImageId(album.name, coverImageId: nil)
                 removeLegacyCoverImageKey(albumName: album.name)
+                pushCloudKitAlbumRecord(album)
                 return
             } catch {
                 printDebug("Failed to reset cover image in synced store: \(error)")
             }
         }
         legacyDefaults.removeObject(forKey: Self.legacyCoverImageKey(albumName: album.name))
+        pushCloudKitAlbumRecord(album)
     }
 
     public func getAlbumCoverImageId(album: Album) -> String? {

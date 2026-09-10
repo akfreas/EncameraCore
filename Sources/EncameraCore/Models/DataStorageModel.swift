@@ -130,14 +130,19 @@ extension DataStorageModel {
 
         // Also check rootURL for albums that haven't been migrated yet
         // (e.g. partial migration failure leaves some albums at rootURL).
-        let legacyResults = enumeratorForStorageDirectory(
-            at: rootURL,
-            onlyDirectories: true
-        ).filter { AlbumDirectoryNaming.isAlbumDirectoryName($0.lastPathComponent) }
+        // Skip the CloudKit blob cache — its per-album subdirectories are
+        // SHA256 hashes, not album directories, and scanning them creates
+        // ghost albums with hex-string names.
+        if rootURL != CloudKitBlobCache.defaultBaseDir {
+            let legacyResults = enumeratorForStorageDirectory(
+                at: rootURL,
+                onlyDirectories: true
+            ).filter { AlbumDirectoryNaming.isAlbumDirectoryName($0.lastPathComponent) }
 
-        let migratedNames = Set(results.map { $0.lastPathComponent })
-        for url in legacyResults where !migratedNames.contains(url.lastPathComponent) {
-            results.append(url)
+            let migratedNames = Set(results.map { $0.lastPathComponent })
+            for url in legacyResults where !migratedNames.contains(url.lastPathComponent) {
+                results.append(url)
+            }
         }
 
         return results

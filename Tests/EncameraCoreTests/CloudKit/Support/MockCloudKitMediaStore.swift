@@ -31,6 +31,8 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var fingerprintCensusError: Error?
     var fetchBlobError: Error?
     var fetchChangesError: Error?
+    /// Suspends `fetchChanges` until the test releases it. See `AsyncGate`.
+    var fetchChangesGate: AsyncGate?
     var deleteError: Error?
     /// The enumeration failures the destructive path must not mistake for "there
     /// was nothing here" (ENC-94). Without these hooks no test could reach that
@@ -107,17 +109,10 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         if reflectUploadsInMetadata {
             locked {
                 _reflected.removeAll { $0.recordName == item.recordName }
-                _reflected.append(CloudKitMediaMetadata(
-                    recordName: item.recordName,
-                    albumID: item.albumID,
-                    mediaID: item.mediaID,
-                    mediaType: item.mediaType,
-                    createdAt: item.createdAt,
-                    sizeBytes: item.sizeBytes,
-                    creationDeviceID: "mock",
-                    schemaVersion: item.schemaVersion,
-                    recordChangeTag: "tag-upload"
-                ))
+                _reflected.append(CloudKitMediaMetadata(descriptor: item.descriptor,
+                                                        creationDeviceID: "mock",
+                                                        schemaVersion: item.schemaVersion,
+                                                        recordChangeTag: "tag-upload"))
             }
         }
         progress(1.0)
@@ -138,8 +133,19 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         return locked { metadataToReturn + (reflectUploadsInMetadata ? _reflected : []) }
     }
 
+    var fetchRecordMetadataError: Error?
+
+    /// Every `fetchRecordMetadata` call, in order, so a test can prove a screen
+    /// asked the network once — or not at all. Counting is the only way to see a
+    /// redundant round trip; the returned value is identical either way.
+    private var _fetchRecordMetadataCalls: [String] = []
+    var fetchRecordMetadataCalls: [String] { locked { _fetchRecordMetadataCalls } }
+    var fetchRecordMetadataCount: Int { locked { _fetchRecordMetadataCalls.count } }
+
     func fetchRecordMetadata(recordName: String) async throws -> CloudKitMediaMetadata? {
-        locked { (metadataToReturn + (reflectUploadsInMetadata ? _reflected : []))
+        locked { _fetchRecordMetadataCalls.append(recordName) }
+        if let fetchRecordMetadataError { throw fetchRecordMetadataError }
+        return locked { (metadataToReturn + (reflectUploadsInMetadata ? _reflected : []))
             .first { $0.recordName == recordName } }
     }
 
@@ -190,8 +196,13 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         if let fetchThumbnailError { throw fetchThumbnailError }   // simulates a partial write then failure
     }
 
+    /// Observation hook invoked on every delete, so a test can record the
+    /// interleaving of record deletes with other traffic (e.g. chunk deletes).
+    var onDelete: ((String) -> Void)?
+
     func delete(recordName: String) async throws {
         locked { _deleteCalls.append(recordName) }
+        onDelete?(recordName)
         if let deleteError { throw deleteError }
         if let deleteErrorOnce { self.deleteErrorOnce = nil; throw deleteErrorOnce }
         locked { _liveRecords[recordName] = nil }
@@ -272,6 +283,10 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var fetchChangesDelayNanos: UInt64 = 0
     func fetchChanges(since token: CKServerChangeToken?) async throws -> CloudKitChangeSet {
         locked { _fetchChangesCount += 1 }
+        // Held open by a test that needs another operation to land while the
+        // coordinator is out on the network. `fetchChangesDelayNanos` only makes
+        // that ordering probable; the gate makes it certain.
+        if let fetchChangesGate { await fetchChangesGate.enter() }
         if fetchChangesDelayNanos > 0 { try? await Task.sleep(nanoseconds: fetchChangesDelayNanos) }
         if let error = fetchChangesErrorOnce { fetchChangesErrorOnce = nil; throw error }
         if let fetchChangesError { throw fetchChangesError }

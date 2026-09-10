@@ -66,6 +66,14 @@ public struct UserDefaultUtils: DebugPrintable {
             handleiCloudChange(notification)
         }
         
+        // Builds before 10 Sep 2026 synced the defaults-wipe tombstone, so an
+        // account that ran Erase All Data on one of them still carries it. Left
+        // there, it would arrive as an external change and be copied into the
+        // local suite the launch-time wipe reads.
+        for key in localOnlyMarkerKeys where cloudStore.object(forKey: key) != nil {
+            cloudStore.removeObject(forKey: key)
+        }
+
         // Trigger initial synchronization with iCloud
         cloudStore.synchronize()
         
@@ -103,7 +111,10 @@ public struct UserDefaultUtils: DebugPrintable {
         
         // Get the keys that changed
         if let changedKeys = userInfo[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String] {
-            for keyString in changedKeys {
+            for keyString in changedKeys where !localOnlyMarkerKeys.contains(keyString) {
+                // An account-wide change landing after this device's erase would
+                // refill the defaults the erase just emptied.
+                if writesQuiescedForErase { break }
                 // Try to match the changed key to our UserDefaultKey enum
                 // We'll update the local defaults with iCloud values
                 if let value = cloudStore.object(forKey: keyString) {
@@ -147,14 +158,15 @@ public struct UserDefaultUtils: DebugPrintable {
     public static func integer(forKey key: UserDefaultKey) -> Int {
         return defaults.integer(forKey: key.rawValue)
     }
-
+    
     public static func string(forKey key: UserDefaultKey) -> String? {
         return defaults.string(forKey: key.rawValue)
     }
     
     public static func set(_ value: Any?, forKey key: UserDefaultKey) {
         let keyString = key.rawValue
-        
+        guard !isWriteRefusedAfterErase(keyString) else { return }
+
         // Always write to local storage
         defaults.set(value, forKey: keyString)
         
@@ -189,7 +201,8 @@ public struct UserDefaultUtils: DebugPrintable {
     
     public static func removeObject(forKey key: UserDefaultKey) {
         let keyString = key.rawValue
-        
+        guard !isWriteRefusedAfterErase(keyString) else { return }
+
         defaults.removeObject(forKey: keyString)
         
         if key.shouldSyncToiCloud {
@@ -213,13 +226,16 @@ public struct UserDefaultUtils: DebugPrintable {
         defaults.dictionaryRepresentation().keys.forEach { key in
             defaults.removeObject(forKey: key)
         }
-
+        
+        // Also clear all iCloud keys
         let cloudDict = cloudStore.dictionaryRepresentation
         cloudDict.keys.forEach { key in
             cloudStore.removeObject(forKey: key)
         }
         self.set(setTombstone, forKey: .pendingDefaultsWipe)
         cloudStore.synchronize()
+        // Removals are queued to cfprefsd asynchronously; a process that exits
+        // right after this call loses them and the on-disk plist keeps every key.
         defaults.synchronize()
     }
 
@@ -229,6 +245,9 @@ public struct UserDefaultUtils: DebugPrintable {
     public static func flushPendingWrites() {
         defaults.synchronize()
         UserDefaults.standard.synchronize()
+        // `synchronize()` hands the batch to cfprefsd; the daemon still writes
+        // the plists on its own schedule, and a process that exits first leaves
+        // the old file behind. These ask it to write now.
         var domains = [appGroup]
         if let bundleID = Bundle.main.bundleIdentifier {
             domains.append(bundleID)
@@ -239,10 +258,51 @@ public struct UserDefaultUtils: DebugPrintable {
         }
     }
 
+    /// Set once an erase has emptied the defaults. The process exits from the
+    /// erase screen, but not before album-deletion notifications and late iCloud
+    /// key-value changes have had their chance to write settings back; from here
+    /// on only the erase markers may be written.
+    static var writesQuiescedForErase = false
+
+    public static func quiesceWritesForErase() {
+        writesQuiescedForErase = true
+    }
+
+    private static func isWriteRefusedAfterErase(_ keyString: String) -> Bool {
+        guard writesQuiescedForErase, !localOnlyMarkerKeys.contains(keyString) else { return false }
+        printDebug("[UserDefaultUtils] Refused post-erase write: \(keyString)")
+        return true
+    }
+
+    /// Markers that describe one device's own erase. They never sync, and an
+    /// external change carrying one of them is ignored rather than copied into
+    /// the local suite.
+    static let localOnlyMarkerKeys: Set<String> = [
+        UserDefaultKey.pendingDefaultsWipe.rawValue,
+        UserDefaultKey.pendingCloudDataWipe.rawValue,
+    ]
+
+    /// Finishes the defaults wipe a previous run recorded. The tombstone is
+    /// written after the removals, so finding it means the wipe reached cfprefsd;
+    /// anything else alongside it landed later, between the wipe and the exit,
+    /// and is removed here. Local domains only: the erase already emptied the
+    /// key-value store, and another device may have written to it since. The
+    /// pending cloud-wipe marker survives for the launch-time retry that reads it.
     public static func checkTombstoneAndWipe() {
         guard bool(forKey: .pendingDefaultsWipe) else { return }
-        removeAll(setTombstone: false)
-        removeObject(forKey: .pendingDefaultsWipe)
+        let keep: Set<String> = [UserDefaultKey.pendingCloudDataWipe.rawValue]
+        if let domain = defaults.persistentDomain(forName: appGroup) {
+            for key in domain.keys where !keep.contains(key) {
+                defaults.removeObject(forKey: key)
+            }
+        }
+        if let bundleID = Bundle.main.bundleIdentifier,
+           let domain = UserDefaults.standard.persistentDomain(forName: bundleID) {
+            for key in domain.keys where !keep.contains(key) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        flushPendingWrites()
     }
 
     /// Keys still set in any domain this app writes to, excluding the ones the
@@ -305,7 +365,7 @@ public struct UserDefaultUtils: DebugPrintable {
                 printDebug("No need to migrate defaults to app groups")
             }
         } else {
-            print("Unable to create NSUserDefaults with given app group")
+            printDebug("Unable to create NSUserDefaults with given app group")
         }
     }
     

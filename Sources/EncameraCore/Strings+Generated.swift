@@ -1199,13 +1199,6 @@ public enum L10n {
     public static func driveAlertMessage(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.DriveAlertMessage", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Connect to fast Wi-Fi before you start. Moving %@ items (%@) off iCloud Drive downloads them to this device and then uploads them to iCloud, so every file travels twice — about %@ on a good connection, and much longer on cellular. Keep Encamera open; you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.")
     }
-    public static let drivePromptDismiss = L10n.tr("Localizable", "CloudKitMigration.DrivePromptDismiss", fallback: "Not now")
-    public static let drivePromptMessage = L10n.tr("Localizable", "CloudKitMigration.DrivePromptMessage", fallback: "iCloud Drive storage is no longer supported. Move your albums to iCloud to keep them syncing across your devices.")
-    public static let drivePromptMove = L10n.tr("Localizable", "CloudKitMigration.DrivePromptMove", fallback: "Move to iCloud")
-    public static func drivePromptTitleMany(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "CloudKitMigration.DrivePromptTitleMany", String(describing: p1), fallback: "%@ albums are still on iCloud Drive")
-    }
-    public static let drivePromptTitleOne = L10n.tr("Localizable", "CloudKitMigration.DrivePromptTitleOne", fallback: "1 album is still on iCloud Drive")
     /// less than a minute
     public static let estimateLessThanAMinute = L10n.tr("Localizable", "CloudKitMigration.EstimateLessThanAMinute", fallback: "less than a minute")
     /// %@ minutes

@@ -301,6 +301,73 @@ public actor DiskMediaBackend: MediaBackend {
         return directoryModel.driveURLForMedia(withID: id, type: type)
     }
 
+    // MARK: - Storage details
+
+    /// `MediaBackend.storageDetails`. Every component is a real file in the album
+    /// directory, so the format is sniffed straight off disk and the size is the
+    /// file's own.
+    ///
+    /// The remote/local split only means something for `.icloud`, where the album
+    /// directory sits in the ubiquity container and a file may be a placeholder
+    /// rather than bytes. There, the item's logical size is what iCloud Drive
+    /// holds and `localBytes` is populated only once the file is materialized.
+    /// A `.local` album has no remote side at all.
+    public func storageDetails(for media: InteractableMedia<EncryptedMedia>) async -> MediaStorageDetails? {
+        guard let directoryModel else { return nil }
+        let storageType = directoryModel.storageType
+        var components: [MediaStorageDetails.Component] = []
+        for item in media.underlyingMedia {
+            let url = await sourceURL(id: item.id, type: item.mediaType)
+            let isDownloaded = storageType != .icloud || !iCloudFileStatusUtil.needsDownload(url: url)
+            let logicalBytes = Self.logicalFileSize(at: url)
+            let format = isDownloaded ? EncryptedFormatVersion.sniff(fileURL: url) : nil
+            components.append(
+                MediaStorageDetails.Component(
+                    mediaType: item.mediaType,
+                    // iCloud Drive stores exactly the file we would hold locally, so
+                    // one size describes both sides.
+                    remoteBytes: storageType == .icloud ? logicalBytes : nil,
+                    localBytes: isDownloaded ? logicalBytes : nil,
+                    format: format,
+                    chunkCount: format == .v3 ? Self.chunkCount(ofSeekableFileAt: url) : nil
+                )
+            )
+        }
+        return MediaStorageDetails(storageType: storageType, components: components)
+    }
+
+    /// `MediaBackend.evictLocalCopy`. Only an iCloud Drive album has a copy that
+    /// is safe to drop — `evictUbiquitousItem` leaves the item in iCloud and
+    /// replaces the local bytes with a placeholder. In a `.local` album the bytes
+    /// on disk are the media, so the request is refused.
+    public func evictLocalCopy(for media: InteractableMedia<EncryptedMedia>) async throws {
+        guard let directoryModel, directoryModel.storageType == .icloud else {
+            throw FileAccessError.localCopyNotEvictable
+        }
+        for item in media.underlyingMedia {
+            let url = await sourceURL(id: item.id, type: item.mediaType)
+            guard FileManager.default.fileExists(atPath: url.path) else { continue }
+            try FileManager.default.evictUbiquitousItem(at: url)
+        }
+    }
+
+    /// The item's size in bytes regardless of whether its bytes are present.
+    /// `totalFileSize` is what an undownloaded ubiquitous placeholder reports; a
+    /// materialized file has no `totalFileSize` and answers with `fileSize`.
+    private static func logicalFileSize(at url: URL) -> Int64? {
+        guard let values = try? url.resourceValues(forKeys: [.fileSizeKey, .totalFileSizeKey]),
+              let bytes = values.totalFileSize ?? values.fileSize else {
+            return nil
+        }
+        return Int64(bytes)
+    }
+
+    /// Chunk count read out of an ENC3 file's header. `nil` when the header
+    /// cannot be read — a truncated file names no chunk count rather than zero.
+    private static func chunkCount(ofSeekableFileAt url: URL) -> Int? {
+        (try? SeekableEncryptedHeader.read(fromFileAt: url))?.header.chunkCount
+    }
+
     // MARK: - Media index
 
     /// Serves the album's index through the store's read-through cache. Returns

@@ -358,18 +358,36 @@ struct FirstBlockProbe {
     /// larger means a corrupt block-size field, not a real file.
     private static let maxPlausibleBlockSize: UInt32 = 16 * 1024 * 1024
 
-    let streamHeader: [UInt8]
-    let firstBlock: [UInt8]
+    /// What the probe authenticates against, by file format.
+    private enum Payload {
+        /// v1/v2: the secretstream header plus the first ciphertext block.
+        case secretStream(streamHeader: [UInt8], firstBlock: [UInt8])
+        /// ENC3: the decoded header plus chunk 0's AEAD ciphertext.
+        case seekable(header: SeekableEncryptedHeader, chunk0: [UInt8])
+    }
+
+    private let payload: Payload
 
     /// The file's key stamp, or nil when the slot is zero ("unstamped").
     ///
     /// Read here rather than through `KeyStampSlot.readStamp(url:)` because the
-    /// bytes are already in hand: the block-size field is 8 bytes on disk and
-    /// bytes 4–7 are the stamp slot, so the probe below parses them out of the
-    /// same read. Going back to `readStamp` would re-open the file and re-walk
-    /// the prologue to reach a value this initializer already has — one extra
-    /// open per file, on a path that runs once per image in the album.
+    /// bytes are already in hand: v1/v2 parse from the block-size field, ENC3
+    /// reads from `mutablePlaintext[0..<4]` in the already-decoded header.
     let stamp: UInt32?
+
+    var streamHeader: [UInt8] {
+        switch payload {
+        case .secretStream(let h, _): return h
+        case .seekable: return []
+        }
+    }
+
+    var firstBlock: [UInt8] {
+        switch payload {
+        case .secretStream(_, let b): return b
+        case .seekable(_, let b): return b
+        }
+    }
 
     init?(url: URL) {
         guard let fileHandle = try? FileHandle(forReadingFrom: url) else {
@@ -384,6 +402,31 @@ struct FirstBlockProbe {
                   magicData.count == EncryptedFileFormat.magicSize else {
                 return nil
             }
+
+            // ENC3: per-chunk AEAD, so the proof is authenticating chunk 0 with
+            // its position-bound AAD — the secretstream machinery below cannot
+            // read this format at all.
+            if Array(magicData) == SeekableEncryptedHeader.magic {
+                guard let header = (try? SeekableEncryptedHeader.read(fromFileAt: url))?.header,
+                      header.geometry.chunkCount > 0 else {
+                    return nil
+                }
+                try fileHandle.seek(toOffset: UInt64(header.geometry.ciphertextOffset(ofChunk: 0)))
+                let want = header.geometry.ciphertextSize(ofChunk: 0)
+                guard let chunk0 = try fileHandle.read(upToCount: want), chunk0.count == want else {
+                    return nil
+                }
+                self.payload = .seekable(header: header, chunk0: Array(chunk0))
+                let mp = header.mutablePlaintext
+                if mp.count >= SeekableEncryptedHeader.keyStampSize {
+                    let raw: UInt32 = mp.readLE(at: 0)
+                    self.stamp = raw == 0 ? nil : raw
+                } else {
+                    self.stamp = nil
+                }
+                return
+            }
+
             let contentStart: UInt64
             if Array(magicData) == EncryptedFileFormat.magic {
                 try fileHandle.seek(toOffset: UInt64(EncryptedFileFormat.metadataLengthOffset))
@@ -427,8 +470,7 @@ struct FirstBlockProbe {
                 return nil
             }
 
-            self.streamHeader = Array(headerData)
-            self.firstBlock = Array(blockData)
+            self.payload = .secretStream(streamHeader: Array(headerData), firstBlock: Array(blockData))
             self.stamp = rawStamp == 0 ? nil : rawStamp
         } catch {
             return nil
@@ -437,14 +479,26 @@ struct FirstBlockProbe {
 
     /// Whether the key authenticates the first block.
     ///
-    /// initPull succeeds with a WRONG key — only pull authenticates.
-    /// Returning true from initPull alone would defeat the whole
-    /// verification; the pull below is the proof.
+    /// v1/v2: initPull succeeds with a WRONG key — only pull authenticates.
+    /// Returning true from initPull alone would defeat the whole verification;
+    /// the pull is the proof. ENC3: the AEAD open of chunk 0 with the
+    /// position-bound AAD is the proof.
     func authenticates(keyBytes: KeyBytes) -> Bool {
         let sodium = Sodium()
-        guard let stream = sodium.secretStream.xchacha20poly1305.initPull(secretKey: keyBytes, header: streamHeader) else {
-            return false
+        switch payload {
+        case .secretStream(let streamHeader, let firstBlock):
+            guard let stream = sodium.secretStream.xchacha20poly1305.initPull(secretKey: keyBytes, header: streamHeader) else {
+                return false
+            }
+            return stream.pull(cipherText: firstBlock) != nil
+        case .seekable(let header, let chunk0):
+            let aad = SeekableEncryptedFormat.chunkAAD(fileID: header.fileID,
+                                                      index: 0,
+                                                      chunkCount: header.chunkCount,
+                                                      plaintextLength: header.plaintextLength)
+            return sodium.aead.xchacha20poly1305ietf.decrypt(nonceAndAuthenticatedCipherText: chunk0,
+                                                             secretKey: keyBytes,
+                                                             additionalData: aad) != nil
         }
-        return stream.pull(cipherText: firstBlock) != nil
     }
 }

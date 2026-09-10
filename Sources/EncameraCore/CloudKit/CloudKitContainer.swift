@@ -41,6 +41,8 @@ extension CKDatabase: RecordZoneProvisioning {
     }
 }
 
+/// Lists the record zones that exist in the database. Only the erase needs
+/// this, so it is a seam of its own rather than part of `RecordZoneProvisioning`.
 public protocol RecordZoneListing {
     func existingZoneIDs() async throws -> [CKRecordZone.ID]
 }
@@ -51,6 +53,8 @@ extension CKDatabase: RecordZoneListing {
     }
 }
 
+/// Lists and deletes the database's subscriptions. The zone subscription the
+/// media store registers is a record of its own and is not removed with the zone.
 public protocol SubscriptionProvisioning {
     func allSubscriptionIDs() async throws -> [String]
     func deleteSubscription(id: String) async throws
@@ -199,6 +203,14 @@ public final class CloudKitContainer: DebugPrintable {
     /// that iCloud data may remain.
     public func deleteAllCloudData() async throws {
         printDebug("deleteAllCloudData start zone=\(zoneID.zoneName) container=\(CloudKitSchema.containerID)")
+        // Both latches are cleared however this returns. A delete the server
+        // committed but the client saw fail — a dropped response, a rate limit —
+        // leaves the zone gone; a flag still claiming it exists would make every
+        // later write skip the create and fail. Clearing costs one round trip.
+        defer {
+            resetZoneCreatedFlag()
+            defaults.removeObject(forKey: ChunkedBlobSchema.zoneCreatedDefaultsKey)
+        }
         do {
             try await zoneProvisioner.deleteZone(zoneID)
             printDebug("deleteAllCloudData ok zone=\(zoneID.zoneName)")
@@ -210,13 +222,29 @@ public final class CloudKitContainer: DebugPrintable {
             // The zone was already gone — nothing to remove, so this is success.
             printDebug("deleteAllCloudData ok zone=\(zoneID.zoneName) benignError=\(error)")
         }
-        resetZoneCreatedFlag()
+
+        // The blob zone too: one zone delete reclaims every chunk record ever
+        // written — including unreachable orphans from any earlier bug — which is
+        // exactly the guarantee "delete my iCloud data" promises.
+        let blobZoneID = CKRecordZone.ID(zoneName: ChunkedBlobSchema.zoneName)
+        do {
+            try await zoneProvisioner.deleteZone(blobZoneID)
+            printDebug("deleteAllCloudData ok zone=\(blobZoneID.zoneName)")
+        } catch {
+            guard Self.isBenignDeleteError(error) else {
+                printDebug("deleteAllCloudData FAILED zone=\(blobZoneID.zoneName) error=\(error)")
+                throw error
+            }
+            printDebug("deleteAllCloudData ok zone=\(blobZoneID.zoneName) benignError=\(error)")
+        }
     }
 
+    /// The zone names an erase must leave behind no trace of.
     public static var ownedZoneNames: [String] {
-        [CloudKitSchema.zoneName]
+        [CloudKitSchema.zoneName, ChunkedBlobSchema.zoneName]
     }
 
+    /// Owned zones still present on the server. Empty means the delete took.
     public func remainingZoneNames() async throws -> [String] {
         let existing = Set(try await zoneLister.existingZoneIDs().map(\.zoneName))
         let remaining = Self.ownedZoneNames.filter { existing.contains($0) }
@@ -224,6 +252,9 @@ public final class CloudKitContainer: DebugPrintable {
         return remaining
     }
 
+    /// Removes every subscription in the private database. The zone subscription
+    /// survives a zone delete, and a stale one would keep pushing silent
+    /// notifications at a wiped install.
     public func deleteAllSubscriptions() async throws {
         let ids = try await subscriptionProvisioner.allSubscriptionIDs()
         printDebug("deleteAllSubscriptions start count=\(ids.count)")

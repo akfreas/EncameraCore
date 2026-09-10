@@ -102,7 +102,7 @@ public class MediaEditHandler: DebugPrintable {
 
         currentEditTask = Task {
             let fileAccess = await InteractableMediaFileAccess(for: album, albumManager: albumManager)
-            try await performEdit(task: task, fileAccess: fileAccess, progressHandler: progressHandler)
+            try await performEdit(task: task, fileAccess: fileAccess, album: album, progressHandler: progressHandler)
         }
 
         do {
@@ -132,11 +132,24 @@ public class MediaEditHandler: DebugPrintable {
     private func performEdit(
         task: EditTask,
         fileAccess: InteractableMediaFileAccess,
+        album: Album,
         progressHandler: ((EditProgressPhase) -> Void)?
     ) async throws {
         let media = task.mediaToEdit
         let rotationAngle = task.rotationAngle
         let startTime = Date()
+
+        // Read the original's embedded metadata up front (best-effort) so the
+        // rotated replacement keeps its capture date — and, crucially, so the
+        // save below runs the metadata-bearing V2 writer: with a nil metadata
+        // `DiskFileAccess.save` falls back to the legacy V1 handler, which
+        // writes no magic bytes at all, silently downgrading the file format.
+        var preservedMetadata = EncryptedFileMetadata()
+        if let sourceURL = media.underlyingMedia.first?.url,
+           let original = try? await EncryptedMetadataHandler().readMetadata(from: sourceURL,
+                                                                             keyBytes: album.key.keyBytes) {
+            preservedMetadata = original
+        }
 
         // Phase 1: Decrypt
         progressHandler?(.decrypting(progress: 0))
@@ -202,7 +215,8 @@ public class MediaEditHandler: DebugPrintable {
         progressHandler?(.encrypting(progress: 0))
 
         let rotatedInteractable = try InteractableMedia(underlyingMedia: rotatedCleartextMedia)
-        _ = try await fileAccess.save(media: rotatedInteractable, progress: { [weak self] p in
+        preservedMetadata.modificationDate = Date()
+        _ = try await fileAccess.save(media: rotatedInteractable, metadata: preservedMetadata, progress: { [weak self] p in
             guard let self = self else { return }
             let overall = 0.67 + p * 0.28
             progressHandler?(.encrypting(progress: p))

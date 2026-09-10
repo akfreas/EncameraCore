@@ -20,9 +20,7 @@
 //
 //  These are mocked, and mocked in the one place that matters least: the fake
 //  materializer replaces Apple's download observation wholesale. They are a
-//  regression net, not proof the feature works — that is
-//  `UITests/ICloudDriveMigrationDeviceTests.swift`, on real hardware with a real
-//  ubiquity container.
+//  regression net, not proof the feature works.
 //
 
 import XCTest

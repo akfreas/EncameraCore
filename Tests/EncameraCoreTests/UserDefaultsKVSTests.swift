@@ -92,29 +92,4 @@ final class UserDefaultsKVSTests: XCTestCase {
         kvs.synchronize()
     }
 
-    // MARK: - shouldSyncToiCloud
-
-    func testShouldSyncToiCloudForSyncableKeys() {
-        let syncable: [UserDefaultKey] = [
-            .onboardingState, .savedSettings, .currentAlbumID,
-            .showCurrentAlbumOnLaunch, .defaultStorageLocation,
-            .gridZoomLevel, .gridSortOption, .currentKey
-        ]
-        for key in syncable {
-            XCTAssertTrue(key.shouldSyncToiCloud,
-                          "\(key.rawValue) should be syncable")
-        }
-    }
-
-    func testShouldSyncToiCloudRejectsLocalOnlyKeys() {
-        let localOnly: [UserDefaultKey] = [
-            .capturedPhotos, .viewGalleryCount, .reviewRequestedMetric,
-            .lockoutEnd, .launchCountKey, .photoAddedCount,
-            .videoAddedCount, .loopVideos, .fontFamily, .fontSizeOffset
-        ]
-        for key in localOnly {
-            XCTAssertFalse(key.shouldSyncToiCloud,
-                           "\(key.rawValue) should NOT be syncable")
-        }
-    }
 }

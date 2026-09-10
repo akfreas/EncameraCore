@@ -93,6 +93,13 @@ public actor InteractableMediaFileAccess: FileAccess {
             return try await requireBackend().loadLeadingThumbnail(coverImageId: coverImageId)
         }
 
+        if album.storageOption == .cloudKit {
+            let sidecar = AlbumCoverSidecar(album: album)
+            if let syncedCoverID = await sidecar.coverMediaID() {
+                return try await requireBackend().loadLeadingThumbnail(coverImageId: syncedCoverID)
+            }
+        }
+
         // No explicit cover: pick the most-recent photo the user is allowed to see.
         let media: [InteractableMedia<EncryptedMedia>] = await enumerateMedia()
         guard !media.isEmpty else {
@@ -146,6 +153,18 @@ public actor InteractableMediaFileAccess: FileAccess {
 
     public func loadMedia<T>(media: InteractableMedia<T>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> InteractableMedia<CleartextMedia> where T: MediaDescribing {
         try await requireBackend().loadMedia(media: media, progress: progress)
+    }
+
+    public func storageDetails(for media: InteractableMedia<EncryptedMedia>) async -> MediaStorageDetails? {
+        await backend?.storageDetails(for: media) ?? nil
+    }
+
+    public func evictLocalCopy(for media: InteractableMedia<EncryptedMedia>) async throws {
+        try await requireBackend().evictLocalCopy(for: media)
+    }
+
+    public func streamingPlayback(for media: InteractableMedia<EncryptedMedia>) async throws -> StreamingPlayback? {
+        try await requireBackend().streamingPlayback(for: media)
     }
 
     public func save(media: InteractableMedia<CleartextMedia>, metadata: EncryptedFileMetadata?, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {

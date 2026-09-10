@@ -92,7 +92,10 @@ public protocol LocalDataErasing {
     /// Active backend cleanup (also clears that backend's in-memory caches).
     func eraseActiveBackendMedia() async
     /// Global sweep across every storage type, independent of the active album.
+    /// Excludes iCloud Drive — that is handled by `eraseICloudDriveMedia`.
     func eraseAllLocalMediaFiles()
+    /// iCloud Drive album files and the ubiquity container's Documents tree.
+    func eraseICloudDriveMedia()
     /// Per-album encrypted media indexes.
     func eraseMediaIndexes()
     /// Local CloudKit blob cache (encrypted, evictable copies).
@@ -167,10 +170,11 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
         }
     }
 
-    /// Deletes every local album tree across all storage types, regardless of which
-    /// album's backend is currently configured. Mirrors `DiskFileAccess.deleteAllMedia`.
+    /// Deletes every local album tree across non-iCloud storage types, regardless
+    /// of which album's backend is currently configured. iCloud Drive is handled
+    /// separately by `eraseICloudDriveMedia`.
     func eraseAllLocalMediaFiles() {
-        for type in StorageType.allCases {
+        for type in StorageType.allCases where type != .icloud {
             guard case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: type) else {
                 continue
             }
@@ -180,23 +184,34 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
                 printDebug("EraserUtils: could not delete all files for \(type): \(error)")
             }
         }
-        // deleteAllFiles() empties each storage model's albums directory but
-        // leaves the directory itself. For iCloud Drive the empty "albums"
-        // directory triggers ExistingDataProbe's legacy sweep — remove the
-        // whole Documents tree so the ubiquity container is truly clean.
-        if let ubiquityRoot = FileManager.default.url(forUbiquityContainerIdentifier: nil) {
-            let documents = ubiquityRoot.appendingPathComponent("Documents")
-            let albums = documents.appendingPathComponent("albums")
-            for target in [albums, documents] {
-                do {
-                    try FileManager.default.removeItem(at: target)
-                    printDebug("EraserUtils: removed ubiquity \(target.lastPathComponent)")
-                } catch {
-                    printDebug("EraserUtils: could not remove ubiquity \(target.lastPathComponent): \(error)")
-                }
-            }
-        } else {
+    }
+
+    func eraseICloudDriveMedia() {
+        guard let ubiquityRoot = FileManager.default.url(forUbiquityContainerIdentifier: nil) else {
             printDebug("EraserUtils: ubiquity container unavailable — cannot clean iCloud Drive")
+            return
+        }
+        if case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) {
+            do {
+                try StorageType.icloud.modelForType.deleteAllFiles()
+            } catch {
+                printDebug("EraserUtils: could not delete iCloud Drive album files: \(error)")
+            }
+        }
+        // deleteAllFiles() only scans albumsURL (Documents/albums/); legacy
+        // layout albums live directly under Documents/ and placeholder .icloud
+        // bricks can linger anywhere in the tree. Removing the entire Documents
+        // directory catches both, and eliminates the empty "albums" directory
+        // that would otherwise trigger ExistingDataProbe's legacy sweep.
+        let documents = ubiquityRoot.appendingPathComponent("Documents")
+        let albums = documents.appendingPathComponent("albums")
+        for target in [albums, documents] {
+            do {
+                try FileManager.default.removeItem(at: target)
+                printDebug("EraserUtils: removed ubiquity \(target.lastPathComponent)")
+            } catch {
+                printDebug("EraserUtils: could not remove ubiquity \(target.lastPathComponent): \(error)")
+            }
         }
     }
 
@@ -327,6 +342,7 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
         if let bundleID = Bundle.main.bundleIdentifier {
             UserDefaults.standard.removePersistentDomain(forName: bundleID)
         }
+        UserDefaultUtils.quiesceWritesForErase()
         UserDefaultUtils.flushPendingWrites()
     }
 
@@ -545,6 +561,9 @@ public struct EraserUtils {
         await perform("media.localAlbums",
                       erase: { localEraser.eraseAllLocalMediaFiles() },
                       verify: { localVerifier.verifyLocalMediaFiles() })
+        await perform("media.iCloudDrive",
+                      erase: { localEraser.eraseICloudDriveMedia() },
+                      verify: { localVerifier.verifyICloudDriveMedia() })
         await perform("media.indexes",
                       erase: { localEraser.eraseMediaIndexes() },
                       verify: { localVerifier.verifyMediaIndexes() })

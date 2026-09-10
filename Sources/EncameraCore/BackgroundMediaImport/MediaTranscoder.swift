@@ -41,7 +41,7 @@ public struct MediaTranscoder {
     /// Returns a URL and `MediaType` suitable for the import pipeline. Native
     /// formats are returned unchanged; everything else is transcoded into
     /// `URL.tempMediaDirectory` so existing temp-file cleanup covers it.
-    public func normalizeForImport(url: URL) async throws -> (url: URL, mediaType: MediaType) {
+    public func normalizeForImport(url: URL, storageType: StorageType? = .cloudKit) async throws -> (url: URL, mediaType: MediaType) {
         let ext = url.pathExtension.lowercased()
         let utType = UTType(filenameExtension: ext)
 
@@ -49,7 +49,10 @@ public struct MediaTranscoder {
             return (url, .photo)
         }
         if Self.nativeVideoExtensions.contains(ext) {
-            return (url, .video)
+            // Native videos normally pass through untouched, but a video headed
+            // for the seekable ENC3 format must be faststart first — see
+            // `faststartForChunkingIfNeeded`.
+            return (await faststartForChunkingIfNeeded(url: url, storageType: storageType), .video)
         }
 
         // Decide by UTType conformance rather than the extension whitelist.
@@ -65,6 +68,42 @@ public struct MediaTranscoder {
             return (jpeg, .photo)
         }
         throw MediaTranscoderError.unsupportedType(ext: ext)
+    }
+
+    // MARK: - Faststart normalization
+
+    /// Puts the container's `moov` atom at the front of a video that is about to
+    /// be written as chunked ENC3 — a passthrough remux, no re-encode.
+    ///
+    /// Faststart is a precondition for chunked streaming, not an optimization:
+    /// with the index at the tail, AVFoundation's first read of the file is its
+    /// LAST chunk, and ready-before-downloaded degrades badly. Videos below the
+    /// chunking threshold (or with the toggle off) pass through untouched, and a
+    /// failed remux falls back to the original bytes — a tail-`moov` video still
+    /// plays, it just streams worse.
+    public func faststartForChunkingIfNeeded(url: URL, storageType: StorageType? = .cloudKit) async -> URL {
+        let size = url.fileSizeBytes() ?? 0
+        guard VideoChunkingPolicy.shouldWriteSeekableFormat(
+            mediaType: .video,
+            plaintextLength: size,
+            storageType: storageType
+        ) else { return url }
+
+        guard let export = AVAssetExportSession(asset: AVURLAsset(url: url),
+                                                presetName: AVAssetExportPresetPassthrough) else {
+            return url
+        }
+        do {
+            let outputURL = try makeTempURL(extension: "mov")
+            export.outputURL = outputURL
+            export.outputFileType = .mov
+            export.shouldOptimizeForNetworkUse = true
+            try await runExport(export)
+            return outputURL
+        } catch {
+            debugPrint("faststartForChunkingIfNeeded remux failed, keeping original: \(error)")
+            return url
+        }
     }
 
     // MARK: - Image transcoding
@@ -113,6 +152,12 @@ public struct MediaTranscoder {
             let outputURL = try makeTempURL(extension: "mov")
             export.outputURL = outputURL
             export.outputFileType = .mov
+            // Put the `moov` atom at the front ("faststart"). Without it AVFoundation's
+            // very first read of a MOV is near the END of the file, because that is
+            // where the index lives. For a chunk-streamed video that turns the opening
+            // frame into a seek to the last chunk; for a whole-file download it means
+            // nothing can start until everything has arrived.
+            export.shouldOptimizeForNetworkUse = true
 
             do {
                 try await runExport(export)

@@ -81,6 +81,22 @@ public actor CloudKitAlbumsSync: DebugPrintable {
         if let keyLibraryObserver { NotificationCenter.default.removeObserver(keyLibraryObserver) }
     }
 
+    /// Removes notification observers and cancels any in-flight sync so no new
+    /// CloudKit operations start. Called during erase before the zone delete.
+    public func shutdown() {
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+            self.observer = nil
+        }
+        if let keyLibraryObserver {
+            NotificationCenter.default.removeObserver(keyLibraryObserver)
+            self.keyLibraryObserver = nil
+        }
+        activeSync?.cancel()
+        activeSync = nil
+        Self.printDebug("shutdown ok")
+    }
+
     /// First reconcile album *existence* from CloudKit (materialize newly-discovered
     /// albums, remove ones deleted elsewhere, push local-only ones up), THEN reconcile each
     /// CloudKit album's media index — so a newly materialized album is included in the

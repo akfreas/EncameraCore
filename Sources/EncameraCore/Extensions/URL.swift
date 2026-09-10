@@ -25,4 +25,9 @@ extension URL {
                                     isDirectory: true)
     }
 
+    public func fileSizeBytes() -> Int64? {
+        guard let size = (try? resourceValues(forKeys: [.fileSizeKey]))?.fileSize else { return nil }
+        return Int64(size)
+    }
+
 }

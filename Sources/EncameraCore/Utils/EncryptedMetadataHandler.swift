@@ -14,7 +14,25 @@ public actor EncryptedMetadataHandler: DebugPrintable {
     private let sodium = Sodium()
     
     public init() {}
-    
+
+    // MARK: - Metadata JSON Coding
+
+    /// The one place the `EncryptedFileMetadata` JSON coding is configured. Both the
+    /// v2 metadata section and the ENC3 header encode through here, which is what
+    /// keeps their bytes identical.
+    public static func encodeMetadata(_ metadata: EncryptedFileMetadata) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = .sortedKeys // Deterministic output
+        return try encoder.encode(metadata)
+    }
+
+    public static func decodeMetadata(_ data: Data) throws -> EncryptedFileMetadata {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(EncryptedFileMetadata.self, from: data)
+    }
+
     // MARK: - Version Detection
     
     /// Detects whether a file uses v1 (no metadata) or v2 (with metadata) format
@@ -35,12 +53,17 @@ public actor EncryptedMetadataHandler: DebugPrintable {
         let magicBytes = Array(magicData)
         printDebug("detectFileVersion: Magic bytes: \(magicBytes.map { String(format: "%02X", $0) }.joined(separator: " "))")
         printDebug("detectFileVersion: Expected v2 magic: \(EncryptedFileFormat.magic.map { String(format: "%02X", $0) }.joined(separator: " "))")
-        
+
         if magicBytes == EncryptedFileFormat.magic {
             printDebug("detectFileVersion: Detected v2 format")
             return 2
         }
-        
+
+        if magicBytes == SeekableEncryptedHeader.magic {
+            printDebug("detectFileVersion: Detected ENC3 (seekable) format")
+            return 3
+        }
+
         printDebug("detectFileVersion: Detected v1 format (magic doesn't match)")
         return 1
     }
@@ -80,7 +103,18 @@ public actor EncryptedMetadataHandler: DebugPrintable {
         
         let magicBytes = Array(magicData)
         printDebug("readMetadata: Magic bytes: \(magicBytes.map { String(format: "%02X", $0) }.joined(separator: " "))")
-        
+
+        // ENC3: the metadata section lives in the seekable header, AEAD-sealed
+        // with its own domain-separated AAD. Same JSON model either way.
+        if magicBytes == SeekableEncryptedHeader.magic {
+            let reader = try SeekableEncryptedReader.forFile(url, keyBytes: keyBytes)
+            guard let plain = try reader.metadata() else {
+                printDebug("readMetadata: ENC3 file carries no metadata section")
+                return nil
+            }
+            return try SeekableEncryptedFormat.decodeMetadata(plain)
+        }
+
         guard magicBytes == EncryptedFileFormat.magic else {
             printDebug("readMetadata: v1 file - no metadata (magic doesn't match)")
             return nil
@@ -158,13 +192,8 @@ public actor EncryptedMetadataHandler: DebugPrintable {
         printDebug("readMetadata: Decrypted \(decryptedBytes.count) bytes of metadata")
         
         // Step 7: Parse JSON
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
         do {
-            let metadata = try decoder.decode(
-                EncryptedFileMetadata.self,
-                from: Data(decryptedBytes)
-            )
+            let metadata = try Self.decodeMetadata(Data(decryptedBytes))
             printDebug("readMetadata: Successfully parsed metadata, captureDate: \(String(describing: metadata.captureDate))")
             return metadata
         } catch {
@@ -246,10 +275,7 @@ public actor EncryptedMetadataHandler: DebugPrintable {
         let sodium = Sodium()
         
         // Encode to JSON
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = .sortedKeys // Deterministic output
-        let jsonData = try encoder.encode(metadata)
+        let jsonData = try Self.encodeMetadata(metadata)
         printDebug("encryptMetadata: JSON encoded, size: \(jsonData.count) bytes")
         
         // Create encryption stream
@@ -325,11 +351,17 @@ public actor EncryptedMetadataHandler: DebugPrintable {
     /// - Returns: Byte offset to start reading encrypted content
     public nonisolated func contentOffset(for url: URL) throws -> UInt64 {
         let version = try detectFileVersion(from: url)
-        
+
         if version == 1 {
             return 0
         }
-        
+
+        if version == 3 {
+            // ENC3: chunk 0 begins right after the seekable header.
+            let header = try SeekableEncryptedHeader.read(fromFileAt: url).header
+            return UInt64(header.headerLength)
+        }
+
         // v2: Read metadata length to calculate offset
         let fileHandle = try FileHandle(forReadingFrom: url)
         defer { try? fileHandle.close() }
@@ -354,9 +386,10 @@ public actor EncryptedMetadataHandler: DebugPrintable {
 
 extension EncryptedMetadataHandler {
     
-    /// Checks if a file has embedded metadata (is v2 format)
+    /// Checks if a file has embedded metadata (the v2 or ENC3 format)
     public nonisolated func hasEmbeddedMetadata(at url: URL) -> Bool {
-        return (try? detectFileVersion(from: url)) == 2
+        let version = (try? detectFileVersion(from: url)) ?? 1
+        return version >= 2
     }
     
     /// Updates metadata in an existing v2 file
@@ -366,7 +399,14 @@ extension EncryptedMetadataHandler {
         keyBytes: [UInt8],
         update: (inout EncryptedFileMetadata) -> Void
     ) async throws {
-        
+        let fileVersion = try detectFileVersion(from: url)
+        guard fileVersion == 2 else {
+            if fileVersion == 1 {
+                throw EncryptedMetadataError.v1FileNoMetadata
+            }
+            throw EncryptedMetadataError.unsupportedVersion(UInt16(fileVersion))
+        }
+
         guard var metadata = try await readMetadata(from: url, keyBytes: keyBytes) else {
             throw EncryptedMetadataError.v1FileNoMetadata
         }

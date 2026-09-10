@@ -120,6 +120,11 @@ public struct DuplicateMediaUtil {
     /// Partially decrypts an encrypted file and returns a SHA-256 hash of the first decrypted block.
     /// Returns nil if the file cannot be read or decrypted.
     private static func partialContentHash(for url: URL, keyBytes: [UInt8]) -> String? {
+        // ENC3 (chunked video) is per-chunk AEAD, not a secretstream — the block
+        // machinery below cannot read it. Those files are ≥50 MiB videos whose
+        // imports are matched by sourceAssetIdentifier in phase 1; skipping the
+        // content-hash fallback for them loses nothing that phase caught.
+        guard !SeekableEncryptedHeader.isSeekableFormat(fileURL: url) else { return nil }
         do {
             let metadataHandler = EncryptedMetadataHandler()
             let contentOffset = try metadataHandler.contentOffset(for: url)

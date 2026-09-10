@@ -23,27 +23,22 @@
 import Foundation
 
 /// One capture waiting to reach CloudKit.
+///
+/// Persisted as a flat object: the descriptor's keys and this type's own keys sit
+/// side by side in the manifest, with no nesting, so a manifest written by an
+/// earlier build decodes and one written by this build still reads on a downgrade.
+/// The chunk geometry is persisted AT ENQUEUE TIME — before the first chunk record
+/// is saved — so `(recordName, chunkCount)` survives a crash and every interrupted
+/// upload stays enumerable, resumable, and deletable.
+@dynamicMemberLookup
 public struct CloudKitPendingUpload: Codable, Sendable, Equatable {
 
-    public let albumID: String
-    public let mediaID: String
-    public let mediaTypeRawValue: Int
-    /// Unique per component — a Live Photo's photo and video halves share a
-    /// `mediaID` but are separate records.
-    public let recordName: String
-    public let createdAt: Date
-    public let sizeBytes: Int64
+    public let descriptor: CloudKitMediaRecordDescriptor
     /// Filename inside this album's holding folder. Deliberately relative: the
     /// app container path changes between installs, so a stored absolute URL
     /// stops resolving after a restore (the same reason `CloudKitBlobCache`
     /// stores `relativePath`).
     public let fileName: String
-    /// Fingerprint of the key this record was encrypted under, carried across a
-    /// relaunch so a retried upload still names the key its blob was proven against.
-    /// Required: a queued upload that cannot say which key wrote its bytes has nothing
-    /// to publish. A manifest from a build before this was required does not decode, and
-    /// is discarded rather than migrated — no shipped build ever wrote one.
-    public let keyFingerprint: String
 
     public var queuedAt: Date
     public var attempts: Int
@@ -53,8 +48,46 @@ public struct CloudKitPendingUpload: Codable, Sendable, Equatable {
     /// still kept — the user's photo is not thrown away because iCloud is full.
     public var hasGivenUp: Bool
 
-    public var mediaType: MediaType {
-        MediaType(rawValue: mediaTypeRawValue) ?? .unknown
+    public init(descriptor: CloudKitMediaRecordDescriptor,
+                fileName: String,
+                queuedAt: Date,
+                attempts: Int,
+                lastError: String?,
+                hasGivenUp: Bool) {
+        self.descriptor = descriptor
+        self.fileName = fileName
+        self.queuedAt = queuedAt
+        self.attempts = attempts
+        self.lastError = lastError
+        self.hasGivenUp = hasGivenUp
+    }
+
+    public subscript<T>(dynamicMember keyPath: KeyPath<CloudKitMediaRecordDescriptor, T>) -> T {
+        descriptor[keyPath: keyPath]
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case fileName, queuedAt, attempts, lastError, hasGivenUp
+    }
+
+    public init(from decoder: Decoder) throws {
+        descriptor = try CloudKitMediaRecordDescriptor(from: decoder)
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        fileName = try c.decode(String.self, forKey: .fileName)
+        queuedAt = try c.decode(Date.self, forKey: .queuedAt)
+        attempts = try c.decode(Int.self, forKey: .attempts)
+        lastError = try c.decodeIfPresent(String.self, forKey: .lastError)
+        hasGivenUp = try c.decode(Bool.self, forKey: .hasGivenUp)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try descriptor.encode(to: encoder)
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(fileName, forKey: .fileName)
+        try c.encode(queuedAt, forKey: .queuedAt)
+        try c.encode(attempts, forKey: .attempts)
+        try c.encodeIfPresent(lastError, forKey: .lastError)
+        try c.encode(hasGivenUp, forKey: .hasGivenUp)
     }
 }
 
@@ -183,20 +216,12 @@ public actor CloudKitUploadQueue: DebugPrintable {
         }
         try FileManager.default.moveItem(at: upload.encryptedFileURL, to: destination)
 
-        let item = CloudKitPendingUpload(
-            albumID: upload.albumID,
-            mediaID: upload.mediaID,
-            mediaTypeRawValue: upload.mediaType.rawValue,
-            recordName: upload.recordName,
-            createdAt: upload.createdAt,
-            sizeBytes: upload.sizeBytes,
-            fileName: fileName,
-            keyFingerprint: upload.keyFingerprint,
-            queuedAt: Date(),
-            attempts: 0,
-            lastError: nil,
-            hasGivenUp: false
-        )
+        let item = CloudKitPendingUpload(descriptor: upload.descriptor,
+                                         fileName: fileName,
+                                         queuedAt: Date(),
+                                         attempts: 0,
+                                         lastError: nil,
+                                         hasGivenUp: false)
         pending[item.recordName] = item
         persist()
         printDebug("enqueue ok recordName=\(item.recordName) albumID=\(item.albumID) sizeBytes=\(item.sizeBytes) pending=\(pending.count)")
@@ -208,17 +233,9 @@ public actor CloudKitUploadQueue: DebugPrintable {
     /// storage-agnostic Documents thumbnail directory, which is already durable —
     /// so the caller supplies its current location.
     public func rebuild(_ item: CloudKitPendingUpload, thumbURL: URL?) -> CloudKitMediaUpload {
-        CloudKitMediaUpload(
-            albumID: item.albumID,
-            mediaID: item.mediaID,
-            mediaType: item.mediaType,
-            createdAt: item.createdAt,
-            sizeBytes: item.sizeBytes,
-            encryptedFileURL: fileURL(for: item),
-            encryptedThumbURL: thumbURL,
-            recordName: item.recordName,
-            keyFingerprint: item.keyFingerprint
-        )
+        CloudKitMediaUpload(descriptor: item.descriptor,
+                            encryptedFileURL: fileURL(for: item),
+                            encryptedThumbURL: thumbURL)
     }
 
     // MARK: - Reads
@@ -235,6 +252,14 @@ public actor CloudKitUploadQueue: DebugPrintable {
             return nil
         }
         return url
+    }
+
+    /// The queue entry for a record still waiting to upload, if any. Callers that
+    /// cancel a chunked item read its geometry here first, so partially-committed
+    /// chunk records can be reclaimed.
+    public func pendingItem(recordName: String) -> CloudKitPendingUpload? {
+        loadIfNeeded()
+        return pending[recordName]
     }
 
     /// Oldest first, skipping anything that has given up. Oldest-first matters:
@@ -370,6 +395,13 @@ public actor CloudKitUploadQueue: DebugPrintable {
         var droppedRecords = 0
         for (name, item) in pending where !FileManager.default.fileExists(atPath: fileURL(for: item).path) {
             printDebug("sweep dropping recordName=\(name) reason=fileMissingOnDisk file=\(item.fileName)")
+            // A chunked item that got partway through a drain has committed chunk
+            // records in the blob zone with no `EncMedia` to ever commit them.
+            // Hand the reclaim to the durable delete queue — the next sync's drain
+            // deletes them (the missing EncMedia resolves as notFound).
+            if item.chunkCount > 0 {
+                CloudKitMediaDeleteQueue().enqueue(name, chunkCount: item.chunkCount)
+            }
             pending[name] = nil
             droppedRecords += 1
         }

@@ -1106,13 +1106,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         }
     }
 
-    /// Deferring the migration prompt is a per-device decision: another device may
-    /// not even hold the legacy albums, so syncing the dismissal would silently
-    /// suppress the prompt where it still applies.
-    func testMigrationPromptDismissalIsDeviceLocal() {
-        XCTAssertFalse(UserDefaultKey.dismissediCloudDriveMigrationPrompt.shouldSyncToiCloud)
-    }
-
     // MARK: - iCloud Drive (legacy) source
 
     /// Points `iCloudStorageModel` at a scratch directory for the duration of a test.

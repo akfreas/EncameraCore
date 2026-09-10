@@ -13,6 +13,7 @@ public enum FileOperation {
     case create(EncryptedMedia)
     case delete([EncryptedMedia])
     case move(from: [EncryptedMedia], to: Album)
+    case albumCoverChanged
 }
 
 /// Reference-typed backing for `FileOperationBus.isSuppressed` so the flag is
@@ -56,5 +57,9 @@ public struct FileOperationBus {
     public func didMove(_ media: [EncryptedMedia], to album: Album) {
         guard !suppressionBox.isSuppressed else { return }
         operationSubject.send(.move(from: media, to: album))
+    }
+
+    public func albumCoverChanged() {
+        operationSubject.send(.albumCoverChanged)
     }
 }

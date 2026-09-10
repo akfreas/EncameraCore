@@ -13,30 +13,116 @@ import CloudKit
 
 // MARK: - Value types
 
-/// One media item to upload as a single `EncMedia` record. The two URLs point at
-/// the *already encrypted* on-disk files — only ciphertext ever reaches CloudKit.
-public struct CloudKitMediaUpload: Sendable {
+/// The identity of one `EncMedia` record, shared by every shape the record passes
+/// through: the upload request (`CloudKitMediaUpload`), the durable queue row
+/// (`CloudKitPendingUpload`) and the fetched index row (`CloudKitMediaMetadata`).
+/// Each of those composes a descriptor and forwards its fields, so a record field
+/// is declared here once.
+///
+/// `Codable` is hand-written to keep the queue manifest's on-disk shape: a flat
+/// object whose `mediaType` is stored under the historical `mediaTypeRawValue`
+/// key as the enum's integer, and whose chunk geometry is present only for a
+/// chunked record.
+public struct CloudKitMediaRecordDescriptor: Codable, Sendable, Equatable {
     public let albumID: String          // hashPrimaryKey(albumName) — deterministic, non-reversible
+    public let mediaID: String          // shared grouping id (the InteractableMedia id)
     /// The CloudKit record name — UNIQUE per blob. A Live Photo's photo and video
     /// components share a `mediaID` but must be distinct records, or the second
     /// upload overwrites the first. Defaults to `mediaID` for single-component media.
     public let recordName: String
-    public let mediaID: String          // shared grouping id (the InteractableMedia id)
     public let mediaType: MediaType
     public let createdAt: Date
     public let sizeBytes: Int64
+    /// `PrivateKey.keychainLabel` of the key that produced the ciphertext —
+    /// lowercase hex of the full 16-byte fingerprint, proven against the file's own
+    /// bytes by `CloudKitKeyStamp`. Required: readers decrypt by this value without
+    /// re-deriving it, so a record that does not carry one has no business existing.
+    public let keyFingerprint: String
+    /// Number of ENC3 chunks the blob splits into. 0 means monolithic: the whole
+    /// ciphertext lives in `encBlob`. > 0 means the blob is stored as `EncBlobChunk`
+    /// records plus an `EncMedia` carrying the header — and no `encBlob`.
+    public let chunkCount: Int
+    /// Plaintext byte length of a chunked blob (0 when monolithic).
+    public let plaintextLength: Int64
+
+    public init(albumID: String,
+                mediaID: String,
+                recordName: String? = nil,
+                mediaType: MediaType,
+                createdAt: Date,
+                sizeBytes: Int64,
+                keyFingerprint: String,
+                chunkCount: Int = 0,
+                plaintextLength: Int64 = 0) {
+        self.albumID = albumID
+        self.mediaID = mediaID
+        self.recordName = recordName ?? mediaID
+        self.mediaType = mediaType
+        self.createdAt = createdAt
+        self.sizeBytes = sizeBytes
+        self.keyFingerprint = keyFingerprint
+        self.chunkCount = chunkCount
+        self.plaintextLength = plaintextLength
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case albumID, mediaID, recordName, createdAt, sizeBytes, keyFingerprint, chunkCount, plaintextLength
+        case mediaType = "mediaTypeRawValue"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        albumID = try c.decode(String.self, forKey: .albumID)
+        mediaID = try c.decode(String.self, forKey: .mediaID)
+        recordName = try c.decode(String.self, forKey: .recordName)
+        mediaType = try c.decode(MediaType.self, forKey: .mediaType)
+        createdAt = try c.decode(Date.self, forKey: .createdAt)
+        sizeBytes = try c.decode(Int64.self, forKey: .sizeBytes)
+        keyFingerprint = try c.decode(String.self, forKey: .keyFingerprint)
+        chunkCount = try c.decodeIfPresent(Int.self, forKey: .chunkCount) ?? 0
+        plaintextLength = try c.decodeIfPresent(Int64.self, forKey: .plaintextLength) ?? 0
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(albumID, forKey: .albumID)
+        try c.encode(mediaID, forKey: .mediaID)
+        try c.encode(recordName, forKey: .recordName)
+        try c.encode(mediaType, forKey: .mediaType)
+        try c.encode(createdAt, forKey: .createdAt)
+        try c.encode(sizeBytes, forKey: .sizeBytes)
+        try c.encode(keyFingerprint, forKey: .keyFingerprint)
+        if chunkCount > 0 {
+            try c.encode(chunkCount, forKey: .chunkCount)
+            try c.encode(plaintextLength, forKey: .plaintextLength)
+        }
+    }
+}
+
+/// One media item to upload as a single `EncMedia` record. The two URLs point at
+/// the *already encrypted* on-disk files — only ciphertext ever reaches CloudKit.
+@dynamicMemberLookup
+public struct CloudKitMediaUpload: Sendable {
+    public let descriptor: CloudKitMediaRecordDescriptor
     public let encryptedFileURL: URL     // full ENC2 ciphertext -> encBlob (lazy)
     /// Small encrypted preview -> encThumbnail (eager). Optional: if preview
     /// generation failed there is no file, and uploading a missing asset would fail
     /// the whole record — so the eager thumbnail is simply omitted in that case.
     public let encryptedThumbURL: URL?
+    /// The record format the store writes at drain time.
     public let schemaVersion: Int64
-    /// `PrivateKey.keychainLabel` of the key that produced `encryptedFileURL` —
-    /// lowercase hex of the full 16-byte fingerprint, proven against the file's own
-    /// bytes by `CloudKitKeyStamp`. Required: readers decrypt by this value without
-    /// re-deriving it, so a record that does not carry one has no business existing.
-    public let keyFingerprint: String
 
+    public init(descriptor: CloudKitMediaRecordDescriptor,
+                encryptedFileURL: URL,
+                encryptedThumbURL: URL?,
+                schemaVersion: Int64 = CloudKitSchema.currentSchemaVersion) {
+        self.descriptor = descriptor
+        self.encryptedFileURL = encryptedFileURL
+        self.encryptedThumbURL = encryptedThumbURL
+        self.schemaVersion = schemaVersion
+    }
+
+    /// Flat convenience over `init(descriptor:...)`.
     public init(albumID: String,
                 mediaID: String,
                 mediaType: MediaType,
@@ -46,35 +132,54 @@ public struct CloudKitMediaUpload: Sendable {
                 encryptedThumbURL: URL?,
                 recordName: String? = nil,
                 keyFingerprint: String,
+                chunkCount: Int = 0,
+                plaintextLength: Int64 = 0,
                 schemaVersion: Int64 = CloudKitSchema.currentSchemaVersion) {
-        self.keyFingerprint = keyFingerprint
-        self.albumID = albumID
-        self.mediaID = mediaID
-        self.recordName = recordName ?? mediaID
-        self.mediaType = mediaType
-        self.createdAt = createdAt
-        self.sizeBytes = sizeBytes
-        self.encryptedFileURL = encryptedFileURL
-        self.encryptedThumbURL = encryptedThumbURL
-        self.schemaVersion = schemaVersion
+        self.init(descriptor: CloudKitMediaRecordDescriptor(albumID: albumID,
+                                                            mediaID: mediaID,
+                                                            recordName: recordName,
+                                                            mediaType: mediaType,
+                                                            createdAt: createdAt,
+                                                            sizeBytes: sizeBytes,
+                                                            keyFingerprint: keyFingerprint,
+                                                            chunkCount: chunkCount,
+                                                            plaintextLength: plaintextLength),
+                  encryptedFileURL: encryptedFileURL,
+                  encryptedThumbURL: encryptedThumbURL,
+                  schemaVersion: schemaVersion)
+    }
+
+    public subscript<T>(dynamicMember keyPath: KeyPath<CloudKitMediaRecordDescriptor, T>) -> T {
+        descriptor[keyPath: keyPath]
     }
 }
 
 /// Asset-free index fields for one record — cheap to sync for the whole gallery.
+@dynamicMemberLookup
 public struct CloudKitMediaMetadata: Sendable, Equatable {
-    public let recordName: String
-    public let albumID: String
-    public let mediaID: String
-    public let mediaType: MediaType
-    public let createdAt: Date
-    public let sizeBytes: Int64
+    public let descriptor: CloudKitMediaRecordDescriptor
     public let creationDeviceID: String
+    /// The record format the server record carried.
     public let schemaVersion: Int64
-    /// The key this record's assets are encrypted under. This is the answer readers
-    /// use — they decrypt with the key it names rather than sweeping the library.
-    public let keyFingerprint: String
     public let recordChangeTag: String?
+    /// The ENC3 header bytes for a chunked blob, when the fetch requested them.
+    /// `nil` on a monolithic record — and on a chunked one whose fetch's
+    /// `desiredKeys` did not include the header.
+    public let encHeader: Data?
 
+    public init(descriptor: CloudKitMediaRecordDescriptor,
+                creationDeviceID: String,
+                schemaVersion: Int64,
+                recordChangeTag: String?,
+                encHeader: Data? = nil) {
+        self.descriptor = descriptor
+        self.creationDeviceID = creationDeviceID
+        self.schemaVersion = schemaVersion
+        self.recordChangeTag = recordChangeTag
+        self.encHeader = encHeader
+    }
+
+    /// Flat convenience over `init(descriptor:...)`.
     public init(recordName: String,
                 albumID: String,
                 mediaID: String,
@@ -84,17 +189,27 @@ public struct CloudKitMediaMetadata: Sendable, Equatable {
                 creationDeviceID: String,
                 schemaVersion: Int64,
                 keyFingerprint: String,
-                recordChangeTag: String?) {
-        self.recordName = recordName
-        self.albumID = albumID
-        self.mediaID = mediaID
-        self.mediaType = mediaType
-        self.createdAt = createdAt
-        self.sizeBytes = sizeBytes
-        self.creationDeviceID = creationDeviceID
-        self.schemaVersion = schemaVersion
-        self.keyFingerprint = keyFingerprint
-        self.recordChangeTag = recordChangeTag
+                recordChangeTag: String?,
+                chunkCount: Int = 0,
+                plaintextLength: Int64 = 0,
+                encHeader: Data? = nil) {
+        self.init(descriptor: CloudKitMediaRecordDescriptor(albumID: albumID,
+                                                            mediaID: mediaID,
+                                                            recordName: recordName,
+                                                            mediaType: mediaType,
+                                                            createdAt: createdAt,
+                                                            sizeBytes: sizeBytes,
+                                                            keyFingerprint: keyFingerprint,
+                                                            chunkCount: chunkCount,
+                                                            plaintextLength: plaintextLength),
+                  creationDeviceID: creationDeviceID,
+                  schemaVersion: schemaVersion,
+                  recordChangeTag: recordChangeTag,
+                  encHeader: encHeader)
+    }
+
+    public subscript<T>(dynamicMember keyPath: KeyPath<CloudKitMediaRecordDescriptor, T>) -> T {
+        descriptor[keyPath: keyPath]
     }
 }
 
@@ -121,18 +236,23 @@ public struct CloudKitAlbumUpload: Sendable {
     /// `PrivateKey.keychainLabel` of the album's key — the key its encrypted name is
     /// written with, and the key a device needs to recognise this album at all.
     public let keyFingerprint: String
+    /// The `mediaID` of the media item chosen as the album's cover image, or `nil`
+    /// when no explicit cover is set (fall back to most-recent).
+    public let coverMediaID: String?
 
     public init(albumID: String,
                 encName: String,
                 createdAt: Date,
                 isHidden: Bool,
                 keyFingerprint: String,
+                coverMediaID: String? = nil,
                 schemaVersion: Int64 = CloudKitSchema.currentSchemaVersion) {
         self.keyFingerprint = keyFingerprint
         self.albumID = albumID
         self.encName = encName
         self.createdAt = createdAt
         self.isHidden = isHidden
+        self.coverMediaID = coverMediaID
         self.schemaVersion = schemaVersion
     }
 }
@@ -152,6 +272,9 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
     /// "no key").
     public let keyFingerprint: String?
     public let recordChangeTag: String?
+    /// The `mediaID` of the cover image, extracted from `EncAlbum.coverMediaRef`.
+    /// `nil` when the record carries no reference (pre-existing or unset).
+    public let coverMediaID: String?
 
     public init(albumID: String,
                 encName: String,
@@ -159,7 +282,8 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
                 isHidden: Bool,
                 schemaVersion: Int64,
                 keyFingerprint: String?,
-                recordChangeTag: String?) {
+                recordChangeTag: String?,
+                coverMediaID: String? = nil) {
         self.albumID = albumID
         self.encName = encName
         self.createdAt = createdAt
@@ -167,6 +291,7 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
         self.schemaVersion = schemaVersion
         self.keyFingerprint = keyFingerprint
         self.recordChangeTag = recordChangeTag
+        self.coverMediaID = coverMediaID
     }
 }
 

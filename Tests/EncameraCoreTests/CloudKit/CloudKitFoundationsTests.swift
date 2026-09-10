@@ -124,7 +124,10 @@ final class CloudKitFoundationsTests: XCTestCase {
 
         try await container.deleteAllCloudData()
 
-        XCTAssertEqual(provisioner.deletedZoneIDs, [container.zoneID])
+        // Both zones go: the index zone and the chunked-blob zone — one zone
+        // delete each reclaims every record ever written, orphans included.
+        XCTAssertEqual(provisioner.deletedZoneIDs,
+                       [container.zoneID, CKRecordZone.ID(zoneName: ChunkedBlobSchema.zoneName)])
 
         // Flag was reset: the next ensureZoneExists re-provisions instead of short-circuiting.
         try await container.ensureZoneExists()
@@ -140,9 +143,10 @@ final class CloudKitFoundationsTests: XCTestCase {
             defaults: freshDefaults()
         )
 
-        // A user who never used CloudKit must not see this surface as a failure.
+        // A user who never used CloudKit must not see this surface as a failure —
+        // for either zone (the index zone and the chunked-blob zone).
         try await container.deleteAllCloudData()
-        XCTAssertEqual(provisioner.deletedZoneIDs.count, 1)
+        XCTAssertEqual(provisioner.deletedZoneIDs.count, 2)
     }
 
     func testDeleteAllCloudDataRethrowsRealError() async {
@@ -159,6 +163,31 @@ final class CloudKitFoundationsTests: XCTestCase {
             XCTFail("Expected a non-benign CloudKit error to propagate")
         } catch {
             XCTAssertEqual((error as? CKError)?.code, .networkUnavailable)
+        }
+    }
+
+    func testDeleteAllCloudDataClearsBothLatchesEvenWhenTheDeleteFails() async throws {
+        let provisioner = CountingZoneProvisioner()
+        let defaults = freshDefaults()
+        let container = CloudKitContainer(
+            accountStatusProvider: StubAccountStatus(status: .available),
+            zoneProvisioner: provisioner,
+            defaults: defaults
+        )
+
+        try await container.ensureZoneExists()
+        defaults.set(true, forKey: ChunkedBlobSchema.zoneCreatedDefaultsKey)
+        provisioner.deleteError = CKError(.requestRateLimited)
+
+        do {
+            try await container.deleteAllCloudData()
+            XCTFail("Expected a non-benign CloudKit error to propagate")
+        } catch {
+            // The server may well have committed the delete before the client saw
+            // the failure. A latch left set would make every later write skip the
+            // zone create and fail against a zone that is gone.
+            XCTAssertFalse(container.hasEverProvisionedZone)
+            XCTAssertFalse(defaults.bool(forKey: ChunkedBlobSchema.zoneCreatedDefaultsKey))
         }
     }
 

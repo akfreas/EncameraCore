@@ -148,6 +148,11 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                                             key: match.key,
                                             createdAt: record.createdAt,
                                             isHidden: record.isHidden)
+            if let coverID = record.coverMediaID {
+                let adoptedAlbum = Album(name: match.name, storageOption: .cloudKit, creationDate: record.createdAt, key: match.key)
+                let sidecar = AlbumCoverSidecar(album: adoptedAlbum)
+                Task { try? await sidecar.setCoverMediaID(coverID) }
+            }
             adopted += 1
         }
 
@@ -179,11 +184,14 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                 printDebug("reconcileAlbums push skip albumID=\(hash) reason=noKeyDecryptsTheName")
                 continue
             }
+            let rawCover = albumManager.getAlbumCoverImageId(album: album)
+            let coverMediaID = (rawCover == nil || rawCover == "none") ? nil : rawCover
             let upload = CloudKitAlbumUpload(albumID: hash,
                                              encName: album.encryptedPathComponent,
                                              createdAt: album.creationDate,
                                              isHidden: albumManager.isAlbumHidden(album),
-                                             keyFingerprint: albumFingerprint)
+                                             keyFingerprint: albumFingerprint,
+                                             coverMediaID: coverMediaID)
             printDebug("reconcileAlbums push start albumID=\(hash) isHidden=\(upload.isHidden)")
             do {
                 try await store.saveAlbum(upload)
@@ -236,8 +244,15 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                 albumManager.delete(album: album)
                 removed.insert(albumID)
             }
-            for album in changeSet.changedAlbums {
-                publishRegistry.markPublished(album.albumID)
+            for albumMeta in changeSet.changedAlbums {
+                publishRegistry.markPublished(albumMeta.albumID)
+                if let localAlbum = localByHash[albumMeta.albumID] {
+                    if albumManager.getAlbumCoverImageId(album: localAlbum) == nil {
+                        let sidecar = AlbumCoverSidecar(album: localAlbum)
+                        Task { try? await sidecar.setCoverMediaID(albumMeta.coverMediaID) }
+                    }
+                    FileOperationBus.shared.albumCoverChanged()
+                }
             }
         }
 

@@ -88,6 +88,19 @@ private final class BlobDownload {
     var lastFraction: Double = 0
 }
 
+/// What a chunked `EncMedia` record says about its blob-zone payload — enough to
+/// open a streaming session (header) or reclaim the chunks (count).
+public struct ChunkedBlobInfo: Sendable, Equatable {
+    public let chunkCount: Int
+    /// The ENC3 header bytes, when the sync that observed the record fetched them.
+    public let encHeader: Data?
+
+    public init(chunkCount: Int, encHeader: Data?) {
+        self.chunkCount = chunkCount
+        self.encHeader = encHeader
+    }
+}
+
 public actor CloudKitSyncCoordinator: DebugPrintable {
 
     private let albumID: String
@@ -100,9 +113,18 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// is a no-op then.
     private let sizeSidecar: AlbumSizeSidecar?
     private let bus: FileOperationBus
+    /// Chunk records for chunked blobs live here (`EncameraBlobZone`), outside the
+    /// media store's zone; deletes reclaim them through this seam.
+    private let chunkStore: ChunkedBlobStoring
     /// Captures written to this device but not yet in CloudKit. Consulted before
     /// the cache on every read, so a just-taken photo opens immediately.
     private let uploadQueue: CloudKitUploadQueue
+    /// Chunk geometry per record, learned from delta sync, from uploads this
+    /// session, and from fetch-by-id. A zero `chunkCount` records "the server says
+    /// this record is monolithic"; no entry at all means nothing has looked yet,
+    /// and only that falls back to a fetch-by-id. In-memory only, so every entry
+    /// dies with the process.
+    private var chunkInfo: [String: ChunkedBlobInfo] = [:]
 
     /// In-flight blob fetches keyed by record name, so concurrent callers for the
     /// same record share one `fetchBlob` instead of issuing duplicates — while
@@ -180,7 +202,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 sizeSidecar: AlbumSizeSidecar? = nil,
                 bus: FileOperationBus = .shared,
                 uploadQueue: CloudKitUploadQueue = .shared,
-                deleteQueue: CloudKitMediaDeleteQueue = CloudKitMediaDeleteQueue()) {
+                deleteQueue: CloudKitMediaDeleteQueue = CloudKitMediaDeleteQueue(),
+                chunkStore: ChunkedBlobStoring? = nil) {
         self.albumID = albumID
         self.store = store
         self.cache = cache
@@ -189,6 +212,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         self.bus = bus
         self.uploadQueue = uploadQueue
         self.deleteQueue = deleteQueue
+        self.chunkStore = chunkStore ?? CloudKitChunkedBlobStore()
     }
 
     // MARK: - Sync
@@ -199,10 +223,64 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         changeTags[recordName]
     }
 
+    /// Chunk geometry for a record: the in-memory map first (populated by delta
+    /// sync and by uploads this session), then a strongly-consistent fetch-by-id.
+    /// `nil` means monolithic — including a record the server does not hold.
+    ///
+    /// Only a video can be chunked (`VideoChunkingPolicy` is the single write
+    /// chokepoint) and the record name carries its component type, so a photo
+    /// answers monolithic without a round trip — the gate `resolveChunkCount`
+    /// already applies.
+    public func chunkedBlobInfo(recordName: String) async throws -> ChunkedBlobInfo? {
+        if let info = chunkInfo[recordName] { return info.chunkCount > 0 ? info : nil }
+        guard MediaRecordName.mediaType(from: recordName) == .video else { return nil }
+        guard let meta = try await fetchAndBankMetadata(recordName: recordName), meta.chunkCount > 0 else {
+            return nil
+        }
+        return ChunkedBlobInfo(chunkCount: meta.chunkCount, encHeader: meta.encHeader)
+    }
+
+    /// Fetch-by-id that banks everything the record carries, not only the field the
+    /// caller came for: the change tag, the chunk geometry, and the byte size, into
+    /// the album's size sidecar. The info screen asks two questions about one
+    /// record, and this is what makes them cost one round trip rather than two.
+    ///
+    /// The geometry is banked either way. A zero count is the server saying
+    /// "monolithic", which is a different state from no entry at all — that one
+    /// means nothing has looked yet, and it is the only one that fetches. A record
+    /// the server does not hold banks nothing: an upload still in flight reads as
+    /// absent, and "monolithic" learned from that would outlive the truth.
+    private func fetchAndBankMetadata(recordName: String) async throws -> CloudKitMediaMetadata? {
+        guard let meta = try await store.fetchRecordMetadata(recordName: recordName) else { return nil }
+        if let tag = meta.recordChangeTag { changeTags[recordName] = tag }
+        chunkInfo[recordName] = ChunkedBlobInfo(chunkCount: meta.chunkCount, encHeader: meta.encHeader)
+        await persistSizes(updates: [recordName: meta.sizeBytes], removals: [])
+        return meta
+    }
+
+    /// Best-effort chunk count for a delete. Photos cannot be chunked, so they
+    /// never pay the fallback fetch; an unreachable server yields the "unknown"
+    /// sentinel and the queued drain resolves it later.
+    private func resolveChunkCount(recordName: String) async -> Int {
+        if let info = chunkInfo[recordName] { return info.chunkCount }
+        guard MediaRecordName.mediaType(from: recordName) == .video else { return 0 }
+        do {
+            return (try await store.fetchRecordMetadata(recordName: recordName))?.chunkCount ?? 0
+        } catch {
+            printDebug("resolveChunkCount recordName=\(recordName) unresolved raw=\(error)")
+            return CloudKitMediaDeleteQueue.unknownChunkCount
+        }
+    }
+
     private var activeSync: Task<Void, Error>?
     private var resyncRequested = false
+    private var isShutdown = false
 
+    /// Cancels any active sync and blob downloads, and prevents new syncs from
+    /// starting. Called during erase so the zone delete is the only CloudKit
+    /// operation in flight.
     public func shutdown() {
+        isShutdown = true
         activeSync?.cancel()
         activeSync = nil
         for (_, download) in downloads {
@@ -212,10 +290,11 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             }
         }
         downloads.removeAll()
-        printDebug("shutdown ok")
+        printDebug("shutdown ok albumID=\(albumID)")
     }
 
     public func sync(albumID: String) async throws {
+        guard !isShutdown else { return }
         // Single-flight that JOINS: a sync requested while one runs flags a re-run and
         // then awaits the active task (which loops to honor the request), so callers
         // never return before their changes are applied, yet overlapping calls coalesce
@@ -296,7 +375,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                       seen: Set<MediaComponent>,
                       pendingDeletes: inout [EncryptedMedia],
                       pendingCreates: inout [EncryptedMedia],
-                      sizeRemovals: inout Set<String>) async {
+                      sizeRemovals: inout Set<String>,
+                      removedRecordNames: inout [String]) async {
         let pendingUpload = Set(await uploadQueue.all().map {
             MediaComponent(mediaID: $0.mediaID, mediaType: $0.mediaType)
         })
@@ -317,6 +397,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 let recordName = MediaRecordName.componentRecordName(mediaID: component.mediaID,
                                                                      type: component.mediaType)
                 let entryRemoved = entries.removeComponent(recordName: recordName)
+                removedRecordNames.append(recordName)
                 deleteQueue.claimDeletion(of: recordName, queueRemoteDelete: false)
                 changeTags[recordName] = nil
                 sizeRemovals.insert(recordName)
@@ -345,7 +426,15 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
         // Diff from the authoritative on-disk index, refreshing the store's cache.
         let loaded = await indexStore.reloadFromDisk()
+        // A working copy, used to decide what this pass should do — NOT the thing
+        // that gets written back. See the commit below.
         var entries = loaded?.entries ?? []
+        // What this pass actually changed, recorded as operations rather than as a
+        // finished array. Everything from here to the commit runs across `await`s on
+        // the network, and this actor is reentrant at every one of them, so the
+        // index can move under us while we work.
+        var upserted: [MediaIndexEntry] = []
+        var removedRecordNames: [String] = []
         printDebug("performSync start albumID=\(albumID) coordinatorAlbumID=\(self.albumID) indexLoaded=\(loaded != nil) entries=\(entries.count) undrainedDeletes=\(undrainedDeletes.count)")
 
         // Buffer gallery events and emit them ONLY after the index is durably saved,
@@ -418,13 +507,20 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 // sidecar that fell behind the index catches back up.
                 sizeUpdates[meta.recordName] = meta.sizeBytes
                 sizeRemovals.remove(meta.recordName)
+                // A zero count rather than a removal: the server has just said this
+                // record is monolithic, and that answer is worth keeping. Dropping
+                // the key would be indistinguishable from never having looked.
+                chunkInfo[meta.recordName] = ChunkedBlobInfo(chunkCount: meta.chunkCount,
+                                                             encHeader: meta.encHeader)
                 seen.insert(MediaComponent(mediaID: meta.mediaID, mediaType: meta.mediaType))
                 // The shared `upsert` appends a new item or merges a Live Photo's
                 // second component into the existing entry, and reports whether the
                 // index actually changed. Refresh the gallery only on a real change —
                 // a no-op re-sync stays silent, so a large initial sync doesn't fire
                 // hundreds of redundant reconciles.
-                if entries.upsert(Self.indexEntry(from: meta)) {
+                let incoming = Self.indexEntry(from: meta)
+                upserted.append(incoming)
+                if entries.upsert(incoming) {
                     pendingCreates.append(Self.media(forRecordName: meta.mediaID, albumID: self.albumID, mediaType: meta.mediaType))
                     printDebug("performSync upsert recordName=\(meta.recordName) mediaID=\(meta.mediaID) mediaType=\(meta.mediaType) sizeBytes=\(meta.sizeBytes) changeTag=\(meta.recordChangeTag ?? "nil")")
                 } else {
@@ -456,10 +552,12 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
                 // Clear only this component; keep the entry if the other survives.
                 let entryRemoved = entries.removeComponent(recordName: recordName)
+                removedRecordNames.append(recordName)
                 deleteQueue.markDeletedFromFeed(recordName)
                 changeTags[recordName] = nil
                 sizeUpdates[recordName] = nil
                 sizeRemovals.insert(recordName)
+                chunkInfo[recordName] = nil
                 if entryRemoved { removeLocalPreview(mediaID: mediaID) }
                 // The deletion payload carries no fields, but the record name encodes
                 // the component type — so a hard delete still emits a well-typed bus
@@ -485,15 +583,41 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                        seen: seen,
                        pendingDeletes: &pendingDeletes,
                        pendingCreates: &pendingCreates,
-                       sizeRemovals: &sizeRemovals)
+                       sizeRemovals: &sizeRemovals,
+                       removedRecordNames: &removedRecordNames)
         } else if startedWithoutToken {
             printDebug("reap skip albumID=\(self.albumID) reason=snapshotNotAcknowledged — the full fetch returned no cursor, so absence cannot be read as deletion")
         }
 
-        // Save the whole rebuilt index in ONE write before emitting or committing
-        // the token, so a crash mid-sequence re-fetches rather than losing data.
+        // Commit as a FOLD onto the live index, in ONE write, before emitting or
+        // committing the token — so a crash mid-sequence re-fetches rather than
+        // losing data.
+        //
+        // Deliberately not `replace(with: entries)`. `entries` was read before the
+        // fetch above, and a local save that landed while we were on the network
+        // writes to the index through `registerLocally`; writing our pre-fetch array
+        // back would silently discard it. That is not hypothetical — a large video
+        // import into a fresh CloudKit album reproduced it on the rig: the blob
+        // uploaded and the server confirmed it, and the album rendered empty.
+        //
+        // A lock does not fix this. The clobbering sync has usually already started
+        // by the time the save begins, and holding the index across a change-feed
+        // drain would block the save behind minutes of network — the opposite of the
+        // local-first design, where an imported item is visible immediately and the
+        // upload is a background errand. Applying only what this pass changed leaves
+        // interleaved writes untouched by construction.
+        //
+        // `apply` loads, mutates and saves inside the store's own actor, so the fold
+        // is atomic with respect to any other writer.
         do {
-            try await indexStore.replace(with: entries)
+            try await indexStore.apply { live in
+                var changed = false
+                for entry in upserted where live.upsert(entry) { changed = true }
+                for recordName in removedRecordNames where live.removeComponent(recordName: recordName) {
+                    changed = true
+                }
+                return changed
+            }
         } catch {
             // Nothing after this point runs: no gallery events, no token commit.
             // The next sync re-fetches the same delta from the un-advanced token.
@@ -533,31 +657,49 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// idempotent, so this needs no "is it still there?" round-trip. Only
     /// transient failures stay queued.
     private func drainPendingDeletes() async -> Set<String> {
-        // The claim each entry is held under, taken with the snapshot: a record
-        // republished and deleted again while this drain is suspended is a NEW
-        // intent, and confirming by claim leaves that one queued.
         let claims = deleteQueue.pendingClaims()
-        var outstanding = Set(claims.keys)
-        guard !outstanding.isEmpty else { return [] }
+        let entries = deleteQueue.pendingEntries()
+        guard !entries.isEmpty else { return [] }
+        var outstanding = Set(entries.map(\.recordName))
         printDebug("drainPendingDeletes start albumID=\(self.albumID) pending=\(outstanding.count)")
 
-        for recordName in outstanding.sorted() {
+        for entry in entries.sorted(by: { $0.recordName < $1.recordName }) {
+            let recordName = entry.recordName
             guard let claim = claims[recordName] else { continue }
+
+            var chunkCount = entry.chunkCount
+            if chunkCount == CloudKitMediaDeleteQueue.unknownChunkCount {
+                do {
+                    chunkCount = (try await store.fetchRecordMetadata(recordName: recordName))?.chunkCount ?? 0
+                    deleteQueue.updateChunkCount(chunkCount, for: recordName)
+                } catch {
+                    printDebug("drainPendingDeletes FAILED recordName=\(recordName) — geometry unresolved, left queued raw=\(error)")
+                    continue
+                }
+            }
+
             do {
                 try await store.delete(recordName: recordName)
-                if deleteQueue.confirmDelete(of: recordName, claimedAs: claim) {
-                    outstanding.remove(recordName)
-                }
                 printDebug("drainPendingDeletes ok recordName=\(recordName)")
             } catch CloudKitMediaStoreError.notFound {
-                if deleteQueue.confirmDelete(of: recordName, claimedAs: claim) {
-                    outstanding.remove(recordName)
-                }
                 printDebug("drainPendingDeletes skip recordName=\(recordName) — already gone from the zone")
             } catch {
-                // Stays queued; log so a permanently stuck delete (which also
-                // suppresses that record's re-materialization) is visible.
                 printDebug("drainPendingDeletes FAILED recordName=\(recordName) — left queued raw=\(error)")
+                continue
+            }
+
+            if chunkCount > 0 {
+                do {
+                    try await chunkStore.delete(mediaRecordName: recordName, chunkCount: chunkCount)
+                    printDebug("drainPendingDeletes chunks ok recordName=\(recordName) chunkCount=\(chunkCount)")
+                } catch {
+                    printDebug("drainPendingDeletes chunks FAILED recordName=\(recordName) chunkCount=\(chunkCount) — left queued raw=\(error)")
+                    continue
+                }
+            }
+
+            if deleteQueue.confirmDelete(of: recordName, claimedAs: claim) {
+                outstanding.remove(recordName)
             }
         }
         printDebug("drainPendingDeletes done albumID=\(self.albumID) stillPending=\(outstanding.count)")
@@ -660,22 +802,89 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         }
     }
 
+    /// Downloads one record's ciphertext to `destination` — the monolithic
+    /// `encBlob` asset, or, for a chunked record, the reassembled ENC3 file
+    /// (header bytes + chunks fetched in order reproduce the exact original;
+    /// the byte-identical round-trip test is the proof).
+    ///
+    /// The chunked branch is tried when the record is KNOWN chunked (delta sync
+    /// populated `chunkInfo`), and again when the blob fetch reports the asset
+    /// missing — the record may be chunked and simply carry no `encBlob`. That
+    /// keeps the common monolithic path at zero extra round trips.
+    private func downloadCiphertext(recordName: String,
+                                    to destination: URL,
+                                    progress: @escaping @Sendable (Double) -> Void) async throws {
+        if let info = chunkInfo[recordName], info.chunkCount > 0 {
+            try await reassembleChunks(recordName: recordName, info: info, to: destination, progress: progress)
+            return
+        }
+        do {
+            try await store.fetchBlob(recordName: recordName, to: destination, progress: progress)
+        } catch CloudKitMediaStoreError.notFound {
+            guard let info = try await chunkedBlobInfo(recordName: recordName) else {
+                throw CloudKitMediaStoreError.notFound
+            }
+            try await reassembleChunks(recordName: recordName, info: info, to: destination, progress: progress)
+        }
+    }
+
+    /// Rebuilds the original ENC3 file from the record's header bytes plus its
+    /// chunks, in order. Byte-identical to what the writer produced, so every
+    /// existing reader (which sniffs the ENC3 magic) handles the result.
+    private func reassembleChunks(recordName: String,
+                                  info: ChunkedBlobInfo,
+                                  to destination: URL,
+                                  progress: @escaping @Sendable (Double) -> Void) async throws {
+        let headerData: Data
+        if let bytes = info.encHeader {
+            headerData = bytes
+        } else if let meta = try await store.fetchRecordMetadata(recordName: recordName), let bytes = meta.encHeader {
+            headerData = bytes
+        } else {
+            throw CloudKitMediaStoreError.notFound
+        }
+        let header = try SeekableEncryptedHeader.decode(headerData)
+        let geometry = header.geometry
+
+        if FileManager.default.fileExists(atPath: destination.path) {
+            try FileManager.default.removeItem(at: destination)
+        }
+        FileManager.default.createFile(atPath: destination.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: destination)
+        defer { try? handle.close() }
+        try handle.write(contentsOf: headerData)
+
+        let total = max(1, geometry.chunkCount)
+        for index in 0..<geometry.chunkCount {
+            try Task.checkCancellation()
+            let chunk = try await chunkStore.fetchChunk(mediaRecordName: recordName, index: index)
+            let expected = geometry.ciphertextSize(ofChunk: index)
+            guard chunk.count == expected else {
+                throw SeekableFormatError.chunkSizeMismatch(index: index, expected: expected, got: chunk.count)
+            }
+            try handle.write(contentsOf: chunk)
+            progress(Double(index + 1) / Double(total))
+        }
+        try handle.synchronize()
+        printDebug("reassembleChunks ok recordName=\(recordName) chunks=\(geometry.chunkCount) bytes=\(geometry.totalCiphertextLength)")
+    }
+
     /// Drives one shared fetch. Reports progress and its result back onto the
     /// actor, which fans both out to the download's waiters.
     private func fetchTask(downloadID: UUID,
                            recordName: String,
                            albumID: String,
                            expectedTag: String?) -> Task<Void, Never> {
-        let store = self.store
         let cache = self.cache
         let destination = FileManager.default.temporaryDirectory
             .appendingPathComponent("ckdl-\(recordName)-\(UUID().uuidString)")
 
         return Task { [weak self] in
+            guard let self else { return }
             let result: Result<URL, Error>
             do {
-                try await store.fetchBlob(recordName: recordName, to: destination) { fraction in
-                    Task { await self?.report(fraction: fraction, recordName: recordName, downloadID: downloadID) }
+                try await self.downloadCiphertext(recordName: recordName, to: destination) { fraction in
+                    Task { await self.report(fraction: fraction, recordName: recordName, downloadID: downloadID) }
                 }
                 let cachedURL = try await cache.store(recordName: recordName,
                                                       changeTag: expectedTag,
@@ -694,7 +903,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                     Self.printDebug("ensureBlobLocal WARNING recordName=\(recordName) could not remove download temp file=\(destination.lastPathComponent) raw=\(error)")
                 }
             }
-            await self?.finish(downloadID: downloadID, recordName: recordName, result: result)
+            await self.finish(downloadID: downloadID, recordName: recordName, result: result)
         }
     }
 
@@ -827,13 +1036,14 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         if isKnownDeleted(item.recordName) {
             printDebug("upload landed after delete recordName=\(item.recordName) — deleting the fresh record and discarding the result")
             // Queue first, so the reclaim survives a failure here or a kill before
-            // the delete lands. Retried by the next sync's drain. Re-asserted as a
-            // pair, so a republish racing this cannot strip the mark and leave the
-            // reclaim queued against a record nothing refuses to read.
-            let claim = deleteQueue.claimDeletion(of: item.recordName, queueRemoteDelete: true)
+            // the delete lands. Retried by the next sync's drain, chunks included.
+            let reclaimClaim = deleteQueue.claimDeletion(of: item.recordName, chunkCount: item.chunkCount, queueRemoteDelete: true)
             do {
                 try await store.delete(recordName: item.recordName)
-                deleteQueue.confirmDelete(of: item.recordName, claimedAs: claim)
+                if item.chunkCount > 0 {
+                    try await chunkStore.delete(mediaRecordName: item.recordName, chunkCount: item.chunkCount)
+                }
+                deleteQueue.confirmDelete(of: item.recordName, claimedAs: reclaimClaim)
             } catch {
                 printDebug("upload postDeleteReclaim FAILED recordName=\(item.recordName) — left queued raw=\(error)")
             }
@@ -841,6 +1051,16 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         }
 
         if let tag = ref.recordChangeTag { changeTags[ref.recordName] = tag }
+        deleteQueue.forgetDeletion(of: ref.recordName)
+        // Remember the geometry so a delete or playback right after the upload
+        // needs no round trip. The header is read off the local ENC3 file. A
+        // monolithic upload banks a zero count for the same reason, and so that it
+        // supersedes any chunked geometry held for the name it replaces.
+        let headerBytes = item.chunkCount > 0
+            ? (try? SeekableEncryptedHeader.read(fromFileAt: item.encryptedFileURL))?.bytes
+            : nil
+        chunkInfo[ref.recordName] = ChunkedBlobInfo(chunkCount: item.chunkCount,
+                                                    encHeader: headerBytes)
         // Cache the just-uploaded encrypted file (the authoring device keeps its copy).
         do {
             try await cache.store(recordName: ref.recordName,
@@ -887,9 +1107,13 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// - Parameter wasPending: true when the item was still in the upload queue,
     ///   i.e. it (almost certainly) never reached CloudKit, so there is nothing to
     ///   delete remotely. "Almost": an upload may land while this delete runs, so
-    ///   the record is still marked known-deleted, which `upload` checks after its
-    ///   store call.
-    public func remove(recordName: String, albumID: String, wasPending: Bool = false) async throws {
+    ///   the record is still marked as known-deleted, which `upload` checks
+    ///   after its store call.
+    /// - Parameter pendingChunkCount: chunk geometry of an item that was still in
+    ///   the upload queue, from its queue entry. A partially-drained chunked
+    ///   upload may have committed chunk records even though its `EncMedia` never
+    ///   landed, so those are reclaimed here too.
+    public func remove(recordName: String, albumID: String, wasPending: Bool = false, pendingChunkCount: Int = 0) async throws {
         printDebug("remove start recordName=\(recordName) albumID=\(albumID) wasPending=\(wasPending)")
         // Claim BOTH halves before anything can suspend: the mark reads fail closed
         // on, and — unless the item never reached CloudKit — the queued intent, so a
@@ -902,18 +1126,59 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         await cache.evict(recordName: recordName)
 
         if !wasPending {
+            // Capture the chunk geometry BEFORE the commit record is deleted —
+            // afterwards nobody can say how many chunk records exist. Only videos
+            // can be chunked, so photo deletes never pay the fallback fetch.
+            let chunkCount = await resolveChunkCount(recordName: recordName)
+            chunkInfo[recordName] = nil
+
+            // Enqueue BEFORE the call: a delete that never gets issued (offline, or
+            // the process dies here) must still be retried, and the queue is what
+            // keeps the record from being pulled back in meanwhile.
+            deleteQueue.enqueue(recordName, chunkCount: chunkCount)
+
+            if chunkCount == CloudKitMediaDeleteQueue.unknownChunkCount {
+                // Geometry unresolved — defer the entire remote delete to
+                // drainPendingDeletes, which resolves against the still-live
+                // record.  Deleting the commit record here would make the
+                // drain see nil → 0 → monolithic, orphaning every chunk.
+                printDebug("remove deferred recordName=\(recordName) — chunk geometry unknown, left for drain")
+            } else {
+                var commitRecordGone = false
+                do {
+                    try await store.delete(recordName: recordName)
+                    commitRecordGone = true
+                    printDebug("remove delete ok recordName=\(recordName)")
+                } catch CloudKitMediaStoreError.notFound {
+                    commitRecordGone = true
+                    printDebug("remove delete skip recordName=\(recordName) — record already absent from the zone")
+                } catch {
+                    printDebug("remove delete FAILED recordName=\(recordName) albumID=\(albumID) — left queued for the next sync raw=\(error)")
+                }
+                if commitRecordGone {
+                    if chunkCount > 0 {
+                        do {
+                            try await chunkStore.delete(mediaRecordName: recordName, chunkCount: chunkCount)
+                            deleteQueue.confirmDelete(of: recordName, claimedAs: claim)
+                        } catch {
+                            printDebug("remove chunks FAILED recordName=\(recordName) chunkCount=\(chunkCount) — left queued raw=\(error)")
+                        }
+                    } else {
+                        deleteQueue.confirmDelete(of: recordName, claimedAs: claim)
+                    }
+                }
+            }
+        } else if pendingChunkCount > 0 {
+            // Never reached CloudKit as a committed record, but an interrupted
+            // queue drain may have left chunk records behind. Queue-then-delete,
+            // same as the committed path, so the reclaim survives a kill.
+            deleteQueue.enqueue(recordName, chunkCount: pendingChunkCount)
             do {
-                try await store.delete(recordName: recordName)
+                try await chunkStore.delete(mediaRecordName: recordName, chunkCount: pendingChunkCount)
                 deleteQueue.confirmDelete(of: recordName, claimedAs: claim)
-                printDebug("remove delete ok recordName=\(recordName)")
-            } catch CloudKitMediaStoreError.notFound {
-                // Already absent — deleted from another device, or never uploaded.
-                // Nothing to delete is success for a delete.
-                deleteQueue.confirmDelete(of: recordName, claimedAs: claim)
-                printDebug("remove delete skip recordName=\(recordName) — record already absent from the zone")
+                printDebug("remove pendingChunks ok recordName=\(recordName) chunkCount=\(pendingChunkCount)")
             } catch {
-                // Left queued on purpose. The local cleanup below still runs.
-                printDebug("remove delete FAILED recordName=\(recordName) albumID=\(albumID) — left queued for the next sync raw=\(error)")
+                printDebug("remove pendingChunks FAILED recordName=\(recordName) chunkCount=\(pendingChunkCount) — left queued raw=\(error)")
             }
         }
 
@@ -956,6 +1221,68 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     public func evict(recordName: String) async throws {
         printDebug("evict start recordName=\(recordName) albumID=\(albumID)")
         await cache.evict(recordName: recordName)
+    }
+
+    // MARK: - Residency
+
+    /// Bytes the record occupies in CloudKit.
+    ///
+    /// The size sidecar answers offline and instantly. Delta sync fills it, and so
+    /// does any geometry lookup on the same record, so only a record neither has
+    /// touched pays a single metadata fetch — whose size is then banked in turn. An
+    /// unreachable server yields `nil` rather than an error: an unknown size is a
+    /// blank row, not a failed screen.
+    public func remoteBytes(recordName: String) async -> Int64? {
+        if let known = await sizeSidecar?.bytes(forRecordName: recordName) { return known }
+        return try? await fetchAndBankMetadata(recordName: recordName)?.sizeBytes
+    }
+
+    /// Bytes of the record resident in the blob cache right now, counting the ENC3
+    /// chunks of a chunked blob rather than the monolithic asset it does not have.
+    /// `nil` when nothing is cached — distinct from `0`, which would claim an
+    /// empty local copy exists.
+    public func cachedBytes(recordName: String) async -> Int64? {
+        let expectedTag = changeTags[recordName]
+        if let info = chunkInfo[recordName], info.chunkCount > 0 {
+            var total: Int64 = 0
+            var found = false
+            for index in 0..<info.chunkCount {
+                let chunkName = ChunkedBlobSchema.chunkRecordName(mediaRecordName: recordName, index: index)
+                guard let bytes = await cache.cachedSize(recordName: chunkName, changeTag: expectedTag) else { continue }
+                total += bytes
+                found = true
+            }
+            if found { return total }
+            // No chunks cached does not mean nothing is cached: the device that
+            // UPLOADED the video keeps the whole ENC3 file under the media record
+            // name, and that copy is what its own playback reads. Reporting it as
+            // absent leaves the largest reclaimable file on the device invisible to
+            // the storage screen, which then offers no way to evict it.
+        }
+        return await cache.cachedSize(recordName: recordName, changeTag: expectedTag)
+    }
+
+    /// The on-disk ciphertext for a record, when this device holds one: the cached
+    /// blob, or a capture still waiting in the upload queue. `nil` for a chunked
+    /// blob, whose bytes are many files and never one readable ENC3 stream.
+    public func localCiphertextURL(recordName: String) async -> URL? {
+        if let waiting = await uploadQueue.pendingFileURL(recordName: recordName) { return waiting }
+        if let info = chunkInfo[recordName], info.chunkCount > 0 { return nil }
+        return await cache.cachedURL(recordName: recordName, changeTag: changeTags[recordName])
+    }
+
+    /// Drops every local copy of a record — the monolithic blob and, for a chunked
+    /// one, each of its cached chunks. The CloudKit records are untouched, so the
+    /// next play re-downloads.
+    public func evictLocalCopy(recordName: String) async throws {
+        printDebug("evictLocalCopy start recordName=\(recordName) albumID=\(albumID)")
+        var names = [recordName]
+        if let info = chunkInfo[recordName], info.chunkCount > 0 {
+            names += (0..<info.chunkCount).map {
+                ChunkedBlobSchema.chunkRecordName(mediaRecordName: recordName, index: $0)
+            }
+        }
+        await cache.evict(recordNames: names)
     }
 
     public func evictAll(olderThan date: Date) async throws {

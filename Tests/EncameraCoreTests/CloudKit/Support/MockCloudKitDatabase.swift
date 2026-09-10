@@ -18,8 +18,13 @@ struct StubAccountStatusProvider: AccountStatusProviding {
 }
 
 final class StubZoneProvisioner: RecordZoneProvisioning {
-    func saveZone(_ zone: CKRecordZone) async throws {}
-    func deleteZone(_ zoneID: CKRecordZone.ID) async throws {}
+    /// Every zone create it was asked for, in order — the evidence a test needs to
+    /// prove a store either did or did not spend a round trip on the zone.
+    private(set) var savedZoneIDs: [CKRecordZone.ID] = []
+    private(set) var deletedZoneIDs: [CKRecordZone.ID] = []
+
+    func saveZone(_ zone: CKRecordZone) async throws { savedZoneIDs.append(zone.zoneID) }
+    func deleteZone(_ zoneID: CKRecordZone.ID) async throws { deletedZoneIDs.append(zoneID) }
 }
 
 // MARK: - Mock adapter
@@ -116,8 +121,9 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
         }
         if let fetchError { throw fetchError }
         var result: [CKRecord.ID: CKRecord] = [:]
-        for recordID in recordIDs where stubbedFetchRecords[recordID] != nil {
-            result[recordID] = stubbedFetchRecords[recordID]
+        for recordID in recordIDs {
+            guard let record = stubbedFetchRecords[recordID] else { continue }
+            result[recordID] = Self.projected(record, desiredKeys: desiredKeys)
         }
         return result
     }
@@ -130,7 +136,7 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
         lastQueryDesiredKeys = desiredKeys
         lastQueryQualityOfService = qualityOfService
         if let queryError { throw queryError }
-        return stubbedQueryRecords
+        return stubbedQueryRecords.map { Self.projected($0, desiredKeys: desiredKeys) }
     }
 
     func fetchZoneChanges(zoneID: CKRecordZone.ID,
@@ -151,6 +157,21 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
     }
 
     func cancelAll() { cancelAllCalled = true }
+
+    /// Drops every field the caller did not ask for, which is what real CloudKit
+    /// does: `desiredKeys` is a projection, and an unrequested field comes back
+    /// indistinguishable from one that was never written. A mock that hands back
+    /// whole records instead makes any omission from a `desiredKeys` list invisible
+    /// to the whole suite — the read side of chunked video storage shipped broken
+    /// behind exactly that blind spot.
+    private static func projected(_ record: CKRecord, desiredKeys: [CKRecord.FieldKey]?) -> CKRecord {
+        guard let desiredKeys, let copy = record.copy() as? CKRecord else { return record }
+        let requested = Set(desiredKeys)
+        for key in copy.allKeys() where !requested.contains(key) {
+            copy[key] = nil
+        }
+        return copy
+    }
 }
 
 // MARK: - Record-building helpers
@@ -160,6 +181,23 @@ enum CloudKitTestFactory {
 
     static func recordID(_ name: String) -> CKRecord.ID {
         CKRecord.ID(recordName: name, zoneID: zoneID)
+    }
+
+    /// A chunked (ENC3) media record: header fields set, and — as production
+    /// writes it — no `encBlob` at all.
+    static func chunkedEncMediaRecord(recordName: String,
+                                      albumID: String,
+                                      chunkCount: Int = 3,
+                                      plaintextLength: Int64 = 12_000_000,
+                                      encHeader: Data = Data([0x45, 0x4E, 0x43, 0x33])) -> CKRecord {
+        let record = encMediaRecord(recordName: recordName,
+                                    albumID: albumID,
+                                    mediaType: .video,
+                                    sizeBytes: plaintextLength + 1024)
+        record[CloudKitSchema.EncMedia.chunkCount] = Int64(chunkCount) as CKRecordValue
+        record[CloudKitSchema.EncMedia.plaintextLength] = plaintextLength as CKRecordValue
+        record[CloudKitSchema.EncMedia.encHeader] = encHeader as CKRecordValue
+        return record
     }
 
     static func encMediaRecord(recordName: String,

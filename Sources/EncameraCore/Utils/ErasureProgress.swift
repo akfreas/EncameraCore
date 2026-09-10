@@ -89,7 +89,8 @@ public struct ErasureStepDescriptor: Identifiable, Equatable, Sendable {
         .init(id: "cloud.subscriptions",  title: "Remove iCloud notifications",                 section: .cloud),
 
         .init(id: "media.activeBackend",  title: "Delete current album media",                  section: .media),
-        .init(id: "media.localAlbums",    title: "Delete local and iCloud Drive albums",        section: .media),
+        .init(id: "media.localAlbums",    title: "Delete local albums",                         section: .media),
+        .init(id: "media.iCloudDrive",    title: "Delete iCloud Drive media",                   section: .media),
         .init(id: "media.indexes",        title: "Delete media indexes",                        section: .media),
         .init(id: "media.blobCache",      title: "Delete downloaded copies and pending uploads", section: .media),
         .init(id: "media.thumbnails",     title: "Delete thumbnails",                           section: .media),

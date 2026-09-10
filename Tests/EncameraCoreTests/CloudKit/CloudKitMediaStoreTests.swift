@@ -279,6 +279,67 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(mock.lastQueryDesiredKeys?.contains(CloudKitSchema.EncMedia.encThumbnail), true)
     }
 
+    // MARK: - Chunked blob geometry survives the fetch
+
+    /// The whole read side of chunked video hangs off three fields, and CloudKit
+    /// only returns fields the caller named. Omitting them from `metadataKeys` made
+    /// every chunked video read back as monolithic — so playback looked for an
+    /// `encBlob` such a record never carries and failed with "Record or asset not
+    /// found", and a delete could not say how many chunks to reclaim.
+    func testFetchRecordMetadataReturnsChunkGeometry() async throws {
+        let mock = MockCloudKitDatabase()
+        let recordID = CloudKitTestFactory.recordID("vid#1")
+        mock.stubbedFetchRecords = [recordID: CloudKitTestFactory.chunkedEncMediaRecord(recordName: "vid#1",
+                                                                                       albumID: "a1",
+                                                                                       chunkCount: 21,
+                                                                                       plaintextLength: 85_000_000)]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        let fetched = try await store.fetchRecordMetadata(recordName: "vid#1")
+        let meta = try XCTUnwrap(fetched)
+        XCTAssertEqual(meta.chunkCount, 21,
+                       "a chunked record that reads back as chunkCount 0 is treated as monolithic, "
+                       + "and its payload — which lives in the blob zone — becomes unreachable")
+        XCTAssertEqual(meta.plaintextLength, 85_000_000)
+        XCTAssertNotNil(meta.encHeader,
+                        "without the header there is no geometry to stream or reassemble from")
+    }
+
+    /// The same three fields have to survive the per-album fetch, which is what
+    /// populates the index a cold launch reads.
+    func testFetchMetadataReturnsChunkGeometry() async throws {
+        let mock = MockCloudKitDatabase()
+        mock.stubbedQueryRecords = [CloudKitTestFactory.chunkedEncMediaRecord(recordName: "vid#1", albumID: "a1")]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        let meta = try await store.fetchMetadata(albumID: "a1", includeThumbnail: false)
+        XCTAssertEqual(meta.first?.chunkCount, 3)
+        XCTAssertNotNil(meta.first?.encHeader)
+    }
+
+    /// Companion to `testEveryDesiredKeysListRequestsTheKeyFingerprint`: every list
+    /// that names fields must name these three, including the change feed — a delta
+    /// sync that reads `chunkCount` as 0 does not merely fail to learn the geometry,
+    /// it erases the geometry the coordinator already holds.
+    func testEveryDesiredKeysListRequestsTheChunkFields() {
+        for key in [CloudKitSchema.EncMedia.chunkCount,
+                    CloudKitSchema.EncMedia.plaintextLength,
+                    CloudKitSchema.EncMedia.encHeader] {
+            XCTAssertTrue(CloudKitMediaStore.metadataKeys.contains(key),
+                          "the metadata fetch drops \(key), so every chunked video it returns claims to be monolithic")
+            XCTAssertTrue(CloudKitMediaStore.changeFeedKeys.contains(key),
+                          "the zone change feed drops \(key)")
+        }
+    }
+
+    /// The lazy-blob guarantee, restated for the list that just grew: the header is
+    /// framing and belongs here, the payload asset never does.
+    func testChunkFieldsDoNotDragTheBlobAssetAlong() {
+        XCTAssertFalse(CloudKitMediaStore.metadataKeys.contains(CloudKitSchema.EncMedia.encBlob))
+        XCTAssertFalse(CloudKitMediaStore.changeFeedKeys.contains(CloudKitSchema.EncMedia.encBlob))
+        XCTAssertFalse(CloudKitMediaStore.metadataKeys.contains(CloudKitSchema.EncMedia.encThumbnail))
+    }
+
     // MARK: - Key fingerprint (ENC-70)
 
     func testUploadSetsKeyFingerprintOnRecord() async throws {

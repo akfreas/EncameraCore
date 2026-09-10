@@ -34,10 +34,21 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
     /// including all the unit tests — is unaffected.
     public var uploadDelay: Duration = .zero
 
-    public init() {}
+    /// Transport for chunked blobs. When an upload carries `chunkCount > 0` the
+    /// ciphertext is split into chunks via this store instead of being held as a
+    /// monolithic blob — mirroring what `CloudKitMediaStore` does in production.
+    /// Defaults to `InMemoryChunkedBlobStore()` so the mock is self-contained;
+    /// callers that need the same instance reachable from a coordinator should
+    /// inject a shared one.
+    public let chunkStore: ChunkedBlobStoring
 
-    public init(uploadDelay: Duration) {
+    public init(chunkStore: ChunkedBlobStoring = InMemoryChunkedBlobStore()) {
+        self.chunkStore = chunkStore
+    }
+
+    public init(uploadDelay: Duration, chunkStore: ChunkedBlobStoring = InMemoryChunkedBlobStore()) {
         self.uploadDelay = uploadDelay
+        self.chunkStore = chunkStore
     }
 
     public func upload(_ item: CloudKitMediaUpload,
@@ -45,16 +56,26 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
         if uploadDelay > .zero {
             try await Task.sleep(for: uploadDelay)
         }
-        let blob = (try? Data(contentsOf: item.encryptedFileURL)) ?? Data()
+
+        // Chunked items delegate their payload to the chunk store, mirroring
+        // CloudKitMediaStore's production path. The monolithic blob is left
+        // empty — reads go through the chunk store, not fetchBlob.
+        let blob: Data
+        if item.chunkCount > 0 {
+            try await chunkStore.uploadChunks(enc3FileURL: item.encryptedFileURL,
+                                              mediaRecordName: item.recordName,
+                                              progress: progress)
+            blob = Data()
+        } else {
+            blob = (try? Data(contentsOf: item.encryptedFileURL)) ?? Data()
+        }
+
         let thumb = item.encryptedThumbURL.flatMap { try? Data(contentsOf: $0) } ?? Data()
         let tag = "tag-\(item.recordName)"
-        let metadata = CloudKitMediaMetadata(
-            recordName: item.recordName, albumID: item.albumID, mediaID: item.mediaID,
-            mediaType: item.mediaType, createdAt: item.createdAt, sizeBytes: item.sizeBytes,
-            creationDeviceID: DeviceIdentity.current,
-            schemaVersion: item.schemaVersion, keyFingerprint: item.keyFingerprint,
-            recordChangeTag: tag
-        )
+        let metadata = CloudKitMediaMetadata(descriptor: item.descriptor,
+                                             creationDeviceID: DeviceIdentity.current,
+                                             schemaVersion: item.schemaVersion,
+                                             recordChangeTag: tag)
         // Keyed by recordName so a Live Photo's two components don't collide.
         locked {
             records[item.recordName] = Stored(metadata: metadata,
@@ -92,14 +113,14 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
             }
             for index in 0..<mediaCount {
                 let recordName = "\(albumID)-seeded-\(index)"
-                let metadata = CloudKitMediaMetadata(
-                    recordName: recordName, albumID: albumID, mediaID: recordName,
-                    mediaType: .photo, createdAt: Date(), sizeBytes: 1,
-                    creationDeviceID: "seeded-device",
-                    schemaVersion: CloudKitSchema.currentSchemaVersion,
-                    keyFingerprint: "",
-                    recordChangeTag: "tag-\(recordName)"
+                let descriptor = CloudKitMediaRecordDescriptor(
+                    albumID: albumID, mediaID: recordName, recordName: recordName,
+                    mediaType: .photo, createdAt: Date(), sizeBytes: 1, keyFingerprint: ""
                 )
+                let metadata = CloudKitMediaMetadata(descriptor: descriptor,
+                                                     creationDeviceID: "seeded-device",
+                                                     schemaVersion: CloudKitSchema.currentSchemaVersion,
+                                                     recordChangeTag: "tag-\(recordName)")
                 records[recordName] = Stored(metadata: metadata,
                                              blob: Data(),
                                              thumbnail: Data(),

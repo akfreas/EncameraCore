@@ -56,6 +56,10 @@ public struct MultiDeviceState: Codable, Equatable {
     /// Lowercase fingerprint hex (`PrivateKey.keychainLabel`). Never key bytes.
     public var keyFingerprints: [String]
 
+    public var hasEvidence: Bool {
+        hasUsedEncamera || !devices.isEmpty || !keyFingerprints.isEmpty
+    }
+
     /// Upper bound on the roster, enforced by `merging`. The record lives in a
     /// keychain item that syncs on every write, so it cannot be allowed to grow
     /// without limit as a user cycles through devices. Well above the number of

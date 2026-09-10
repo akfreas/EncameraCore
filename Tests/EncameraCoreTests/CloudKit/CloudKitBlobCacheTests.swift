@@ -100,6 +100,57 @@ final class CloudKitBlobCacheTests: XCTestCase {
         XCTAssertNotNil(third)
     }
 
+    // MARK: - Read-only size lookup
+
+    /// A size read is what the info screen does, and it must not reorder the LRU:
+    /// the entry it reported on stays exactly as recently used as it was, so the
+    /// cap still evicts what the user actually stopped using.
+    func testCachedSizeDoesNotMakeTheEntryMostRecentlyUsed() async throws {
+        let cache = makeCache(maxBytes: 200)
+        let hot = try await cache.store(recordName: "hot", changeTag: nil, albumID: "album",
+                                        from: sourceFile(bytes: 40))
+        let cold = try await cache.store(recordName: "cold", changeTag: nil, albumID: "album",
+                                         from: sourceFile(bytes: 40))
+
+        for _ in 0..<5 {
+            let size = await cache.cachedSize(recordName: "hot", changeTag: nil)
+            XCTAssertEqual(size, 40)
+        }
+
+        // 80 + 150 is over the cap, so the least-recently-used entry goes. "hot"
+        // was stored first and only ever read for its size, so it is still the one.
+        _ = try await cache.store(recordName: "fresh", changeTag: nil, albumID: "album",
+                                  from: sourceFile(bytes: 150))
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: hot.path),
+                       "A size read must not protect an entry from LRU eviction")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: cold.path),
+                      "The genuinely more recently used entry must survive")
+    }
+
+    func testCachedSizeReportsNothingForAStaleTagOrAMissingFile() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        let url = try await cache.store(recordName: "m1", changeTag: "t1", albumID: "album",
+                                        from: sourceFile(bytes: 40))
+
+        let matching = await cache.cachedSize(recordName: "m1", changeTag: "t1")
+        XCTAssertEqual(matching, 40)
+        let stale = await cache.cachedSize(recordName: "m1", changeTag: "t2")
+        XCTAssertNil(stale, "A newer server tag invalidates the cached copy")
+        let untagged = await cache.cachedSize(recordName: "m1", changeTag: nil)
+        XCTAssertEqual(untagged, 40, "No expectation trusts the persisted entry")
+        let absent = await cache.cachedSize(recordName: "nope", changeTag: nil)
+        XCTAssertNil(absent)
+
+        // A Caches purge takes the file out from under the index.
+        try FileManager.default.removeItem(at: url)
+
+        let gone = await cache.cachedSize(recordName: "m1", changeTag: "t1")
+        XCTAssertNil(gone, "Bytes that are not on disk must not be reported as a local copy")
+        let total = await cache.totalBytes()
+        XCTAssertEqual(total, 40, "And the read stays read-only: the index is not rewritten")
+    }
+
     // MARK: - Disk truth
 
     /// The cache directory as an outside observer sees it, so a test never grades
@@ -185,6 +236,64 @@ final class CloudKitBlobCacheTests: XCTestCase {
         XCTAssertEqual(total, 80, "A file that survived eviction keeps counting")
         let onDisk = await cache.diskBytes()
         XCTAssertEqual(onDisk, 80)
+    }
+
+    // MARK: - Batched eviction
+
+    /// Evicting the chunks of one video is thousands of records; the sidecar is
+    /// re-encoded and rewritten once, not once per record.
+    func testBatchEvictWritesTheIndexOnce() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        var names: [String] = []
+        for chunk in 0..<5 {
+            let name = "vid#1--c\(chunk)"
+            names.append(name)
+            _ = try await cache.store(recordName: name, changeTag: nil, albumID: "album",
+                                      from: sourceFile(bytes: 40))
+        }
+        let before = await cache.indexPersistCount
+
+        await cache.evict(recordNames: names)
+
+        let writes = await cache.indexPersistCount - before
+        XCTAssertEqual(writes, 1, "One batch, one index write — got \(writes)")
+        let total = await cache.totalBytes()
+        XCTAssertEqual(total, 0)
+        XCTAssertEqual(try measureCacheDirectory().files, 0, "Every chunk file is gone")
+    }
+
+    /// A removal that fails must not abandon the rest of the batch, and the index
+    /// must still be written — otherwise it goes on describing files that are gone.
+    func testBatchEvictRemovesEveryFileWhenOneRemovalFails() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        _ = try await cache.store(recordName: "stuck", changeTag: nil, albumID: "locked",
+                                  from: sourceFile(bytes: 80))
+        let removable = try await [
+            cache.store(recordName: "c0", changeTag: nil, albumID: "album", from: sourceFile(bytes: 40)),
+            cache.store(recordName: "c1", changeTag: nil, albumID: "album", from: sourceFile(bytes: 40))
+        ]
+        let lockedDir = tempRoot.appendingPathComponent("cache", isDirectory: true)
+            .appendingPathComponent(CloudKitBlobCache.albumFolderName("locked"), isDirectory: true)
+        // A read-only parent directory makes `removeItem` fail while the file lives on.
+        try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: lockedDir.path)
+        addTeardownBlock {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: lockedDir.path)
+        }
+        let before = await cache.indexPersistCount
+
+        // The failing record comes first, so a batch that gives up on error leaves
+        // the other two behind.
+        await cache.evict(recordNames: ["stuck", "c0", "c1"])
+
+        for url in removable {
+            XCTAssertFalse(FileManager.default.fileExists(atPath: url.path),
+                           "A failed removal must not stop the ones after it: \(url.lastPathComponent) survived")
+        }
+        let writes = await cache.indexPersistCount - before
+        XCTAssertEqual(writes, 1, "A partial eviction must still write the index once — got \(writes)")
+        let total = await cache.totalBytes()
+        XCTAssertEqual(total, 80, "The file that survived eviction keeps counting")
+        XCTAssertEqual(try measureCacheDirectory().files, 1)
     }
 
     func testDiskBytesMatchesTotalBytesWhenTheCacheIsConsistent() async throws {

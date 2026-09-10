@@ -19,8 +19,12 @@ public enum MediaSelectionResult {
         }
     }
     
-    /// Creates an item provider for the media
-    func createItemProvider() -> NSItemProvider {
+    /// Creates an item provider for the media.
+    ///
+    /// `public` so app-side importers can stream a picked file without copying it —
+    /// `loadFileRepresentation` hands back a system-owned temp URL, which is the only
+    /// way to read a 1 GB video without first duplicating it on disk.
+    public func createItemProvider() -> NSItemProvider {
         switch self {
         case .phAsset(let asset):
             return createItemProvider(for: asset)

@@ -36,6 +36,13 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     /// Internal rather than private so a test can assert every list names the
     /// fingerprint: a fetch that omits it returns records the mapper cannot build, and
     /// the media vanishes from the album rather than failing visibly.
+    ///
+    /// The same requirement covers the three chunked-blob fields. CloudKit returns
+    /// only the keys named here, and `metadata(from:)` reads an absent `chunkCount`
+    /// as "monolithic" — so omitting them turns every chunked video into a record
+    /// whose `encBlob` asset is missing: unplayable, and undeletable without
+    /// orphaning its chunks. `encHeader` is framing, not payload; the lazy-blob
+    /// guarantee is about `encBlob`, which must never appear in any of these lists.
     static let metadataKeys: [CKRecord.FieldKey] = [
         CloudKitSchema.EncMedia.albumID,
         CloudKitSchema.EncMedia.mediaID,
@@ -44,7 +51,10 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         CloudKitSchema.EncMedia.sizeBytes,
         CloudKitSchema.EncMedia.creationDevice,
         CloudKitSchema.EncMedia.schemaVersion,
-        CloudKitSchema.EncMedia.keyFingerprint
+        CloudKitSchema.EncMedia.keyFingerprint,
+        CloudKitSchema.EncMedia.chunkCount,
+        CloudKitSchema.EncMedia.plaintextLength,
+        CloudKitSchema.EncMedia.encHeader
     ]
 
     /// `desiredKeys` for the zone change feed, which carries BOTH record types.
@@ -55,13 +65,21 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     static let changeFeedKeys: [CKRecord.FieldKey] = metadataKeys + [
         CloudKitSchema.EncAlbum.encName,
         CloudKitSchema.EncAlbum.isHidden,
-        CloudKitSchema.EncAlbum.keyFingerprint
+        CloudKitSchema.EncAlbum.keyFingerprint,
+        CloudKitSchema.EncAlbum.coverMediaRef
     ]
+
+    /// Transport for chunked blobs (`EncBlobChunk` records in the blob zone).
+    /// Lazy so constructing a store for tests never touches the real container
+    /// unless a chunked upload actually happens.
+    private let makeChunkStore: () -> ChunkedBlobStoring
+    private lazy var chunkStore: ChunkedBlobStoring = makeChunkStore()
 
     public init(container: CloudKitContainer = .shared,
                 adapter: CloudKitDatabaseAdapter? = nil,
                 defaults: UserDefaults = UserDefaults(suiteName: UserDefaultUtils.appGroup) ?? .standard,
-                tokenNamespace: String = "") {
+                tokenNamespace: String = "",
+                chunkStore: ChunkedBlobStoring? = nil) {
         self.container = container
         self.defaults = defaults
         self.zoneID = container.zoneID
@@ -69,6 +87,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             ? "cloudkit_zone_change_token_v1"
             : "cloudkit_zone_change_token_v1_\(tokenNamespace)"
         self.adapter = adapter ?? CKDatabaseAdapter(database: container.privateDB)
+        self.makeChunkStore = { chunkStore ?? CloudKitChunkedBlobStore(container: container) }
         purgeLegacyLongLivedState()
     }
 
@@ -102,7 +121,27 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
 
         let record = makeRecord(for: item, thumbnailURL: snapshot ?? item.encryptedThumbURL)
         let recordName = item.recordName
-        printDebug("upload start recordName=\(recordName) albumID=\(item.albumID) mediaType=\(item.mediaType) sizeBytes=\(item.sizeBytes) zone=\(zoneID.zoneName) hasThumb=\(item.encryptedThumbURL != nil)")
+        printDebug("upload start recordName=\(recordName) albumID=\(item.albumID) mediaType=\(item.mediaType) sizeBytes=\(item.sizeBytes) chunkCount=\(item.chunkCount) zone=\(zoneID.zoneName) hasThumb=\(item.encryptedThumbURL != nil)")
+
+        // A chunked item's payload goes to the blob zone FIRST; the `EncMedia`
+        // save below is then the commit point (`makeRecord` gave it the header
+        // fields and no `encBlob`). Until it lands, a partial chunk upload reads
+        // as "not chunked yet" — never as a truncated video. Idempotent computed
+        // chunk names + the store's resume-by-probe make a retry cheap.
+        if item.chunkCount > 0 {
+            do {
+                try await chunkStore.uploadChunks(enc3FileURL: item.encryptedFileURL,
+                                                  mediaRecordName: item.recordName,
+                                                  progress: progress)
+            } catch ChunkedBlobError.accountUnavailable {
+                throw CloudKitMediaStoreError.accountUnavailable
+            } catch {
+                let mapped = mapAndRecord(error)
+                printDebug("upload chunks FAILED recordName=\(recordName) mapped=\(mapped) raw=\(error)")
+                throw mapped
+            }
+        }
+
         do {
             // An ordinary (non-long-lived) save: an upload interrupted by app
             // termination is re-driven from the durable `MigrationPlan` checkpoint,
@@ -167,7 +206,16 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         if let thumbnailURL {
             record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: thumbnailURL)
         }
-        record[CloudKitSchema.EncMedia.encBlob] = CKAsset(fileURL: item.encryptedFileURL)
+        if item.chunkCount > 0, let headerData = try? SeekableEncryptedHeader.read(fromFileAt: item.encryptedFileURL).bytes {
+            // Chunked: the payload lives as `EncBlobChunk` records; this record
+            // carries the ENC3 header instead of an `encBlob`, and saving it is
+            // the upload's commit point.
+            record[CloudKitSchema.EncMedia.encHeader] = headerData as CKRecordValue
+            record[CloudKitSchema.EncMedia.chunkCount] = Int64(item.chunkCount) as CKRecordValue
+            record[CloudKitSchema.EncMedia.plaintextLength] = item.plaintextLength as CKRecordValue
+        } else {
+            record[CloudKitSchema.EncMedia.encBlob] = CKAsset(fileURL: item.encryptedFileURL)
+        }
         // Relational link to the owning EncAlbum (record name == albumID hash). The
         // `.deleteSelf` action cascades a media delete when the album is deleted; the
         // same reference is set as `parent` for future record sharing. We do NOT need
@@ -195,6 +243,13 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             record[CloudKitSchema.EncAlbum.isHidden] = Int64(album.isHidden ? 1 : 0) as CKRecordValue
             record[CloudKitSchema.EncAlbum.schemaVersion] = album.schemaVersion as CKRecordValue
             record[CloudKitSchema.EncAlbum.keyFingerprint] = album.keyFingerprint as CKRecordValue
+            if let coverMediaID = album.coverMediaID {
+                let coverRecordName = MediaRecordName.componentRecordName(mediaID: coverMediaID, type: .photo)
+                let coverRecordID = CKRecord.ID(recordName: coverRecordName, zoneID: zoneID)
+                record[CloudKitSchema.EncAlbum.coverMediaRef] = CKRecord.Reference(recordID: coverRecordID, action: .none)
+            } else {
+                record[CloudKitSchema.EncAlbum.coverMediaRef] = nil
+            }
             _ = try await adapter.save(records: [record],
                                        savePolicy: .ifServerRecordUnchanged,
                                        perRecordProgress: { _, _ in })
@@ -292,13 +347,20 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         let schemaVersion = (record[CloudKitSchema.EncAlbum.schemaVersion] as? Int64) ?? CloudKitSchema.currentSchemaVersion
         // Absent stays nil ("unknown"), matching the write side's "only when known" rule.
         let keyFingerprint = record[CloudKitSchema.EncAlbum.keyFingerprint] as? String
+        let coverMediaID: String?
+        if let ref = record[CloudKitSchema.EncAlbum.coverMediaRef] as? CKRecord.Reference {
+            coverMediaID = MediaRecordName.mediaID(from: ref.recordID.recordName)
+        } else {
+            coverMediaID = nil
+        }
         return CloudKitAlbumMetadata(albumID: record.recordID.recordName,
                                      encName: encName,
                                      createdAt: createdAt,
                                      isHidden: isHidden,
                                      schemaVersion: schemaVersion,
                                      keyFingerprint: keyFingerprint,
-                                     recordChangeTag: record.recordChangeTag)
+                                     recordChangeTag: record.recordChangeTag,
+                                     coverMediaID: coverMediaID)
     }
 
     // MARK: - Metadata sync (asset-free, optional eager thumbnail)
@@ -397,6 +459,10 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                 try fileManager.removeItem(at: destination)
             }
             try fileManager.copyItem(at: sourceURL, to: destination)
+            // The adapter's snapshot has served its purpose now that the bytes are
+            // at `destination`; leaving it doubles the on-disk cost of every blob
+            // and thumbnail fetched.
+            CKDatabaseAdapter.discardSnapshot(at: sourceURL)
         } catch let error as CloudKitMediaStoreError {
             throw error
         } catch {
@@ -576,17 +642,25 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         // reader treats it as "this record names no key" and falls back, instead of the
         // record failing to map at all and the media disappearing from the album.
         let keyFingerprint = (record[CloudKitSchema.EncMedia.keyFingerprint] as? String) ?? ""
+        // Absent means monolithic — every record written before chunked storage.
+        let chunkCount = (record[CloudKitSchema.EncMedia.chunkCount] as? Int64).map(Int.init) ?? 0
+        let plaintextLength = (record[CloudKitSchema.EncMedia.plaintextLength] as? Int64) ?? 0
+        let encHeader = record[CloudKitSchema.EncMedia.encHeader] as? Data
 
-        return CloudKitMediaMetadata(recordName: record.recordID.recordName,
-                                     albumID: albumID,
-                                     mediaID: mediaID,
-                                     mediaType: mediaType,
-                                     createdAt: createdAt,
-                                     sizeBytes: sizeBytes,
+        let descriptor = CloudKitMediaRecordDescriptor(albumID: albumID,
+                                                       mediaID: mediaID,
+                                                       recordName: record.recordID.recordName,
+                                                       mediaType: mediaType,
+                                                       createdAt: createdAt,
+                                                       sizeBytes: sizeBytes,
+                                                       keyFingerprint: keyFingerprint,
+                                                       chunkCount: chunkCount,
+                                                       plaintextLength: plaintextLength)
+        return CloudKitMediaMetadata(descriptor: descriptor,
                                      creationDeviceID: creationDeviceID,
                                      schemaVersion: schemaVersion,
-                                     keyFingerprint: keyFingerprint,
-                                     recordChangeTag: record.recordChangeTag)
+                                     recordChangeTag: record.recordChangeTag,
+                                     encHeader: encHeader)
     }
 
     // MARK: - Token persistence

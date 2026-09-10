@@ -26,6 +26,10 @@ public enum FileAccessError: Error, ErrorDescribable {
     /// `requiredStampPrefix` is the file's own stamp when it carries one; nil
     /// means the required key is genuinely unknown and must not be named.
     case missingKeyForMedia(requiredStampPrefix: UInt32?)
+    /// Asked to evict a local copy that is the only copy — a purely local album.
+    /// Honouring it would destroy the media, so it is refused rather than treated
+    /// as a no-op that reports success.
+    case localCopyNotEvictable
 
     /// The short `54E0-7B52` label for the key this media needs, when known.
     public var requiredKeyLabel: String? {
@@ -60,6 +64,8 @@ public enum FileAccessError: Error, ErrorDescribable {
             return iCloudFileStatusUtil.userFriendlyErrorMessage(for: status)
         case .iCloudDownloadTimeout:
             return L10n.ICloudError.downloadTimeout
+        case .localCopyNotEvictable:
+            return L10n.MediaInfo.evictUnavailableLocalOnly
         }
     }
 }
@@ -224,6 +230,31 @@ public protocol MediaBackend: FileReader, FileWriter {
     /// this is the single read path the facade's pager draws from. Returns `nil`
     /// when no index has been built yet.
     func mediaIndex() async -> MediaIndex?
+
+    /// A streaming player item for a video the backend can serve incrementally,
+    /// or `nil` when the item plays through the ordinary materialize-then-decrypt
+    /// path. Only the CloudKit backend answers non-nil today — for a chunked
+    /// video whose bytes live as `EncBlobChunk` records.
+    func streamingPlayback(for media: InteractableMedia<EncryptedMedia>) async throws -> StreamingPlayback?
+
+    /// Where the item's ciphertext lives, what it costs in each place, and which
+    /// container format holds it. Purely observational — no download is triggered
+    /// to answer, so a cloud blob that is neither chunked nor cached honestly
+    /// reports an unknown format rather than fetching bytes to find out.
+    func storageDetails(for media: InteractableMedia<EncryptedMedia>) async -> MediaStorageDetails?
+
+    /// Drops this device's re-downloadable copy of the item, leaving the remote
+    /// copy untouched. Throws `FileAccessError.localCopyNotEvictable` on a backend
+    /// where the local bytes *are* the only copy — evicting there would be a
+    /// silent delete, which is what the separate `delete` path is for.
+    func evictLocalCopy(for media: InteractableMedia<EncryptedMedia>) async throws
+}
+
+public extension MediaBackend {
+    /// Default: nothing streams; every backend but CloudKit materializes.
+    func streamingPlayback(for media: InteractableMedia<EncryptedMedia>) async throws -> StreamingPlayback? {
+        nil
+    }
 }
 
 /// The facade contract (what app callers depend on): a full backend PLUS the

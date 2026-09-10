@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import UIKit
 
 public actor CloudKitUploader: DebugPrintable {
 
@@ -77,17 +78,28 @@ public actor CloudKitUploader: DebugPrintable {
     }
 
     private func runDrain() async {
+        let backgroundTask = await MainActor.run {
+            UIApplication.shared.beginBackgroundTask(withName: "CloudKitUploadDrain") { [weak self] in
+                guard let self else { return }
+                Task { await self.handleBackgroundExpiration() }
+            }
+        }
         defer {
+            if backgroundTask != .invalid {
+                Task { @MainActor in UIApplication.shared.endBackgroundTask(backgroundTask) }
+            }
             drainTask = nil
-            // A pass that deferred items on backoff must not depend on the next
-            // user action to retry — "retry after 3s" has to mean 3s, not "at the
-            // next capture or foreground". Schedule a kick for the earliest one.
             scheduleRekickIfNeeded()
         }
         repeat {
             moreWorkArrived = false
             await onePass()
-        } while moreWorkArrived
+        } while moreWorkArrived && !Task.isCancelled
+    }
+
+    private func handleBackgroundExpiration() {
+        printDebug("background time expired, cancelling drain")
+        drainTask?.cancel()
     }
 
     /// Wakes the drain when the earliest in-flight backoff expires. Replaced on
@@ -133,8 +145,11 @@ public actor CloudKitUploader: DebugPrintable {
         var uploaded = 0
         var deferredCount = 0
 
-        // Oldest first, so a backlog is backed up in the order it was captured.
         for item in items {
+            guard !Task.isCancelled else {
+                printDebug("drain cancelled, stopping between items")
+                break
+            }
             await CloudKitSyncStatusReporter.shared.reportUploadProgress(completed: uploaded,
                                                                         total: items.count)
             if let notBefore = nextAttemptAfter[item.recordName], notBefore > Date() {

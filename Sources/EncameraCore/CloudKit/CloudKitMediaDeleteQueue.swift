@@ -25,6 +25,12 @@
 //  unqueued: refused for reads for the rest of the session AND never reclaimed
 //  server-side — the same symptom, under a race.
 //
+//  Each entry carries the item's chunk geometry, captured from `EncMedia` before
+//  that record is deleted: a chunked item's payload lives as `EncBlobChunk`
+//  records in `EncameraBlobZone`, which nothing references and no cascade
+//  reclaims — the queue entry is the only durable record of how many chunk
+//  records the drain must delete.
+//
 
 import Foundation
 
@@ -34,7 +40,29 @@ import Foundation
 /// the same queue, so it crosses isolation boundaries by design.
 public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
 
-    private static let storageKey = "cloudkit_pending_media_deletes_v1"
+    /// One unconfirmed delete: the `EncMedia` record plus its chunk geometry.
+    public struct Entry: Equatable, Sendable {
+        public let recordName: String
+        /// `EncBlobChunk` records to reclaim after the `EncMedia` delete lands.
+        /// 0 = monolithic (nothing in the blob zone). `unknownChunkCount` = the
+        /// geometry could not be read when the intent was formed (offline);
+        /// the drain resolves it with a metadata fetch before deleting.
+        public let chunkCount: Int
+
+        public init(recordName: String, chunkCount: Int) {
+            self.recordName = recordName
+            self.chunkCount = chunkCount
+        }
+    }
+
+    /// Sentinel for "the delete was queued without reachable geometry".
+    public static let unknownChunkCount = -1
+
+    /// v1 stored a bare `[String]` of record names; v2 stores
+    /// `[recordName: chunkCount]`. v1 entries are migrated on first read with
+    /// chunk count 0 — every v1 entry predates chunked storage.
+    private static let legacyStorageKey = "cloudkit_pending_media_deletes_v1"
+    private static let storageKey = "cloudkit_pending_media_deletes_v2"
 
     /// Guards BOTH halves. Every mutation is a read-modify-write, and the writers
     /// run on different executors (a delete on the caller's thread, the drain on
@@ -98,7 +126,7 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
     /// the zone. The migration back into iCloud racing a user delete is exactly
     /// where that interleaving lives.
     @discardableResult
-    func claimDeletion(of recordName: String, queueRemoteDelete: Bool) -> CloudKitDeleteClaim {
+    func claimDeletion(of recordName: String, chunkCount: Int = 0, queueRemoteDelete: Bool) -> CloudKitDeleteClaim {
         Self.lock.withLock {
             let claim = session.claim(recordName)
             guard queueRemoteDelete else {
@@ -108,7 +136,7 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
             #if DEBUG
             Self.pairedUpdateSeam?()
             #endif
-            enqueueLocked(recordName)
+            enqueueLocked(recordName, chunkCount: chunkCount)
             return claim
         }
     }
@@ -161,7 +189,7 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
     /// issued yet and must keep winning.
     func clearKnownDeletedIfNotQueued(_ recordName: String) {
         Self.lock.withLock {
-            guard !read().contains(recordName) else {
+            guard read()[recordName] == nil else {
                 printDebug("clearKnownDeleted skip recordName=\(recordName) reason=deleteStillQueued")
                 return
             }
@@ -181,8 +209,42 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
     }
 
     /// Record names whose delete the server has not confirmed.
-    func pending() -> Set<String> {
-        Self.lock.withLock { read() }
+    public func pending() -> Set<String> {
+        Self.lock.withLock { Set(read().keys) }
+    }
+
+    /// Every unconfirmed delete with its chunk geometry.
+    public func pendingEntries() -> [Entry] {
+        Self.lock.withLock { read().map { Entry(recordName: $0.key, chunkCount: $0.value) } }
+    }
+
+    public func enqueue(_ recordName: String, chunkCount: Int = 0) {
+        Self.lock.withLock {
+            var map = read()
+            if let existing = map[recordName] {
+                let upgradeable = existing == Self.unknownChunkCount || existing == 0
+                guard upgradeable, chunkCount != existing else {
+                    printDebug("enqueue skip recordName=\(recordName) reason=alreadyQueued pending=\(map.count)")
+                    return
+                }
+            }
+            map[recordName] = chunkCount
+            write(map)
+            printDebug("enqueue ok recordName=\(recordName) chunkCount=\(chunkCount) pending=\(map.count)")
+        }
+    }
+
+    /// Records geometry resolved after the fact (the drain fetched the record's
+    /// metadata for an entry queued as unknown), so a crash between the
+    /// `EncMedia` delete and the chunk deletes cannot lose the count.
+    public func updateChunkCount(_ chunkCount: Int, for recordName: String) {
+        Self.lock.withLock {
+            var map = read()
+            guard map[recordName] != nil else { return }
+            map[recordName] = chunkCount
+            write(map)
+            printDebug("updateChunkCount ok recordName=\(recordName) chunkCount=\(chunkCount)")
+        }
     }
 
     /// Every unconfirmed delete with the claim it is currently held under, so a
@@ -190,7 +252,7 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
     func pendingClaims() -> [String: CloudKitDeleteClaim] {
         Self.lock.withLock {
             var claims: [String: CloudKitDeleteClaim] = [:]
-            for recordName in read() {
+            for recordName in read().keys {
                 claims[recordName] = session.currentClaim(recordName)
             }
             return claims
@@ -202,31 +264,46 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
     /// production caller wanting one half has an accessor for it already.
     func deletionState(of recordName: String) -> (knownDeleted: Bool, queued: Bool) {
         Self.lock.withLock {
-            (session.contains(recordName), read().contains(recordName))
+            (session.contains(recordName), read()[recordName] != nil)
         }
     }
 
     // MARK: - Storage
 
-    private func enqueueLocked(_ recordName: String) {
-        var set = read()
-        guard set.insert(recordName).inserted else {
-            // Already queued: an idempotent re-enqueue, not a lost write.
-            printDebug("enqueue skip recordName=\(recordName) reason=alreadyQueued pending=\(set.count)")
-            return
+    private func enqueueLocked(_ recordName: String, chunkCount: Int = 0) {
+        var map = read()
+        if let existing = map[recordName] {
+            let upgradeable = existing == Self.unknownChunkCount || existing == 0
+            guard upgradeable, chunkCount != existing else {
+                printDebug("enqueue skip recordName=\(recordName) reason=alreadyQueued pending=\(map.count)")
+                return
+            }
         }
-        defaults.set(Array(set), forKey: Self.storageKey)
-        printDebug("enqueue ok recordName=\(recordName) pending=\(set.count)")
+        map[recordName] = chunkCount
+        write(map)
+        printDebug("enqueue ok recordName=\(recordName) chunkCount=\(chunkCount) pending=\(map.count)")
     }
 
     private func removeLocked(_ recordName: String) {
-        var set = read()
-        guard set.remove(recordName) != nil else { return }
-        defaults.set(Array(set), forKey: Self.storageKey)
-        printDebug("remove ok recordName=\(recordName) pending=\(set.count)")
+        var map = read()
+        guard map.removeValue(forKey: recordName) != nil else { return }
+        write(map)
+        printDebug("remove ok recordName=\(recordName) pending=\(map.count)")
     }
 
-    private func read() -> Set<String> {
-        Set(defaults.stringArray(forKey: Self.storageKey) ?? [])
+    private func read() -> [String: Int] {
+        var map = (defaults.dictionary(forKey: Self.storageKey) as? [String: Int]) ?? [:]
+        // Fold in (and retire) any v1 entries left by an earlier build.
+        if let legacy = defaults.stringArray(forKey: Self.legacyStorageKey), !legacy.isEmpty {
+            for name in legacy where map[name] == nil { map[name] = 0 }
+            defaults.set(map, forKey: Self.storageKey)
+            defaults.removeObject(forKey: Self.legacyStorageKey)
+            printDebug("read migrated \(legacy.count) v1 entries")
+        }
+        return map
+    }
+
+    private func write(_ map: [String: Int]) {
+        defaults.set(map, forKey: Self.storageKey)
     }
 }

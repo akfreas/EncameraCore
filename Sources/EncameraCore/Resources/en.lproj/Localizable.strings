@@ -85,7 +85,6 @@
 "Erase" = "Erase";
 "Erase keychain data" = "Erase keychain data";
 "Erase All Data" = "Erase All Data";
-"allDataExplanation" = "Are you sure you want to erase ALL ENCAMERA DATA?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n• MEDIA YOU HAVE STORED LOCALLY OR ON iCLOUD\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.";
 "appDataExplanation" = "Are you sure you want to erase ALL app data?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\nTHIS WILL NOT ERASE:\n\n• Media you have stored locally or on iCloud\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n";
 
 "Erase" = "Erase";
@@ -722,10 +721,6 @@
 "Settings.ClearDismissedBanners" = "Reset Banners";
 "Settings.BannersCleared" = "Banners Cleared";
 "Settings.BannersClearedMessage" = "All dismissed banners have been reset and will appear again.";
-"Settings.IcloudDataMayRemainTitle" = "iCloud data may not be deleted";
-"Settings.IcloudDataMayRemainMessage" = "Your data on this device was erased, but we couldn't remove your data from iCloud. Reconnect to the internet (and make sure you're signed in to iCloud), then run Erase All Data again.";
-"Settings.EraseIncompleteTitle" = "Some data could not be erased";
-"Settings.EraseIncompleteMessage" = "Erasing finished, but some of your data is still on this device, so the app has not been reset. Please try again, and contact support if it keeps happening.\n\nStill present:\n%@";
 "Settings.HiddenAlbums" = "Hidden Albums";
 "Settings.HiddenAlbumsModal.Title" = "Your hidden albums";
 "Settings.HiddenAlbumsModal.Subtitle" = "Access them by creating a new album with the exact same name";
@@ -928,13 +923,6 @@
 "CloudKitMigration.Resume" = "Resume";
 "CloudKitMigration.PartialTitle" = "Album partially moved";
 "CloudKitMigration.PartialMessage" = "Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.";
-
-/* ./Encamera/AlbumManagement/ICloudDriveMigrationPrompt.swift - placeholder prompt offering to move deprecated iCloud Drive albums to CloudKit (design pending) */
-"CloudKitMigration.DrivePromptTitleOne" = "1 album is still on iCloud Drive";
-"CloudKitMigration.DrivePromptTitleMany" = "%@ albums are still on iCloud Drive";
-"CloudKitMigration.DrivePromptMessage" = "iCloud Drive storage is no longer supported. Move your albums to iCloud to keep them syncing across your devices.";
-"CloudKitMigration.DrivePromptMove" = "Move to iCloud";
-"CloudKitMigration.DrivePromptDismiss" = "Not now";
 
 /* ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for an album left split between this device and iCloud */
 "CloudKitMigration.BannerMessage" = "This album is split between this device and iCloud.";
@@ -1177,6 +1165,18 @@
 "MediaInfo.Encrypted" = "Encrypted";
 "MediaInfo.KeyFingerprint" = "Key Fingerprint";
 "MediaInfo.Filename" = "Original File Name";
+"MediaInfo.Storage" = "Storage";
+"MediaInfo.CachedOnDevice" = "Cached on Device";
+"MediaInfo.OnDevice" = "On Device";
+"MediaInfo.NotCached" = "Not Cached";
+"MediaInfo.Format" = "Format";
+"MediaInfo.Chunks" = "Chunks";
+"MediaInfo.RemoveCachedCopy" = "Remove Cached Copy";
+"MediaInfo.RemoveCachedCopyMessage" = "The encrypted copy on this device will be removed. This media stays in iCloud and downloads again the next time you open it.";
+"MediaInfo.DeletePermanently" = "Delete Permanently";
+"MediaInfo.DeletePermanentlyMessage" = "This media will be deleted everywhere it is stored, including iCloud. This cannot be undone.";
+"MediaInfo.EvictUnavailableLocalOnly" = "This media is stored only on this device, so there is no cached copy to remove.";
+"MediaInfo.StorageActionFailed" = "Couldn't Complete";
 /* ./Encamera/Settings/AppIconSelectionView.swift - App Icon Selection */
 "AppIconSelection.Title" = "App Icon";
 "AppIconSelection.SelectIcon" = "Select an icon";

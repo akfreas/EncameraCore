@@ -45,13 +45,19 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
 
     private func makeCoordinator(store: MockCloudKitMediaStore,
                                  bus: FileOperationBus = FileOperationBus(),
-                                 deleteQueue: CloudKitMediaDeleteQueue? = nil)
+                                 deleteQueue: CloudKitMediaDeleteQueue? = nil,
+                                 sizeSidecar: AlbumSizeSidecar? = nil)
         -> (CloudKitSyncCoordinator, MediaIndexStore, CloudKitBlobCache) {
         let index = makeIndexStore()
         let cache = makeCache()
         let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
+                                            sizeSidecar: sizeSidecar,
                                             bus: bus, deleteQueue: deleteQueue ?? makeDeleteQueue())
         return (coord, index, cache)
+    }
+
+    private func makeSizeSidecar() -> AlbumSizeSidecar {
+        AlbumSizeSidecar(fileURL: tempRoot.appendingPathComponent("\(UUID().uuidString).encsizes"))
     }
 
     /// The delete queue is durable and process-wide, so tests must not share one:
@@ -493,6 +499,51 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertTrue(queue.pending().isEmpty, "A confirmed delete drains")
     }
 
+    /// When resolveChunkCount returns unknownChunkCount (transient fetch failure),
+    /// remove() must NOT delete the commit record — otherwise drainPendingDeletes
+    /// cannot resolve geometry (the record is gone → nil → 0) and the chunk records
+    /// are orphaned permanently.
+    func testRemoveDefersCommitRecordDeleteWhenChunkCountIsUnknown() async throws {
+        let store = MockCloudKitMediaStore()
+        let queue = makeDeleteQueue()
+        let index = makeIndexStore()
+        let cache = makeCache()
+
+        // First coordinator syncs the chunked video into the index.
+        let videoMeta = CloudKitMediaMetadata(recordName: "vid#1",
+                                              albumID: "a1",
+                                              mediaID: "vid",
+                                              mediaType: .video,
+                                              createdAt: Date(timeIntervalSince1970: 100),
+                                              sizeBytes: 50_000_000,
+                                              creationDeviceID: "device",
+                                              schemaVersion: 1,
+                                              keyFingerprint: "",
+                                              recordChangeTag: "tag-1",
+                                              chunkCount: 12,
+                                              plaintextLength: 48_000_000)
+        store.changeSet = CloudKitChangeSet(changed: [videoMeta], deleted: [], token: nil, moreComing: false)
+        let first = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache,
+                                            indexStore: index, bus: FileOperationBus(), deleteQueue: queue)
+        try await first.sync(albumID: "a1")
+
+        // "Relaunch": a fresh coordinator has no chunkInfo in memory, so
+        // resolveChunkCount falls through to fetchRecordMetadata.
+        store.fetchRecordMetadataError = CloudKitMediaStoreError.retry(after: 1)
+        let relaunched = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache,
+                                                  indexStore: index, bus: FileOperationBus(), deleteQueue: queue)
+
+        try await relaunched.remove(recordName: "vid#1", albumID: "a1")
+
+        let deleteCalls = store.deleteCalls
+        XCTAssertEqual(deleteCalls, [],
+                       "remove() must not delete the commit record when chunk geometry is unknown — "
+                       + "drainPendingDeletes needs the record alive to resolve chunk count; got \(deleteCalls)")
+        let pending = queue.pending()
+        XCTAssertTrue(pending.contains("vid#1"),
+                      "The delete intent must still be queued; pending=\(pending)")
+    }
+
     func testCachedBlobSurvivesRelaunchBeforeTagMapRepopulates() async throws {
         let store = MockCloudKitMediaStore()
         let index = makeIndexStore()
@@ -588,7 +639,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
             switch operation {
             case .create(let media): created.append(media.id)
             case .delete(let medias): deleted.append(contentsOf: medias.map { $0.id })
-            case .move: break
+            case .move, .albumCoverChanged: break
             }
         }
         defer { cancellable.cancel() }
@@ -1383,6 +1434,283 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         var values: [String] { lock.lock(); defer { lock.unlock() }; return storage }
         func append(_ id: String) { lock.lock(); storage.append(id); lock.unlock() }
         func append(contentsOf ids: [String]) { lock.lock(); storage.append(contentsOf: ids); lock.unlock() }
+    }
+
+    // MARK: - A local save during a sync
+
+    /// A video registered while a sync is out on the network must still be in the
+    /// album when that sync finishes.
+    ///
+    /// `performSync` reads the index into a local array, awaits the whole change
+    /// feed, and then writes that array back. Because the coordinator is an actor,
+    /// it suspends at every one of those awaits, so `registerLocally` interleaves —
+    /// and the write-back, built from the pre-fetch snapshot, drops the entry it
+    /// never saw. Nothing throws and nothing is logged; the album simply renders
+    /// empty while the ciphertext, the upload and the server record are all fine.
+    ///
+    /// Observed on the rig 23 Aug 2026: a 70 MB import into a freshly created
+    /// CloudKit album uploaded all 21 chunks with `confirmedByServer=true`, and the
+    /// album detail still read "0 files on iCloud". A large video is what makes it
+    /// reliable rather than rare — the encrypt plus the per-chunk uploads stretch
+    /// the window from milliseconds to minutes — but nothing about the defect is
+    /// specific to chunking, so this test uses a plain photo and an explicit gate
+    /// instead of trying to be slow.
+    func testSaveDuringSyncSurvivesTheSyncsIndexWrite() async throws {
+        let store = MockCloudKitMediaStore()
+        // An empty feed: the sync has nothing of its own to apply, so the only
+        // thing that can change the index is the save below. That isolates the
+        // write-back from the merge.
+        store.changeSet = CloudKitChangeSet(changed: [], deleted: [], token: nil, moreComing: false)
+        let gate = AsyncGate()
+        store.fetchChangesGate = gate
+
+        let (coord, index, _) = makeCoordinator(store: store)
+
+        let sync = Task { try await coord.sync(albumID: "a1") }
+        // Not a sleep: proceed only once the coordinator is provably inside the
+        // fetch, holding its snapshot.
+        await gate.waitUntilEntered()
+
+        let upload = CloudKitMediaUpload(albumID: "a1", mediaID: "m1", mediaType: .photo,
+                                         createdAt: Date(timeIntervalSince1970: 555), sizeBytes: 1,
+                                         encryptedFileURL: URL(fileURLWithPath: "/tmp/m1.blob"),
+                                         encryptedThumbURL: nil)
+        try await coord.registerLocally(upload)
+        let afterSave = await ids(index)
+        XCTAssertEqual(afterSave, ["m1"],
+                       "Precondition: the save must reach the index before the sync writes back")
+
+        await gate.release()
+        try await sync.value
+
+        let afterSync = await ids(index)
+        XCTAssertEqual(afterSync, ["m1"],
+                       "The sync wrote back the index it read before the save and dropped it — "
+                       + "the media is uploaded and server-confirmed, but the album renders empty")
+    }
+
+    // MARK: - Residency
+
+    /// The storage figure on the info screen reads every chunk of a video. Reading
+    /// them must not mark them used: a 512-chunk video would otherwise jump the
+    /// whole queue and the byte cap would evict everything the user is still
+    /// watching instead.
+    func testCachedBytesOverChunksDoesNotSkewTheCacheLRU() async throws {
+        let store = MockCloudKitMediaStore()
+        let index = makeIndexStore()
+        let cache = CloudKitBlobCache(baseDir: tempRoot.appendingPathComponent("cache-lru"),
+                                      maxBytes: 200)
+        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
+                                            bus: FileOperationBus(), deleteQueue: makeDeleteQueue())
+        let videoMeta = CloudKitMediaMetadata(recordName: "vid#1",
+                                              albumID: "a1",
+                                              mediaID: "vid",
+                                              mediaType: .video,
+                                              createdAt: Date(timeIntervalSince1970: 100),
+                                              sizeBytes: 120,
+                                              creationDeviceID: "device",
+                                              schemaVersion: 1,
+                                              keyFingerprint: "",
+                                              recordChangeTag: "tag-1",
+                                              chunkCount: 3)
+        store.changeSet = CloudKitChangeSet(changed: [videoMeta], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+
+        var chunkURLs: [URL] = []
+        for chunk in 0..<3 {
+            let name = ChunkedBlobSchema.chunkRecordName(mediaRecordName: "vid#1", index: chunk)
+            chunkURLs.append(try await cache.store(recordName: name, changeTag: "tag-1", albumID: "a1",
+                                                   from: cacheSourceFile(bytes: 40)))
+        }
+        // Cached after the chunks, so it is the more recently used entry.
+        let photoURL = try await cache.store(recordName: "photo#1", changeTag: nil, albumID: "a1",
+                                             from: cacheSourceFile(bytes: 40))
+
+        let bytes = await coord.cachedBytes(recordName: "vid#1")
+        XCTAssertEqual(bytes, 120, "Every cached chunk counts toward the video's local size")
+
+        // 160 + 60 is over the cap by one 40-byte entry, so exactly one is evicted.
+        _ = try await cache.store(recordName: "fresh", changeTag: nil, albumID: "a1",
+                                  from: cacheSourceFile(bytes: 60))
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: chunkURLs[0].path),
+                       "The oldest chunk is the least recently used entry and must be the one evicted")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: photoURL.path),
+                      "Reading the video's size must not push a more recently used blob out of the cache")
+    }
+
+    // MARK: - Info-screen round trips
+
+    /// A record name for one component, spelled the way every production caller
+    /// spells it.
+    private func componentName(_ mediaID: String, _ type: MediaType) -> String {
+        MediaRecordName.componentRecordName(mediaID: mediaID, type: type)
+    }
+
+    private func geometryMeta(recordName: String,
+                              mediaID: String,
+                              type: MediaType,
+                              sizeBytes: Int64 = 10,
+                              chunkCount: Int = 0,
+                              encHeader: Data? = nil) -> CloudKitMediaMetadata {
+        CloudKitMediaMetadata(recordName: recordName,
+                              albumID: "a1",
+                              mediaID: mediaID,
+                              mediaType: type,
+                              createdAt: Date(timeIntervalSince1970: 100),
+                              sizeBytes: sizeBytes,
+                              creationDeviceID: "device",
+                              schemaVersion: 1,
+                              keyFingerprint: stubKeyFingerprint,
+                              recordChangeTag: "tag-\(recordName)",
+                              chunkCount: chunkCount,
+                              plaintextLength: chunkCount > 0 ? 1_000 : 0,
+                              encHeader: encHeader)
+    }
+
+    /// Opening the info screen on a photo used to fetch the photo's record just to
+    /// be told what the record name already says. Only the count can show it: the
+    /// answer was `nil` before and after.
+    func testChunkGeometryForAPhotoCostsNoRoundTrip() async throws {
+        let store = MockCloudKitMediaStore()
+        let photo = componentName("m1", .photo)
+        store.metadataToReturn = [geometryMeta(recordName: photo, mediaID: "m1", type: .photo)]
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        let info = try await coord.chunkedBlobInfo(recordName: photo)
+
+        XCTAssertNil(info, "a photo is never chunked")
+        XCTAssertEqual(store.fetchRecordMetadataCount, 0,
+                       "a photo cannot be chunked, so asking the server what its chunk count is buys nothing")
+    }
+
+    /// The info screen is re-opened constantly. A monolithic video used to answer
+    /// from the server every single time, because "not chunked" was stored as the
+    /// absence of an entry — the same state as "never looked".
+    func testReopeningAMonolithicVideoDoesNotRefetchItsGeometry() async throws {
+        let store = MockCloudKitMediaStore()
+        let video = componentName("v1", .video)
+        store.metadataToReturn = [geometryMeta(recordName: video, mediaID: "v1", type: .video)]
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        var info = try await coord.chunkedBlobInfo(recordName: video)
+        XCTAssertNil(info)
+        XCTAssertEqual(store.fetchRecordMetadataCount, 1, "the first look has to ask")
+
+        info = try await coord.chunkedBlobInfo(recordName: video)
+        XCTAssertNil(info, "the record is still monolithic")
+        XCTAssertEqual(store.fetchRecordMetadataCount, 1,
+                       "the monolithic answer was not kept, so every re-open pays for it again")
+    }
+
+    /// Delta sync already carries every record's chunk count. Once it has run,
+    /// nothing should have to ask again — for a monolithic record either.
+    func testASyncThatSawAMonolithicVideoLeavesNothingToFetch() async throws {
+        let store = MockCloudKitMediaStore()
+        let video = componentName("v1", .video)
+        let record = geometryMeta(recordName: video, mediaID: "v1", type: .video)
+        store.changeSet = CloudKitChangeSet(changed: [record], deleted: [], token: nil, moreComing: false)
+        store.metadataToReturn = [record]
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        try await coord.sync(albumID: "a1")
+        let fetchesAfterSync = store.fetchRecordMetadataCount
+
+        let info = try await coord.chunkedBlobInfo(recordName: video)
+        XCTAssertNil(info)
+
+        XCTAssertEqual(store.fetchRecordMetadataCount, fetchesAfterSync,
+                       "sync already knew this record is monolithic; asking again is a wasted round trip")
+    }
+
+    /// The staleness hazard, closed at the source: a record that is not on the
+    /// server yet reads as absent, and an upload in flight looks exactly like
+    /// that. Banking "monolithic" from it would answer wrongly for the rest of the
+    /// session — so nothing is banked, and the next look asks again.
+    func testAnAbsentRecordIsNeverBankedAsMonolithic() async throws {
+        let store = MockCloudKitMediaStore()
+        let video = componentName("v1", .video)
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        let absent = try await coord.chunkedBlobInfo(recordName: video)
+        XCTAssertNil(absent)
+        XCTAssertEqual(store.fetchRecordMetadataCount, 1)
+
+        // The upload lands; the record is chunked after all.
+        store.metadataToReturn = [geometryMeta(recordName: video, mediaID: "v1", type: .video,
+                                                chunkCount: 4, encHeader: Data([0xE3]))]
+
+        let info = try await coord.chunkedBlobInfo(recordName: video)
+        XCTAssertEqual(info?.chunkCount, 4,
+                       "a record that did not exist yet must not be remembered as monolithic")
+        XCTAssertEqual(store.fetchRecordMetadataCount, 2, "the second look has to ask, and did")
+    }
+
+    /// The optimization must not cost playback resolution: a genuinely chunked
+    /// video resolves on the first look, and the banked positive answer serves the
+    /// second without asking again.
+    func testAChunkedVideoStillResolvesAndIsThenAnsweredFromMemory() async throws {
+        let store = MockCloudKitMediaStore()
+        let video = componentName("v1", .video)
+        let header = Data([0xE3, 0x01, 0x02])
+        store.metadataToReturn = [geometryMeta(recordName: video, mediaID: "v1", type: .video,
+                                                chunkCount: 7, encHeader: header)]
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        let first = try await coord.chunkedBlobInfo(recordName: video)
+        XCTAssertEqual(first?.chunkCount, 7)
+        XCTAssertEqual(first?.encHeader, header, "streaming opens on these bytes and nothing else")
+
+        let second = try await coord.chunkedBlobInfo(recordName: video)
+        XCTAssertEqual(second?.chunkCount, 7)
+        XCTAssertEqual(store.fetchRecordMetadataCount, 1)
+    }
+
+    /// One info screen asks two questions about the same record — what its
+    /// geometry is and how many bytes it occupies — and the metadata fetch answers
+    /// both. It used to throw the size away and fetch the record a second time.
+    func testAVideoInfoScreenFetchesTheRecordOnceNotTwice() async throws {
+        let store = MockCloudKitMediaStore()
+        let video = componentName("v1", .video)
+        store.metadataToReturn = [geometryMeta(recordName: video, mediaID: "v1", type: .video,
+                                                sizeBytes: 4_096)]
+        let (coord, _, _) = makeCoordinator(store: store, sizeSidecar: makeSizeSidecar())
+
+        let info = try await coord.chunkedBlobInfo(recordName: video)
+        XCTAssertNil(info)
+        XCTAssertEqual(store.fetchRecordMetadataCount, 1, "the geometry look has to ask once")
+
+        let bytes = await coord.remoteBytes(recordName: video)
+
+        XCTAssertEqual(bytes, 4_096)
+        XCTAssertEqual(store.fetchRecordMetadataCount, 1,
+                       "the size came back with the geometry; fetching the same record again for it is the round trip this fixes")
+    }
+
+    /// And the fetch a photo does still pay — its size — is banked too, so the
+    /// second open of the same info screen asks for nothing at all.
+    func testRemoteBytesBanksTheSizeItFetched() async throws {
+        let store = MockCloudKitMediaStore()
+        let photo = componentName("m1", .photo)
+        store.metadataToReturn = [geometryMeta(recordName: photo, mediaID: "m1", type: .photo,
+                                                sizeBytes: 777)]
+        let (coord, _, _) = makeCoordinator(store: store, sizeSidecar: makeSizeSidecar())
+
+        var bytes = await coord.remoteBytes(recordName: photo)
+        XCTAssertEqual(bytes, 777)
+        XCTAssertEqual(store.fetchRecordMetadataCount, 1)
+
+        bytes = await coord.remoteBytes(recordName: photo)
+
+        XCTAssertEqual(bytes, 777)
+        XCTAssertEqual(store.fetchRecordMetadataCount, 1,
+                       "a size the sidecar has already been told is not worth a second fetch")
+    }
+
+    private func cacheSourceFile(bytes: Int) throws -> URL {
+        let url = tempRoot.appendingPathComponent("blob-source-\(UUID().uuidString)")
+        try Data(repeating: 0xAB, count: bytes).write(to: url)
+        return url
     }
 
     private final class TypeRecorder: @unchecked Sendable {

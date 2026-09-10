@@ -77,6 +77,8 @@ actor MediaBackendMock: MediaBackend {
     func mediaIndex() async -> MediaIndex? {
         await reconcileIndexStore?.load()
     }
+    func storageDetails(for media: InteractableMedia<EncryptedMedia>) async -> MediaStorageDetails? { nil }
+    func evictLocalCopy(for media: InteractableMedia<EncryptedMedia>) async throws {}
 }
 
 final class MediaBackendStrategyTests: XCTestCase {

@@ -95,9 +95,9 @@ public enum Feature: String, CaseIterable {
     /// toggle has no opinion and callers fall back to disabled.
     public var defaultValue: Bool? {
         switch self {
-        case .keychainSyncRestore:
+        case .cloudKitStorage, .keychainSyncRestore:
             return true
-        case .cloudKitStorage, .iCloudFlightCheck, .iCloudDiagnostics, .clearMediaIndex, .storageInsights, .keychainInspector, .userDefaultsInspector:
+        case .iCloudFlightCheck, .iCloudDiagnostics, .clearMediaIndex, .storageInsights, .keychainInspector, .userDefaultsInspector:
             #if DEBUG
             return true
             #endif

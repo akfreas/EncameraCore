@@ -39,9 +39,15 @@ public enum AlbumDirectoryNaming {
     ]
 
     /// Whether `name` is an album directory. Dot-prefixed names are always
-    /// excluded: they are filesystem and iCloud bookkeeping, never albums.
+    /// excluded: they are filesystem and iCloud bookkeeping, never albums. So is
+    /// anything the RevenueCat SDK puts beside the albums: its current caches are
+    /// named `<bundle id>.revenuecat.<purpose>` and appear as soon as the first
+    /// purchases response lands, which can be before the directory migration runs
+    /// on a launch that follows an erase.
     public static func isAlbumDirectoryName(_ name: String) -> Bool {
         guard !name.hasPrefix(".") else { return false }
-        return !reservedNames.contains(name.lowercased())
+        let lowercased = name.lowercased()
+        guard !lowercased.contains(".revenuecat.") else { return false }
+        return !reservedNames.contains(lowercased)
     }
 }

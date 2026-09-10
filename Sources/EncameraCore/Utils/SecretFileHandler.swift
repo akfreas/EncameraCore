@@ -203,8 +203,43 @@ extension SecretFileHandlerInt {
         }
     }
 
+    /// Streams an ENC3 file's plaintext, chunk by chunk. The seekable format is
+    /// per-chunk AEAD — nothing the secretstream machinery below can read — so it
+    /// gets its own path; the sniff in `decryptFile` routes here.
+    private func seekableDecryptStream(url: URL) throws -> AsyncThrowingStream<Data, Error> {
+        let reader = try SeekableEncryptedReader.forFile(url, keyBytes: keyBytes)
+        let progressSubject = self.progressSubject
+        return AsyncThrowingStream { continuation in
+            let readTask = Task {
+                do {
+                    let count = reader.geometry.chunkCount
+                    for index in 0..<count {
+                        try Task.checkCancellation()
+                        let plain = try await reader.plaintextChunk(at: index)
+                        continuation.yield(plain)
+                        progressSubject.send(Double(index + 1) / Double(max(1, count)))
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { termination in
+                if case .cancelled = termination { readTask.cancel() }
+            }
+        }
+    }
+
     func decryptFile() async throws -> AsyncThrowingStream<Data, Error> {
         do {
+            // Sniff the magic, never assume from context (the ENC-135 lesson):
+            // an album can hold V1, V2 and ENC3 files side by side, and this
+            // handler is the one place every load path funnels through.
+            if case .url(let sourceURL) = sourceMedia.source,
+               SeekableEncryptedHeader.isSeekableFormat(fileURL: sourceURL) {
+                return try seekableDecryptStream(url: sourceURL)
+            }
+
             let fileHandler: FileLikeHandler<SourceMediaType>
             do {
                 fileHandler = try FileLikeHandler(media: sourceMedia, mode: .reading)

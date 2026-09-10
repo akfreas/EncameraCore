@@ -113,7 +113,130 @@ final class CloudKitUploadQueueTests: XCTestCase {
         XCTAssertEqual(remaining, ["KEPT"], "A record whose file vanished is dropped")
     }
 
+    // MARK: - Record descriptor
+
+    /// The descriptor's `Codable` is what keeps the manifest readable by the
+    /// previous build: `mediaType` lives under the historical `mediaTypeRawValue`
+    /// key, and the chunk geometry is optional on decode.
+    func testDescriptorDecodesManifestShapedEntries() throws {
+        let manifest = """
+        [{"albumID":"a1","mediaID":"m1","recordName":"m1#0","mediaTypeRawValue":0,\
+        "createdAt":0,"sizeBytes":1,"keyFingerprint":"abc"},\
+        {"albumID":"a1","mediaID":"m2","recordName":"m2#1","mediaTypeRawValue":1,\
+        "createdAt":0,"sizeBytes":9,"keyFingerprint":"def","chunkCount":3,"plaintextLength":7}]
+        """
+        let decoded = try JSONDecoder().decode([CloudKitMediaRecordDescriptor].self,
+                                               from: Data(manifest.utf8))
+        XCTAssertEqual(decoded, [
+            CloudKitMediaRecordDescriptor(albumID: "a1", mediaID: "m1", recordName: "m1#0",
+                                          mediaType: .photo, createdAt: Date(timeIntervalSinceReferenceDate: 0),
+                                          sizeBytes: 1, keyFingerprint: "abc"),
+            CloudKitMediaRecordDescriptor(albumID: "a1", mediaID: "m2", recordName: "m2#1",
+                                          mediaType: .video, createdAt: Date(timeIntervalSinceReferenceDate: 0),
+                                          sizeBytes: 9, keyFingerprint: "def",
+                                          chunkCount: 3, plaintextLength: 7),
+        ])
+    }
+
+    /// The encoded key set is exactly what the manifest held before the descriptor
+    /// existed: chunk keys only for a chunked record, and never a `mediaType` key.
+    func testDescriptorEncodesManifestKeySet() throws {
+        let monolithic = CloudKitMediaRecordDescriptor(albumID: "a1", mediaID: "m1", recordName: "m1#0",
+                                                       mediaType: .photo, createdAt: Date(),
+                                                       sizeBytes: 1, keyFingerprint: "abc")
+        let chunked = CloudKitMediaRecordDescriptor(albumID: "a1", mediaID: "m2", recordName: "m2#1",
+                                                    mediaType: .video, createdAt: Date(),
+                                                    sizeBytes: 9, keyFingerprint: "def",
+                                                    chunkCount: 3, plaintextLength: 7)
+
+        let monolithicJSON = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(monolithic)) as? [String: Any])
+        XCTAssertEqual(Set(monolithicJSON.keys),
+                       ["albumID", "mediaID", "recordName", "mediaTypeRawValue", "createdAt", "sizeBytes", "keyFingerprint"])
+        XCTAssertEqual(monolithicJSON["mediaTypeRawValue"] as? Int, MediaType.photo.rawValue)
+
+        let chunkedJSON = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(chunked)) as? [String: Any])
+        XCTAssertEqual(Set(chunkedJSON.keys),
+                       ["albumID", "mediaID", "recordName", "mediaTypeRawValue", "createdAt", "sizeBytes", "keyFingerprint",
+                        "chunkCount", "plaintextLength"])
+        XCTAssertEqual(chunkedJSON["chunkCount"] as? Int, 3)
+        XCTAssertEqual(chunkedJSON["plaintextLength"] as? Int, 7)
+    }
+
     // MARK: - Manifest compatibility
+
+    /// A manifest in the exact shape the previous build wrote — flat keys, `mediaTypeRawValue`,
+    /// chunk keys only on a chunked entry — decodes into the same values it described.
+    func testManifestWrittenByPreviousBuildDecodes() throws {
+        let manifest = """
+        [{"albumID":"a1","mediaID":"m1","recordName":"m1#0","mediaTypeRawValue":0,\
+        "createdAt":0,"sizeBytes":1,"fileName":"m1_0.photo","keyFingerprint":"abc",\
+        "queuedAt":5,"attempts":2,"lastError":"boom","hasGivenUp":true},\
+        {"albumID":"a1","mediaID":"m2","recordName":"m2#1","mediaTypeRawValue":1,\
+        "createdAt":0,"sizeBytes":9,"fileName":"m2_1.video","keyFingerprint":"def",\
+        "chunkCount":3,"plaintextLength":7,"queuedAt":6,"attempts":0,"hasGivenUp":false}]
+        """
+        let decoded = try JSONDecoder().decode([CloudKitPendingUpload].self, from: Data(manifest.utf8))
+        XCTAssertEqual(decoded, [
+            CloudKitPendingUpload(
+                descriptor: CloudKitMediaRecordDescriptor(albumID: "a1", mediaID: "m1", recordName: "m1#0",
+                                                          mediaType: .photo,
+                                                          createdAt: Date(timeIntervalSinceReferenceDate: 0),
+                                                          sizeBytes: 1, keyFingerprint: "abc"),
+                fileName: "m1_0.photo", queuedAt: Date(timeIntervalSinceReferenceDate: 5),
+                attempts: 2, lastError: "boom", hasGivenUp: true),
+            CloudKitPendingUpload(
+                descriptor: CloudKitMediaRecordDescriptor(albumID: "a1", mediaID: "m2", recordName: "m2#1",
+                                                          mediaType: .video,
+                                                          createdAt: Date(timeIntervalSinceReferenceDate: 0),
+                                                          sizeBytes: 9, keyFingerprint: "def",
+                                                          chunkCount: 3, plaintextLength: 7),
+                fileName: "m2_1.video", queuedAt: Date(timeIntervalSinceReferenceDate: 6),
+                attempts: 0, lastError: nil, hasGivenUp: false),
+        ])
+    }
+
+    /// What this build writes is the flat key set the previous build reads: no
+    /// `descriptor` nesting, `mediaTypeRawValue` present, chunk keys only when chunked.
+    func testManifestEntryEncodesFlatKeySet() throws {
+        let monolithic = CloudKitPendingUpload(
+            descriptor: CloudKitMediaRecordDescriptor(albumID: "a1", mediaID: "m1", recordName: "m1#0",
+                                                      mediaType: .photo, createdAt: Date(),
+                                                      sizeBytes: 1, keyFingerprint: "abc"),
+            fileName: "m1_0.photo", queuedAt: Date(), attempts: 0, lastError: nil, hasGivenUp: false)
+        let chunked = CloudKitPendingUpload(
+            descriptor: CloudKitMediaRecordDescriptor(albumID: "a1", mediaID: "m2", recordName: "m2#1",
+                                                      mediaType: .video, createdAt: Date(),
+                                                      sizeBytes: 9, keyFingerprint: "def",
+                                                      chunkCount: 3, plaintextLength: 7),
+            fileName: "m2_1.video", queuedAt: Date(), attempts: 1, lastError: "boom", hasGivenUp: false)
+
+        let monolithicJSON = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(monolithic)) as? [String: Any])
+        XCTAssertEqual(Set(monolithicJSON.keys),
+                       ["albumID", "mediaID", "recordName", "mediaTypeRawValue", "createdAt", "sizeBytes",
+                        "keyFingerprint", "fileName", "queuedAt", "attempts", "hasGivenUp"])
+        XCTAssertEqual(monolithicJSON["mediaTypeRawValue"] as? Int, MediaType.photo.rawValue)
+
+        let chunkedJSON = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(chunked)) as? [String: Any])
+        XCTAssertEqual(Set(chunkedJSON.keys),
+                       ["albumID", "mediaID", "recordName", "mediaTypeRawValue", "createdAt", "sizeBytes",
+                        "keyFingerprint", "chunkCount", "plaintextLength",
+                        "fileName", "queuedAt", "attempts", "lastError", "hasGivenUp"])
+    }
+
+    /// The queue row and the rebuilt upload carry the descriptor through unchanged.
+    func testEnqueueThenRebuildPreservesTheDescriptor() async throws {
+        let queue = CloudKitUploadQueue(baseDir: baseDir)
+        let original = try makeUpload(mediaID: "ROUND", keyFingerprint: "abc123")
+
+        let queued = try await queue.enqueue(original)
+        XCTAssertEqual(queued.descriptor, original.descriptor)
+
+        let pendingItem = await queue.pendingItem(recordName: "ROUND#0")
+        let item = try XCTUnwrap(pendingItem)
+        XCTAssertEqual(item.descriptor, original.descriptor)
+        let rebuilt = await queue.rebuild(item, thumbURL: nil)
+        XCTAssertEqual(rebuilt.descriptor, original.descriptor)
+    }
 
     /// A manifest entry written before the fingerprint was required does not decode, and
     /// the queue drops it rather than migrating it. Nothing has ever shipped a CloudKit

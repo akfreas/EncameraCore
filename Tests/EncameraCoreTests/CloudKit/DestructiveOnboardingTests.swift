@@ -122,14 +122,14 @@ final class DestructiveOnboardingTests: XCTestCase {
         // Seed a returning-user record: marker set, one roster device, one fingerprint.
         let device = MultiDeviceState.DeviceRecord(deviceID: "other-device", name: "iPad", lastSeen: Date())
         try keyManager.setMultiDeviceState(
-            MultiDeviceState(hasUsedEncamera: true, devices: [device], keyFingerprints: ["oldfingerprint"])
+            MultiDeviceState(devices: [device], keyFingerprints: ["oldfingerprint"])
         )
 
         let report = try await makeCoordinator(store: store, keyManager: keyManager).run(expectedMediaCount: 3)
         XCTAssertTrue(report.isCompleteSuccess)
 
         let state = try XCTUnwrap(keyManager.getMultiDeviceState())
-        XCTAssertFalse(state.hasUsedEncamera,
+        XCTAssertFalse(state.hasEvidence,
                        "The has-used marker must be cleared — proving the non-merging overwrite, not the OR-merge, was used")
         XCTAssertTrue(state.keyFingerprints.isEmpty,
                       "This account's fingerprints must be cleared")
@@ -151,7 +151,7 @@ final class DestructiveOnboardingTests: XCTestCase {
         let keyManager = DestructiveSpyKeyManager()
         let device = MultiDeviceState.DeviceRecord(deviceID: "other-device", name: "iPad", lastSeen: Date())
         try keyManager.setMultiDeviceState(
-            MultiDeviceState(hasUsedEncamera: true, devices: [device], keyFingerprints: ["oldfingerprint"])
+            MultiDeviceState(devices: [device], keyFingerprints: ["oldfingerprint"])
         )
 
         let report = try await makeCoordinator(store: store, keyManager: keyManager).run(expectedMediaCount: 3)
@@ -164,7 +164,7 @@ final class DestructiveOnboardingTests: XCTestCase {
         XCTAssertEqual(store.deleteCalls, [], "Nothing was enumerated, so nothing may be deleted")
 
         let state = try XCTUnwrap(keyManager.getMultiDeviceState())
-        XCTAssertTrue(state.hasUsedEncamera,
+        XCTAssertTrue(state.hasEvidence,
                       "The has-used marker must survive — it is the returning-user warning for the next install")
         XCTAssertEqual(state.keyFingerprints, ["oldfingerprint"],
                        "The fingerprint that can still decrypt the surviving media must not be erased")
@@ -217,7 +217,7 @@ final class DestructiveOnboardingTests: XCTestCase {
         store.fingerprintCensusOverride = .counted(mediaCount: 47, fingerprints: [:])
         let keyManager = DestructiveSpyKeyManager()
         try keyManager.setMultiDeviceState(
-            MultiDeviceState(hasUsedEncamera: true, devices: [], keyFingerprints: ["oldfingerprint"])
+            MultiDeviceState(keyFingerprints: ["oldfingerprint"])
         )
 
         let report = try await makeCoordinator(store: store, keyManager: keyManager).run(expectedMediaCount: 47)
@@ -229,7 +229,7 @@ final class DestructiveOnboardingTests: XCTestCase {
         XCTAssertEqual(keyManager.generatedKeyNames, [])
 
         let state = try XCTUnwrap(keyManager.getMultiDeviceState())
-        XCTAssertTrue(state.hasUsedEncamera,
+        XCTAssertTrue(state.hasEvidence,
                       "The marker must survive — it is the next install's returning-user warning")
         XCTAssertEqual(state.keyFingerprints, ["oldfingerprint"],
                        "The fingerprints that can still decrypt the surviving media must not be erased")
@@ -256,7 +256,7 @@ final class DestructiveOnboardingTests: XCTestCase {
         store.fingerprintCensusError = CloudKitMediaStoreError.zoneNotFound
         let keyManager = DestructiveSpyKeyManager()
         try keyManager.setMultiDeviceState(
-            MultiDeviceState(hasUsedEncamera: true, devices: [], keyFingerprints: ["oldfingerprint"])
+            MultiDeviceState(keyFingerprints: ["oldfingerprint"])
         )
 
         let report = try await makeCoordinator(store: store, keyManager: keyManager).run(expectedMediaCount: 12)
@@ -268,7 +268,7 @@ final class DestructiveOnboardingTests: XCTestCase {
         XCTAssertTrue(report.freshKeyGenerated)
 
         let state = try XCTUnwrap(keyManager.getMultiDeviceState())
-        XCTAssertFalse(state.hasUsedEncamera, "A clean run clears the marker")
+        XCTAssertFalse(state.hasEvidence, "A clean run clears the marker")
         XCTAssertEqual(state.keyFingerprints, [], "A clean run clears the fingerprints")
     }
 
@@ -290,7 +290,7 @@ final class DestructiveOnboardingTests: XCTestCase {
 
     /// It used to be a `try?`: the write that `isCompleteSuccess` asserts happened
     /// could fail silently, and the run would still mint a fresh key over a record
-    /// that still said `hasUsedEncamera: true` with the old fingerprints. The user
+    /// that still held old fingerprints. The user
     /// then finished onboarding on the new key and was dropped back onto the
     /// returning-user branch at the next launch, for data they had already deleted.
     func testMarkerClearFailureIsReportedAndStopsShortOfTheMint() async throws {

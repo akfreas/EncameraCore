@@ -932,17 +932,47 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
 
             defer { proven.cleanUp() }
             let thumbURL = previewURL.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
-            let upload = CloudKitMediaUpload(
+
+            // Chunked branch. An ENC3 source (a large capture/import made after
+            // chunked storage shipped) slices and uploads the EXISTING ciphertext
+            // — no crypto work, preserving "migration never re-encrypts". A large
+            // ENC2 video (the user's pre-existing library) is re-encrypted into
+            // ENC3 first, so migration produces chunk records for it too. The
+            // re-encrypt is redone from scratch on a crash — the temp is not
+            // checkpointed — but the chunk upload itself resumes by probe.
+            var uploadFileURL = proven.uploadURL
+            var chunkGeometry: (chunkCount: Int, plaintextLength: Int64)?
+            var reencryptedTemp: URL?
+            if SeekableEncryptedHeader.isSeekableFormat(fileURL: encURL) {
+                let header = try SeekableEncryptedHeader.read(fromFileAt: encURL).header
+                chunkGeometry = (header.chunkCount, Int64(header.plaintextLength))
+            } else if item.mediaType == .video,
+                      FeatureToggle.isEnabled(feature: .cloudKitStorage),
+                      item.sizeBytes >= Int64(SeekableEncryptedFormat.threshold) {
+                setPhase(.preparing, plan: plan, currentItemName: item.mediaID)
+                let header: SeekableEncryptedHeader
+                (uploadFileURL, header) = try await Self.reencryptToSeekable(sourceENC2: encURL,
+                                                                             mediaID: item.mediaID,
+                                                                             keyBytes: proven.key.keyBytes)
+                reencryptedTemp = uploadFileURL
+                chunkGeometry = (header.chunkCount, Int64(header.plaintextLength))
+            }
+            defer { if let reencryptedTemp { try? FileManager.default.removeItem(at: reencryptedTemp) } }
+
+            let descriptor = CloudKitMediaRecordDescriptor(
                 albumID: albumIDHash,
                 mediaID: item.mediaID,
+                recordName: item.recordName,
                 mediaType: item.mediaType,
                 createdAt: item.createdAt,
                 sizeBytes: item.sizeBytes,
-                encryptedFileURL: proven.uploadURL,
-                encryptedThumbURL: thumbURL,
-                recordName: item.recordName,
-                keyFingerprint: proven.fingerprint
+                keyFingerprint: proven.fingerprint,
+                chunkCount: chunkGeometry?.chunkCount ?? 0,
+                plaintextLength: chunkGeometry?.plaintextLength ?? 0
             )
+            let upload = CloudKitMediaUpload(descriptor: descriptor,
+                                             encryptedFileURL: uploadFileURL,
+                                             encryptedThumbURL: thumbURL)
             setPhase(.uploading, plan: plan, currentItemName: item.mediaID)
             do {
                 try await uploadWithRetry(upload, coordinator: coordinator, plan: plan, itemName: item.mediaID)
@@ -1006,6 +1036,37 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             plan.items[index].state = .sourceDeleted
             try await planStore.save(plan)
         }
+    }
+
+    /// Re-encrypts an ENC2 video into ENC3 so migration produces chunk records
+    /// for the user's pre-existing large videos. First implementation uses a
+    /// plaintext temp file (as playback already does today); a streaming
+    /// ENC2-read → ENC3-write pipe is the follow-up that removes the
+    /// plaintext-on-disk window. Embedded metadata is carried across.
+    private static func reencryptToSeekable(sourceENC2: URL,
+                                            mediaID: String,
+                                            keyBytes: [UInt8]) async throws -> (URL, SeekableEncryptedHeader) {
+        let scratchDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("migration-enc3-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: scratchDir, withIntermediateDirectories: true)
+        let plaintextURL = scratchDir.appendingPathComponent("\(mediaID).plain")
+        defer { try? FileManager.default.removeItem(at: plaintextURL) }
+
+        let encrypted = EncryptedMedia(source: .url(sourceENC2), mediaType: .video, id: mediaID)
+        let handler = SecretFileHandler(keyBytes: keyBytes, source: encrypted, targetURL: plaintextURL)
+        _ = try await handler.decryptToURL()
+
+        let metadata = try? await EncryptedMetadataHandler().readMetadata(from: sourceENC2, keyBytes: keyBytes)
+        let metadataJSON = try metadata.map { try SeekableEncryptedFormat.encodeMetadata($0) }
+
+        let destination = scratchDir.appendingPathComponent("\(mediaID).enc3")
+        // Detached: the writer is synchronous and this manager is @MainActor — a
+        // multi-GB encrypt must never run on the main thread.
+        let header = try await Task.detached(priority: .userInitiated) {
+            try SeekableEncryptedWriter(keyBytes: keyBytes)
+                .encrypt(source: plaintextURL, destination: destination, metadata: metadataJSON)
+        }.value
+        return (destination, header)
     }
 
     /// Uploads with bounded `retry(after:)` backoff (honoring CloudKit's requested
@@ -1189,6 +1250,6 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     // MARK: - Helpers
 
     private static func fileSize(at url: URL) -> Int64? {
-        (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value
+        url.fileSizeBytes()
     }
 }

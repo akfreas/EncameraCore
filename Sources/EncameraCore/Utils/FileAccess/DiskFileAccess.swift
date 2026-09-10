@@ -1061,10 +1061,34 @@ extension DiskFileAccess {
             throw FileAccessError.missingDirectoryModel
         }
         let destinationURL = directoryModel.driveURLForMedia(media)
-        
+
         let encrypted: EncryptedMedia
-        
-        if let metadata = metadata {
+
+        // Format chokepoint (`VideoChunkingPolicy`): a large video becomes
+        // seekable ENC3 — locally too, so a later migration to CloudKit slices
+        // and uploads the existing ciphertext with no re-encryption. iCloud
+        // Drive albums are excluded by the policy (cross-device reader-version
+        // risk); everything else falls through to the handlers below unchanged.
+        let plaintextLength = media.url.flatMap { $0.fileSizeBytes() } ?? 0
+        if let sourceURL = media.url,
+           VideoChunkingPolicy.shouldWriteSeekableFormat(mediaType: media.mediaType,
+                                                         plaintextLength: plaintextLength,
+                                                         storageType: directoryModel.storageType) {
+            let metadataJSON = try metadata.map { try SeekableEncryptedFormat.encodeMetadata($0) }
+            let keyBytes = key.keyBytes
+            // Detached: the seekable writer is synchronous, and a multi-GB encrypt
+            // must not pin this actor's cooperative thread for its whole run.
+            _ = try await Task.detached(priority: .userInitiated) {
+                try SeekableEncryptedWriter(keyBytes: keyBytes)
+                    .encrypt(source: sourceURL, destination: destinationURL, metadata: metadataJSON) { percent in
+                        DispatchQueue.main.async { progress(percent) }
+                    }
+            }.value
+            guard let enc3Media = EncryptedMedia(source: destinationURL) else {
+                throw SecretFilesError.destinationFileAccessError
+            }
+            encrypted = enc3Media
+        } else if let metadata = metadata {
             let fileHandler = SecretFileHandlerV2(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
             fileHandler.progress
                 .receive(on: DispatchQueue.main)

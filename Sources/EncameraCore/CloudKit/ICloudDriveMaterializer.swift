@@ -74,7 +74,7 @@ public protocol ICloudDriveMaterializing: AnyObject {
 /// it, so batch *k+1* downloads into the space batch *k* just freed. Too small and
 /// the migration spends its life waiting on round trips; too large and a big album
 /// fills the phone. The right number is empirical, so it is a runtime setting rather
-/// than a constant — see `ICloudDriveMigrationDeviceTests`, which measures it.
+/// than a constant.
 public enum ICloudDriveMigrationBatchSize {
 
     public static let `default` = 10

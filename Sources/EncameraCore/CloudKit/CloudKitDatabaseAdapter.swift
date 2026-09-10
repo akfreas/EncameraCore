@@ -134,10 +134,14 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
     public func save(records: [CKRecord],
                      savePolicy: CKModifyRecordsOperation.RecordSavePolicy,
                      perRecordProgress: @escaping (CKRecord.ID, Double) -> Void) async throws -> [CKRecord] {
-        try await withCheckedThrowingContinuation { continuation in
-            let operation = CKModifyRecordsOperation(recordsToSave: records, recordIDsToDelete: nil)
-            operation.savePolicy = savePolicy
-            operation.qualityOfService = .userInitiated
+        let operation = CKModifyRecordsOperation(recordsToSave: records, recordIDsToDelete: nil)
+        operation.savePolicy = savePolicy
+        operation.qualityOfService = .userInitiated
+
+        // `runCancellable`, like `fetch`: cancelling the awaiting task must stop an
+        // in-flight save — a cancelled 100 MB chunk batch otherwise keeps
+        // transferring invisibly to completion.
+        return try await Self.runCancellable(operation) { continuation in
             // `configuration.isLongLived` stays at its default (false) on purpose —
             // see the protocol's note and ENC-133. A long-lived save survives app
             // termination in the daemon, but re-attaching to it on the next launch is
@@ -244,7 +248,16 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
                 perRecordProgress(recordID, fraction)
             }
             operation.perRecordResultBlock = { recordID, result in
-                if case .success(let record) = result { fetched[recordID] = record }
+                if case .success(let record) = result {
+                    // On iOS 18+ a CKAsset's staged file is only guaranteed valid
+                    // inside this delivery block — the system may reclaim it any
+                    // time after it returns, and callers read the fileURL after
+                    // the whole operation completes. Snapshot every asset to a
+                    // file we own, HERE, and hand back a record pointing at the
+                    // copies (an APFS clone, so cost is near zero).
+                    Self.snapshotAssets(of: record)
+                    fetched[recordID] = record
+                }
             }
             operation.fetchRecordsResultBlock = { [weak self] result in
                 self?.untrack(operation)
@@ -255,6 +268,54 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
             }
             self.track(operation)
             self.database.add(operation)
+        }
+    }
+
+    /// Where asset snapshots live. A directory of its own, because these files
+    /// have to be reclaimable in bulk: they are created deep inside a CloudKit
+    /// delivery block with no natural owner, and one left behind per fetched
+    /// chunk means a leak that grows with every video played.
+    public static var assetSnapshotDirectory: URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("ckassets", isDirectory: true)
+    }
+
+    /// Whether `url` names a file in the snapshot directory — i.e. one this
+    /// process created and may freely move or delete. A `CKAsset` URL that fails
+    /// this test still points at CloudKit's own staged file, which the system
+    /// owns and reclaims on its own schedule.
+    public static func isSnapshot(_ url: URL?) -> Bool {
+        guard let url else { return false }
+        return url.deletingLastPathComponent().standardizedFileURL == assetSnapshotDirectory.standardizedFileURL
+    }
+
+    /// Deletes one snapshot. Safe to call with any URL — a path outside the
+    /// snapshot directory is ignored rather than deleted, so a caller that passes
+    /// an un-snapshotted CloudKit URL cannot remove a file the system still owns.
+    public static func discardSnapshot(at url: URL?) {
+        guard let url, isSnapshot(url) else { return }
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    /// Replaces every `CKAsset` field on `record` with one pointing at a copy of
+    /// the staged file in a directory this process owns. Must run inside the
+    /// operation's per-record delivery block — see the call site. A failed copy
+    /// leaves the original asset in place (the pre-fix behavior).
+    ///
+    /// The copy has to be reclaimed by whoever reads it (`discardSnapshot`), with
+    /// `TempFileAccess.cleanupTemporaryFiles()` sweeping the directory as the
+    /// backstop for anything that does not.
+    static func snapshotAssets(of record: CKRecord) {
+        let directory = assetSnapshotDirectory
+        for key in record.allKeys() {
+            guard let asset = record[key] as? CKAsset, let sourceURL = asset.fileURL else { continue }
+            let destination = directory.appendingPathComponent("ckasset-\(UUID().uuidString)-\(key)")
+            do {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                try FileManager.default.copyItem(at: sourceURL, to: destination)
+                record[key] = CKAsset(fileURL: destination)
+            } catch {
+                Self.printDebug("snapshotAssets FAILED recordName=\(record.recordID.recordName) key=\(key) raw=\(error)")
+            }
         }
     }
 
@@ -274,10 +335,6 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
         } onCancel: {
             operation.cancel()
         }
-    }
-
-    public static var assetSnapshotDirectory: URL {
-        FileManager.default.temporaryDirectory.appendingPathComponent("ckassets", isDirectory: true)
     }
 
     // MARK: Query (handles cursor paging)

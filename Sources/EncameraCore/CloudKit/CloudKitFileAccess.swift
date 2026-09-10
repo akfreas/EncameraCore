@@ -53,6 +53,12 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// Durable home for captures that have not reached CloudKit yet.
     private let uploadQueue: CloudKitUploadQueue
     private let uploader: CloudKitUploader
+    /// The blob cache backing this album's coordinator — also the persistent
+    /// layer for streamed chunks.
+    private let blobCache: CloudKitBlobCache
+    /// Transport for streamed chunks. `nil` means the CloudKit store, built
+    /// per session; tests hand in an in-memory one.
+    private let chunkStore: ChunkedBlobStoring?
     /// Change tag the local thumbnail file was fetched for, so a remote re-upload
     /// (new tag) forces a refresh instead of showing stale content. Persisted as a
     /// sidecar next to the album's blob cache: the facade constructs a fresh
@@ -109,8 +115,12 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         }
     }
 
-    public init(album: Album, albumManager: AlbumManaging, store: CloudKitMediaStoring? = nil) async {
+    public init(album: Album,
+                albumManager: AlbumManaging,
+                store: CloudKitMediaStoring? = nil,
+                chunkStore: ChunkedBlobStoring? = nil) async {
         self.album = album
+        self.chunkStore = chunkStore
         self.keyBytes = album.key.keyBytes
         self.keyManager = albumManager.keyManager
         let albumIDHash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) ?? album.id
@@ -133,6 +143,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                     .appendingPathComponent("CloudKitUploads-test-\(UUID().uuidString)", isDirectory: true)
             )
             self.uploadQueue = isolatedQueue
+            let isolatedCache = CloudKitBlobCache()
+            self.blobCache = isolatedCache
             let isolatedRegistry = CloudKitCoordinatorRegistry()
             // The delete bookkeeping is isolated for the same reason: on the shared
             // one a test's deletes land in the app group's real pending-delete key
@@ -142,11 +154,12 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             self.coordinator = await isolatedRegistry.coordinator(forAlbumID: albumIDHash) {
                 CloudKitSyncCoordinator(albumID: albumIDHash,
                                         store: resolvedStore,
-                                        cache: CloudKitBlobCache(),
+                                        cache: isolatedCache,
                                         indexStore: index,
                                         sizeSidecar: sizeSidecar,
                                         uploadQueue: isolatedQueue,
-                                        deleteQueue: isolatedDeletes)
+                                        deleteQueue: isolatedDeletes,
+                                        chunkStore: chunkStore)
             }
             self.uploader = CloudKitUploader(queue: isolatedQueue, registry: isolatedRegistry)
         } else {
@@ -154,6 +167,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             // push fan-out keep the same in-memory state.
             self.uploadQueue = .shared
             self.uploader = .shared
+            self.blobCache = .shared
             self.coordinator = await CloudKitCoordinatorRegistry.shared.coordinator(forAlbumID: albumIDHash) {
                 CloudKitSyncCoordinator(albumID: albumIDHash,
                                         store: resolvedStore,
@@ -258,9 +272,31 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         let encURL = directoryModel.driveURLForMedia(withID: item.id, type: item.mediaType)
         try FileManager.default.createDirectory(at: directoryModel.baseURL, withIntermediateDirectories: true)
 
-        // 1. Encrypt with the existing V2 handler — only ciphertext leaves the device.
-        let handler = SecretFileHandlerV2(keyBytes: keyBytes, source: item, targetURL: encURL)
-        _ = try await handler.encryptWithMetadata(metadata ?? EncryptedFileMetadata())
+        // 1. Encrypt — only ciphertext leaves the device. This is one of the two
+        // format chokepoints (`VideoChunkingPolicy`): a large video becomes
+        // seekable ENC3, so it can upload as chunk records and stream back;
+        // everything else stays on the metadata-bearing V2 handler as before.
+        let plaintextLength = item.url.flatMap { $0.fileSizeBytes() } ?? 0
+        var chunkGeometry: (chunkCount: Int, plaintextLength: Int64)?
+        if let sourceURL = item.url,
+           VideoChunkingPolicy.shouldWriteSeekableFormat(mediaType: item.mediaType,
+                                                         plaintextLength: plaintextLength,
+                                                         storageType: .cloudKit) {
+            let metadataJSON = try SeekableEncryptedFormat.encodeMetadata(metadata ?? EncryptedFileMetadata())
+            let capturedKey = keyBytes
+            // Detached: the seekable writer is synchronous, and a multi-GB encrypt
+            // must not pin this actor's cooperative thread for its whole run.
+            let header = try await Task.detached(priority: .userInitiated) {
+                try SeekableEncryptedWriter(keyBytes: capturedKey)
+                    .encrypt(source: sourceURL, destination: encURL, metadata: metadataJSON) { fraction in
+                        progress(fraction)
+                    }
+            }.value
+            chunkGeometry = (header.chunkCount, Int64(header.plaintextLength))
+        } else {
+            let handler = SecretFileHandlerV2(keyBytes: keyBytes, source: item, targetURL: encURL)
+            _ = try await handler.encryptWithMetadata(metadata ?? EncryptedFileMetadata())
+        }
 
         // 2. Generate + persist the encrypted preview via the existing pipeline. Only
         // attach the thumbnail if the file actually exists — a failed preview must not
@@ -284,23 +320,26 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                                                                  keyManager: keyManager)
 
         // 3. Describe the record that will eventually be uploaded.
-        let size = (try? FileManager.default.attributesOfItem(atPath: encURL.path)[.size] as? NSNumber)?.int64Value ?? 0
+        let size = encURL.fileSizeBytes() ?? 0
         if size == 0 {
             // Size 0 usually means the ciphertext is missing or unreadable — the
             // upload would then carry a bogus sizeBytes into the index.
             printDebug("saveSingle size WARNING mediaID=\(item.id) mediaType=\(item.mediaType) sizeBytes=0 file=\(encURL.lastPathComponent)")
         }
-        let upload = CloudKitMediaUpload(
+        let descriptor = CloudKitMediaRecordDescriptor(
             albumID: albumIDHash,
             mediaID: item.id,
+            recordName: Self.componentRecordName(mediaID: item.id, type: item.mediaType),
             mediaType: item.mediaType,
             createdAt: metadata?.primaryDate ?? Date(),
             sizeBytes: size,
-            encryptedFileURL: encURL,
-            encryptedThumbURL: thumbURL,
-            recordName: Self.componentRecordName(mediaID: item.id, type: item.mediaType),
-            keyFingerprint: proven.fingerprint
+            keyFingerprint: proven.fingerprint,
+            chunkCount: chunkGeometry?.chunkCount ?? 0,
+            plaintextLength: chunkGeometry?.plaintextLength ?? 0
         )
+        let upload = CloudKitMediaUpload(descriptor: descriptor,
+                                         encryptedFileURL: encURL,
+                                         encryptedThumbURL: thumbURL)
         // 4. Hand the ciphertext to the durable holding folder. This MOVES the
         // file out of the album's cache directory, which lives under
         // `Library/Caches` and can be reclaimed by iOS — not somewhere the only
@@ -373,6 +412,61 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         return urls
     }
 
+    /// Streaming playback for a chunked CloudKit video: stock `AVPlayerItem` over
+    /// the resource loader, chunks fetched on demand through the persistent chunk
+    /// cache. `nil` for anything better served by the materialize path — photos,
+    /// monolithic records, and items whose bytes are still local (pending upload
+    /// or a fully cached blob), where decrypt-from-disk beats the network.
+    ///
+    /// The first chunk is fetched here, before there is a player to wait on it.
+    /// AVFoundation fails an item whose first loading request has produced no
+    /// byte after ~20 s, and cold CloudKit takes longer than that to hand over a
+    /// 4 MiB chunk; the caller's loading UI covers the wait instead. A first
+    /// chunk that cannot be fetched throws — the video cannot be streamed.
+    public func streamingPlayback(for media: InteractableMedia<EncryptedMedia>) async throws -> StreamingPlayback? {
+        guard media.mediaType == .video, let component = media.underlyingMedia.first(where: { $0.mediaType == .video }) else {
+            return nil
+        }
+        let recordName = Self.componentRecordName(mediaID: component.id, type: .video)
+        if await uploadQueue.pendingFileURL(recordName: recordName) != nil { return nil }
+        let expectedTag = await coordinator.currentChangeTag(recordName: recordName)
+        if await blobCache.cachedURL(recordName: recordName, changeTag: expectedTag) != nil { return nil }
+
+        guard let info = try await coordinator.chunkedBlobInfo(recordName: recordName),
+              let headerBytes = info.encHeader else {
+            return nil
+        }
+        let header = try SeekableEncryptedHeader.decode(headerBytes)
+        // Content-derived tag: fileID is random per encryption, so a re-uploaded
+        // video (same record name, new content) gets a different tag and the old
+        // cached chunks miss instead of producing a decryption error.
+        let contentTag = header.fileID.base64EncodedString()
+        let chunkStore = CachedChunkedBlobStore(store: chunkStore ?? CloudKitChunkedBlobStore(),
+                                                cache: blobCache,
+                                                albumID: albumIDHash,
+                                                validationTag: contentTag)
+        let policy = StreamingPlaybackPolicy.cloudKit
+        let session = ChunkedStreamSession.open(store: chunkStore,
+                                                mediaRecordName: recordName,
+                                                header: header,
+                                                keyBytes: keyBytes,
+                                                readAhead: policy.readAhead)
+        guard EncryptedStreamScheme.url(mediaRecordName: recordName) != nil else { return nil }
+        let prefetchStarted = Date()
+        do {
+            _ = try await session.source.ciphertextChunk(at: 0)
+            printDebug("streamingPlayback prefetch ok recordName=\(recordName) "
+                       + "ms=\(Int(Date().timeIntervalSince(prefetchStarted) * 1000))")
+        } catch {
+            printDebug("streamingPlayback prefetch FAILED recordName=\(recordName) "
+                       + "ms=\(Int(Date().timeIntervalSince(prefetchStarted) * 1000)) raw=\(error)")
+            throw error
+        }
+        let loader = EncryptedStreamResourceLoader(session: session)
+        printDebug("streamingPlayback ok recordName=\(recordName) chunks=\(header.chunkCount) bytes=\(header.plaintextLength)")
+        return StreamingPlayback(loader: loader, session: session, policy: policy)
+    }
+
     /// Resolves the current encrypted blob for `id` via the coordinator's
     /// change-tag-aware cache: a server-side re-upload (new tag) invalidates the
     /// stale copy and refetches, so we never decrypt outdated content. We decrypt
@@ -423,8 +517,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                     try fileManager.removeItem(at: destURL)
                 }
                 try fileManager.copyItem(at: sourceURL, to: destURL)
-                let sourceSize = (try? fileManager.attributesOfItem(atPath: sourceURL.path)[.size] as? NSNumber)?.int64Value
-                let destSize = (try? fileManager.attributesOfItem(atPath: destURL.path)[.size] as? NSNumber)?.int64Value
+                let sourceSize = sourceURL.fileSizeBytes()
+                let destSize = destURL.fileSizeBytes()
                 guard let sourceSize, let destSize, sourceSize == destSize, destSize > 0 else {
                     printDebug("exportCiphertext VERIFY FAILED id=\(component.id) sourceSize=\(sourceSize ?? -1) destSize=\(destSize ?? -1)")
                     throw CloudKitMediaStoreError.underlying(NSError(
@@ -493,14 +587,20 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                 // Drop any durable copy still waiting to upload first, so a
                 // delete cannot leave an orphan in the holding folder that the
                 // uploader would later push to CloudKit — resurrecting the photo
-                // the user just deleted.
+                // the user just deleted. The entry's chunk geometry is read
+                // before it goes: a partially-drained chunked upload may have
+                // committed chunk records that must be reclaimed.
+                let pendingGeometry = await uploadQueue.pendingItem(recordName: recordName)?.chunkCount ?? 0
                 let wasPending = await uploadQueue.cancel(recordName: recordName)
 
                 // A pending item skips the remote delete (nothing is up there)
                 // but still gets the full local cleanup and the deletion marker —
                 // see `remove`. Errors propagate: a swallowed failure here used to
                 // leave the index entry behind as a permanent ghost.
-                try await coordinator.remove(recordName: recordName, albumID: albumIDHash, wasPending: wasPending)
+                try await coordinator.remove(recordName: recordName,
+                                             albumID: albumIDHash,
+                                             wasPending: wasPending,
+                                             pendingChunkCount: pendingGeometry)
                 let localURL = directoryModel.driveURLForMedia(withID: item.id, type: item.mediaType)
                 do {
                     try FileManager.default.removeItem(at: localURL)
@@ -628,6 +728,57 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// matter how fast the link is.
     public func isBlobCached(for id: String, type: MediaType) async -> Bool {
         await coordinator.isBlobCached(recordName: Self.componentRecordName(mediaID: id, type: type))
+    }
+
+    // MARK: - Storage details
+
+    /// `MediaBackend.storageDetails`. Every component's bytes live in CloudKit;
+    /// what this device holds is a cache entry that may or may not be there.
+    ///
+    /// The format is answered without downloading anything: a chunked record says
+    /// ENC3 outright via its `chunkCount`, and an unchunked one is sniffed from the
+    /// cached ciphertext when a copy is resident. A component that is neither
+    /// leaves the format unknown — the blob could be ENC2 or a verbatim-migrated
+    /// ENC1, and only its bytes can say which.
+    public func storageDetails(for media: InteractableMedia<EncryptedMedia>) async -> MediaStorageDetails? {
+        var components: [MediaStorageDetails.Component] = []
+        for item in media.underlyingMedia {
+            let recordName = Self.componentRecordName(mediaID: item.id, type: item.mediaType)
+            // Resolving chunk info first also warms the coordinator's map, which is
+            // what lets `cachedBytes` below count chunks instead of looking for a
+            // monolithic blob a chunked record never has.
+            let info = try? await coordinator.chunkedBlobInfo(recordName: recordName)
+            let chunkCount = info?.chunkCount ?? 0
+            let format: EncryptedFormatVersion?
+            if chunkCount > 0 {
+                format = .v3
+            } else if let localURL = await coordinator.localCiphertextURL(recordName: recordName) {
+                format = EncryptedFormatVersion.sniff(fileURL: localURL)
+            } else {
+                format = nil
+            }
+            components.append(
+                MediaStorageDetails.Component(
+                    mediaType: item.mediaType,
+                    remoteBytes: await coordinator.remoteBytes(recordName: recordName),
+                    localBytes: await coordinator.cachedBytes(recordName: recordName),
+                    format: format,
+                    chunkCount: chunkCount > 0 ? chunkCount : nil
+                )
+            )
+        }
+        return MediaStorageDetails(storageType: .cloudKit, components: components)
+    }
+
+    /// `MediaBackend.evictLocalCopy`. Drops the cached ciphertext (and every cached
+    /// ENC3 chunk) for each component. The CloudKit records are untouched, so the
+    /// next open re-downloads.
+    public func evictLocalCopy(for media: InteractableMedia<EncryptedMedia>) async throws {
+        for item in media.underlyingMedia {
+            try await coordinator.evictLocalCopy(
+                recordName: Self.componentRecordName(mediaID: item.id, type: item.mediaType)
+            )
+        }
     }
 
     /// Removes the local thumbnail copy + its cached change-tag so the next

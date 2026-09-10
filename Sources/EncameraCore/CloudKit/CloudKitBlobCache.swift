@@ -31,6 +31,9 @@ public actor CloudKitBlobCache: DebugPrintable {
     private let baseDir: URL
     private let maxBytes: Int64
     private var index: [String: Entry] = [:]
+    /// Times the index sidecar has been persisted. A batched operation is held to
+    /// one write however many records it touches.
+    private(set) var indexPersistCount = 0
 
     private var indexFileURL: URL { baseDir.appendingPathComponent(".cacheindex.json") }
     private func url(for entry: Entry) -> URL { baseDir.appendingPathComponent(entry.relativePath) }
@@ -96,6 +99,23 @@ public actor CloudKitBlobCache: DebugPrintable {
         return fileURL
     }
 
+    /// The size of the cached file for `recordName`, under the same change-tag
+    /// rules as `cachedURL` but without touching the entry: no `lastAccess` bump,
+    /// no index write, no log. A caller that only wants to report bytes — the
+    /// storage figure on the info screen, summed over every chunk of a video —
+    /// must not reorder the LRU that `enforceCap` evicts on.
+    ///
+    /// `nil` when the entry's file is gone: a size is shown to the user as a local
+    /// copy they can reclaim, so bytes that are not on disk must not be reported.
+    /// The entry is left in place — dropping it is a write, and `cachedURL` on the
+    /// fetch path is where that self-heal belongs.
+    public func cachedSize(recordName: String, changeTag: String?) -> Int64? {
+        guard let entry = index[recordName] else { return nil }
+        if let changeTag, entry.changeTag != changeTag { return nil }
+        guard FileManager.default.fileExists(atPath: url(for: entry).path) else { return nil }
+        return entry.size
+    }
+
     // MARK: - Store
 
     /// Copy `sourceURL` into the cache for `recordName`, replacing any prior copy,
@@ -105,6 +125,28 @@ public actor CloudKitBlobCache: DebugPrintable {
                       changeTag: String?,
                       albumID: String,
                       from sourceURL: URL) throws -> URL {
+        try store(recordName: recordName, changeTag: changeTag, albumID: albumID,
+                  source: sourceURL, consumingSource: false)
+    }
+
+    /// Same as `store(from:)`, but consumes `sourceURL`: a caller that already owns
+    /// the bytes on disk hands the file over instead of paying for a second copy of
+    /// it. The source is gone afterwards on the move path; on the cross-volume
+    /// fallback it is copied and left for the caller to remove.
+    @discardableResult
+    public func store(recordName: String,
+                      changeTag: String?,
+                      albumID: String,
+                      moving sourceURL: URL) throws -> URL {
+        try store(recordName: recordName, changeTag: changeTag, albumID: albumID,
+                  source: sourceURL, consumingSource: true)
+    }
+
+    private func store(recordName: String,
+                       changeTag: String?,
+                       albumID: String,
+                       source sourceURL: URL,
+                       consumingSource: Bool) throws -> URL {
         let albumFolder = Self.albumFolderName(albumID)
         let albumDir = baseDir.appendingPathComponent(albumFolder, isDirectory: true)
         printDebug("store start recordName=\(recordName) changeTag=\(changeTag ?? "nil") albumFolder=\(albumFolder) source=\(sourceURL.lastPathComponent)")
@@ -135,7 +177,7 @@ public actor CloudKitBlobCache: DebugPrintable {
             }
         }
         do {
-            try FileManager.default.copyItem(at: sourceURL, to: destURL)
+            try Self.placeFile(from: sourceURL, at: destURL, consumingSource: consumingSource)
         } catch {
             printDebug("store FAILED recordName=\(recordName) stage=copyIn source=\(sourceURL.lastPathComponent) raw=\(error)")
             throw error
@@ -163,28 +205,59 @@ public actor CloudKitBlobCache: DebugPrintable {
     // MARK: - Eviction
 
     public func evict(recordName: String) {
-        guard let entry = index[recordName] else {
+        guard index[recordName] != nil else {
             printDebug("evict skip recordName=\(recordName) reason=notIndexed")
             return
         }
+        removeCachedFile(recordName: recordName, context: "evict")
+        persist()
+    }
+
+    /// Evicts every named record, then writes the index once.
+    ///
+    /// The chunks of one video are thousands of records; evicting them one at a
+    /// time re-encodes and rewrites the whole sidecar per chunk, serialized on this
+    /// actor. Every removal is attempted whatever the ones before it did, and the
+    /// single write happens either way — an index still describing files that are
+    /// gone is the failure this replaces.
+    public func evict(recordNames: [String]) {
+        guard !recordNames.isEmpty else { return }
+        var evicted = 0
+        var freedBytes: Int64 = 0
+        for recordName in recordNames {
+            guard let size = index[recordName]?.size else { continue }
+            if removeCachedFile(recordName: recordName, context: "evictBatch") {
+                evicted += 1
+                freedBytes += size
+            }
+        }
+        printDebug("evictBatch ok requested=\(recordNames.count) evicted=\(evicted) freedBytes=\(freedBytes) remainingEntries=\(index.count)")
+        persist()
+    }
+
+    /// Removes one entry's file and untracks it, without persisting. Returns
+    /// whether the entry was dropped: a file that survives a failed remove keeps
+    /// its entry and its bytes in the total — the posture `enforceCap` already
+    /// takes. Dropping the entry there used to leave the file on disk with nothing
+    /// tracking it, so the cache reported fewer bytes than it occupied.
+    @discardableResult
+    private func removeCachedFile(recordName: String, context: String) -> Bool {
+        guard let entry = index[recordName] else { return false }
         let fileURL = url(for: entry)
         do {
             try FileManager.default.removeItem(at: fileURL)
             index[recordName] = nil
-            printDebug("evict ok recordName=\(recordName) sizeBytes=\(entry.size) remainingEntries=\(index.count)")
+            printDebug("\(context) ok recordName=\(recordName) sizeBytes=\(entry.size) remainingEntries=\(index.count)")
+            return true
         } catch {
-            // A file that survives a failed remove keeps its entry and its bytes in
-            // the total — the posture `enforceCap` already takes. Dropping the entry
-            // here used to leave the file on disk with nothing tracking it, so the
-            // cache reported fewer bytes than it occupied.
             if FileManager.default.fileExists(atPath: fileURL.path) {
-                printDebug("evict WARNING recordName=\(recordName) file remove failed, keeping entry file=\(fileURL.lastPathComponent) raw=\(error)")
-            } else {
-                index[recordName] = nil
-                printDebug("evict ok recordName=\(recordName) file already missing, dropping entry")
+                printDebug("\(context) WARNING recordName=\(recordName) file remove failed, keeping entry file=\(fileURL.lastPathComponent) raw=\(error)")
+                return false
             }
+            index[recordName] = nil
+            printDebug("\(context) ok recordName=\(recordName) file already missing, dropping entry")
+            return true
         }
-        persist()
     }
 
     public func evictAll(olderThan date: Date) {
@@ -371,6 +444,23 @@ public actor CloudKitBlobCache: DebugPrintable {
         printDebug("enforceCap ok totalBytes=\(total) entries=\(index.count)")
     }
 
+    /// Puts `source`'s bytes at `destination`, moving when the caller has given the
+    /// file up. `moveItem` fails across volumes where `copyItem` succeeds, so a
+    /// failed move falls back to a copy rather than failing the store — the caller
+    /// deletes its source either way.
+    private static func placeFile(from source: URL, at destination: URL, consumingSource: Bool) throws {
+        guard consumingSource else {
+            try FileManager.default.copyItem(at: source, to: destination)
+            return
+        }
+        do {
+            try FileManager.default.moveItem(at: source, to: destination)
+        } catch {
+            printDebug("store move fell back to copy source=\(source.lastPathComponent) raw=\(error)")
+            try FileManager.default.copyItem(at: source, to: destination)
+        }
+    }
+
     private func excludeFromBackup(_ url: inout URL) {
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
@@ -406,6 +496,7 @@ public actor CloudKitBlobCache: DebugPrintable {
     }
 
     private func persist() {
+        indexPersistCount += 1
         guard let data = try? JSONEncoder().encode(index) else {
             printDebug("persist FAILED reason=encodeError entries=\(index.count)")
             return

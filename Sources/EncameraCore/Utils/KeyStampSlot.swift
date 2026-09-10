@@ -87,6 +87,14 @@ public enum KeyStampSlot: DebugPrintable {
                 return nil
             }
 
+            // ENC3: stamp lives at byte 44 — the first 4 bytes of the
+            // 32-byte AAD-excluded mutable plaintext block.
+            if Array(magicData) == SeekableEncryptedHeader.magic {
+                let stampFileOffset: UInt64 = 44
+                guard fileSize >= stampFileOffset + 4 else { return nil }
+                return stampFileOffset
+            }
+
             // Offset of the block-size field's unused bytes 4–7, relative to
             // the start of the v1-compatible content (stream header + block size).
             let slotOffsetInContent = UInt64(EncryptedFileFormat.streamHeaderSize + 4)

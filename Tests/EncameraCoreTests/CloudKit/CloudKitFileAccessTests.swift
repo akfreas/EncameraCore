@@ -36,11 +36,13 @@ final class CloudKitFileAccessTests: XCTestCase {
         return Album(name: name, storageOption: storage, creationDate: Date(), key: key)
     }
 
-    private func makeAccess(album: Album, store: MockCloudKitMediaStore) async -> CloudKitFileAccess {
+    private func makeAccess(album: Album,
+                            store: MockCloudKitMediaStore,
+                            chunkStore: ChunkedBlobStoring? = nil) async -> CloudKitFileAccess {
         let keyManager = DemoKeyManager()
         keyManager.currentKey = album.key
         let albumManager = MockAlbumManager(keyManager: keyManager)
-        return await CloudKitFileAccess(album: album, albumManager: albumManager, store: store)
+        return await CloudKitFileAccess(album: album, albumManager: albumManager, store: store, chunkStore: chunkStore)
     }
 
     private func photo(id: String = UUID().uuidString, data: Data) throws -> InteractableMedia<CleartextMedia> {
@@ -83,6 +85,45 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertNotEqual(Array(bytes.prefix(4)), EncryptedFileFormat.magic,
                           "Fixture must be a genuine V1 file — V1 carries no ENC2 magic")
         return bytes
+    }
+
+    /// A chunked video record as the mock store would hand it to a cold reader:
+    /// chunk geometry and the ENC3 header, no blob. The chunks themselves go into
+    /// `chunkStore` when one is given, so a reader can fetch them.
+    private func seedChunkedVideo(in store: MockCloudKitMediaStore,
+                                  album: Album,
+                                  id: String,
+                                  chunkStore: InMemoryChunkedBlobStore? = nil) async throws -> String {
+        let plaintext = Data(repeating: 0x5A, count: 5_000)
+        let source = FileManager.default.temporaryDirectory.appendingPathComponent("\(id)-src.bin")
+        let enc3 = FileManager.default.temporaryDirectory.appendingPathComponent("\(id).enc3")
+        try plaintext.write(to: source)
+        defer {
+            try? FileManager.default.removeItem(at: source)
+            try? FileManager.default.removeItem(at: enc3)
+        }
+        let header = try SeekableEncryptedWriter(keyBytes: album.key.keyBytes, chunkSize: 1_000)
+            .encrypt(source: source, destination: enc3)
+        let recordName = MediaRecordName.componentRecordName(mediaID: id, type: .video)
+        if let chunkStore {
+            try await chunkStore.uploadChunks(enc3FileURL: enc3, mediaRecordName: recordName, progress: { _ in })
+        }
+        store.metadataToReturn = [
+            CloudKitMediaMetadata(recordName: recordName,
+                                  albumID: "album",
+                                  mediaID: id,
+                                  mediaType: .video,
+                                  createdAt: Date(),
+                                  sizeBytes: Int64(header.geometry.totalCiphertextLength),
+                                  creationDeviceID: "writer",
+                                  schemaVersion: 1,
+                                  keyFingerprint: "",
+                                  recordChangeTag: "tag-1",
+                                  chunkCount: header.chunkCount,
+                                  plaintextLength: Int64(header.plaintextLength),
+                                  encHeader: header.encoded())
+        ]
+        return recordName
     }
 
     // MARK: - Save
@@ -858,6 +899,76 @@ final class CloudKitFileAccessTests: XCTestCase {
         let outURL = try XCTUnwrap(urls.first)
         defer { try? FileManager.default.removeItem(at: outURL) }
         XCTAssertEqual(try Data(contentsOf: outURL), cleartext)
+    }
+
+    // MARK: - Streaming
+
+    /// Speculative chunk fetches share the cold CloudKit link with the chunk the
+    /// player is blocked on, so the streaming source reads exactly one ahead —
+    /// the policy's value, not the chunk source's own default.
+    func testStreamingPlaybackReadsOneChunkAheadOfCloudKit() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let chunkStore = InMemoryChunkedBlobStore()
+        let access = await makeAccess(album: album, store: store, chunkStore: chunkStore)
+        let id = UUID().uuidString
+        _ = try await seedChunkedVideo(in: store, album: album, id: id, chunkStore: chunkStore)
+        let media = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(encURL(for: album, id: id)), mediaType: .video, id: id)
+        ])
+
+        let playback = try await access.streamingPlayback(for: media)
+
+        let source = try XCTUnwrap(playback?.session.source, "a chunked video record must open for streaming")
+        XCTAssertEqual(source.readAhead, StreamingPlaybackPolicy.cloudKit.readAhead)
+        XCTAssertEqual(source.readAhead, 1)
+    }
+
+    /// The first chunk is on the device before the player exists. AVFoundation
+    /// fails an item whose first loading request gets no byte for ~20 s, and
+    /// cold CloudKit takes longer than that to hand over chunk 0.
+    func testStreamingPlaybackFetchesTheFirstChunkBeforeReturning() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let chunkStore = InMemoryChunkedBlobStore()
+        let access = await makeAccess(album: album, store: store, chunkStore: chunkStore)
+        let id = UUID().uuidString
+        let recordName = try await seedChunkedVideo(in: store, album: album, id: id, chunkStore: chunkStore)
+        let media = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(encURL(for: album, id: id)), mediaType: .video, id: id)
+        ])
+
+        let playback = try await access.streamingPlayback(for: media)
+
+        XCTAssertNotNil(playback)
+        let log = await chunkStore.fetchLog
+        XCTAssertEqual(log.first?.index, 0, "chunk 0 must be fetched before streamingPlayback returns: \(log)")
+        XCTAssertEqual(log.first?.media, recordName)
+        let telemetry = await playback?.session.telemetry()
+        XCTAssertEqual(telemetry?.fetchOrder.first, 0, "the session's own source must hold the prefetched chunk")
+    }
+
+    /// A first chunk that cannot be fetched is a video that cannot be streamed.
+    /// Returning a playback anyway hands the player an item that fails on its
+    /// first request, well after the loading UI has gone.
+    func testStreamingPlaybackThrowsWhenTheFirstChunkCannotBeFetched() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let emptyChunkStore = InMemoryChunkedBlobStore()
+        let access = await makeAccess(album: album, store: store, chunkStore: emptyChunkStore)
+        let id = UUID().uuidString
+        _ = try await seedChunkedVideo(in: store, album: album, id: id)
+        let media = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(encURL(for: album, id: id)), mediaType: .video, id: id)
+        ])
+
+        await XCTAssertThrowsErrorAsync(try await access.streamingPlayback(for: media)) { error in
+            guard case ChunkedBlobError.chunkNotFound = error else {
+                return XCTFail("expected the chunk fetch failure to surface, got \(error)")
+            }
+        }
+        let log = await emptyChunkStore.fetchedIndices
+        XCTAssertEqual(log.first, 0, "the failure must come from asking for chunk 0")
     }
 
     /// V2 must keep working through every site the fix touched — the format-agnostic

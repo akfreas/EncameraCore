@@ -8,8 +8,8 @@
 import Foundation
 
 public enum UserDefaultKey {
-    
-    
+
+
     case currentKey
     case onboardingState
     case savedSettings
@@ -94,10 +94,10 @@ public enum UserDefaultKey {
             return "completedMigration"
         default:
             return String(describing: self)
-        
+
         }
     }
-    
+
     /// Determines whether this key should sync to iCloud via NSUbiquitousKeyValueStore
     /// Critical authentication and settings keys sync, while device-specific metrics stay local
     var shouldSyncToiCloud: Bool {
@@ -115,10 +115,9 @@ public enum UserDefaultKey {
              .gridSortOption,
              .currentKey,
              .hasCompletedFirstLockout,
-             .hasBeenShownHideAlbumTutorial,
-             .pendingDefaultsWipe:
+             .hasBeenShownHideAlbumTutorial:
             return true
-            
+
         // LOCAL ONLY: Device-specific metrics, counts, and temporary state
         case .capturedPhotos,
              .featureToggle,
@@ -164,6 +163,10 @@ public enum UserDefaultKey {
              // syncing it would push one phone's experiment onto every other.
              .iCloudDriveMigrationBatchSize,
              .pendingCloudDataWipe,
+             // The defaults-wipe tombstone describes this device's own erase. Synced,
+             // it would make every other device on the account wipe its settings at
+             // its next launch.
+             .pendingDefaultsWipe,
              // A typography experiment run against one device's screen. Syncing
              // it would push one phone's experiment onto every other.
              .fontFamily,
@@ -171,7 +174,7 @@ public enum UserDefaultKey {
             return false
         }
     }
-    
+
 }
 
 extension UserDefaultKey: Equatable {
