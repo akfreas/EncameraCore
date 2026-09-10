@@ -21,6 +21,7 @@
 
 import Foundation
 import UIKit
+import Combine
 
 /// Supplies the `CloudKitMediaStoring` implementation. Production returns the real
 /// store; UI tests bind a deterministic in-memory mock via `UITestSupport`.
@@ -295,7 +296,11 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             chunkGeometry = (header.chunkCount, Int64(header.plaintextLength))
         } else {
             let handler = SecretFileHandlerV2(keyBytes: keyBytes, source: item, targetURL: encURL)
+            let sub = handler.progress
+                .receive(on: DispatchQueue.main)
+                .sink { percent in progress(percent) }
             _ = try await handler.encryptWithMetadata(metadata ?? EncryptedFileMetadata())
+            sub.cancel()
         }
 
         // 2. Generate + persist the encrypted preview via the existing pipeline. Only

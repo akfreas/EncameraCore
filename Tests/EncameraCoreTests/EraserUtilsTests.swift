@@ -54,6 +54,7 @@ final class EraserUtilsTests: XCTestCase {
         func eraseMigrationState() async { steps.append("migrationState") }
         func eraseActiveBackendMedia() async { steps.append("activeBackendMedia") }
         func eraseAllLocalMediaFiles() { steps.append("allLocalMediaFiles") }
+        func eraseICloudDriveMedia() { steps.append("iCloudDriveMedia") }
         func eraseMediaIndexes() { steps.append("mediaIndexes") }
         func eraseBlobCache() async { steps.append("blobCache") }
         func eraseThumbnails() { steps.append("thumbnails") }
@@ -79,6 +80,7 @@ final class EraserUtilsTests: XCTestCase {
         func verifyMigrationState() async -> ErasureVerdict { verdict("migration.state") }
         func verifyActiveBackendMedia() async -> ErasureVerdict { verdict("media.activeBackend") }
         func verifyLocalMediaFiles() -> ErasureVerdict { verdict("media.localAlbums") }
+        func verifyICloudDriveMedia() -> ErasureVerdict { verdict("media.iCloudDrive") }
         func verifyMediaIndexes() -> ErasureVerdict { verdict("media.indexes") }
         func verifyBlobCache() -> ErasureVerdict { verdict("media.blobCache") }
         func verifyThumbnails() -> ErasureVerdict { verdict("media.thumbnails") }
@@ -91,7 +93,7 @@ final class EraserUtilsTests: XCTestCase {
     }
 
     private static let allDataSteps = [
-        "migrationState", "shutdownCloudKitSync", "activeBackendMedia", "allLocalMediaFiles", "mediaIndexes",
+        "migrationState", "shutdownCloudKitSync", "activeBackendMedia", "allLocalMediaFiles", "iCloudDriveMedia", "mediaIndexes",
         "blobCache", "thumbnails", "tempDirectories", "sharedContainerImports",
         "residualContainerFiles", "keychain", "userDefaults"
     ]

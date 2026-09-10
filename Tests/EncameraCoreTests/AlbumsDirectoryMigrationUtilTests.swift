@@ -110,6 +110,14 @@ final class AlbumsDirectoryMigrationUtilTests: XCTestCase {
         XCTAssertTrue(exists(rootURL.appendingPathComponent("Album_dup")))
     }
 
+    func testLeavesTheRootAloneWhenThereIsNothingToMigrate() throws {
+        _ = try seedPlainDirectory("thumbs", at: rootURL)
+
+        XCTAssertTrue(util.performMigration(at: rootURL, into: albumsURL))
+
+        XCTAssertFalse(exists(albumsURL), "an empty albums/ planted in iCloud Drive reads as legacy data to the existing-data probe")
+    }
+
     func testReturnsFalseWhenAlbumsURLCannotBeCreated() throws {
         _ = try seedAlbum("Album_good", at: rootURL)
         // Point albumsURL at a non-creatable location — a file where a directory should be.

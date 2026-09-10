@@ -156,7 +156,7 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
                                                       options: []) else { continue }
             for case let url as URL in walker {
                 let name = url.lastPathComponent
-                if EraserUtils.preservedNames.contains(name) || Self.relaunchArtifactDirs.contains(name) {
+                if EraserUtils.preservedNames.contains(name) || Self.isRelaunchArtifact(name) {
                     if (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
                         walker.skipDescendants()
                     }
@@ -231,13 +231,21 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
     /// presence in the container walk is not residue — the verify launch itself
     /// creates them.
     private static let relaunchArtifactDirs: Set<String> = [
-        "Caches",
-        "Saved Application State",
-        "HTTPStorages",
-        "SplashBoard",
+        "caches",
+        "saved application state",
+        "httpstorages",
+        "splashboard",
         "revenuecat",
-        "EncameraAnalytics",
+        "encameraanalytics",
     ]
+
+    /// RevenueCat has shipped its directory as `RevenueCat` and `revenuecat`, and
+    /// now also keeps `<bundle id>.revenuecat.<purpose>` caches beside it; all of
+    /// them reappear on the first purchases response of any launch.
+    static func isRelaunchArtifact(_ name: String) -> Bool {
+        let lowercased = name.lowercased()
+        return relaunchArtifactDirs.contains(lowercased) || lowercased.contains(".revenuecat.")
+    }
 
     /// Keychain accounts written by third-party SDKs during app initialization,
     /// not by Encamera. These appear on a fresh install too.

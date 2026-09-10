@@ -142,6 +142,26 @@ public struct SeekableChunkGeometry: Sendable, Equatable {
 
 /// The fixed 76-byte ENC3 preamble plus the encrypted metadata section.
 ///
+/// Byte layout (all integers little-endian):
+///
+/// ```
+///  0   4   magic            "ENC3"
+///  4   2   version          3
+///  6   2   flags            reserved, zero
+///  8   4   chunkSize
+/// 12   8   plaintextLength
+/// 20   4   chunkCount
+/// 24   4   metadataLength   byte count of encryptedMetadata
+/// 28  16   fileID           random per-file identity
+/// 44  32   mutablePlaintext bytes 44–47 key stamp, 48–75 reserved, zero
+/// 76   n   encryptedMetadata
+/// ```
+///
+/// `magic`, `fileID`, `chunkCount` and `plaintextLength` are bound into every
+/// chunk's AAD (see `chunkAAD`), so changing them after encryption invalidates
+/// the file. `mutablePlaintext` is in no AAD and can be rewritten in place at
+/// any time; the key stamp is written there after encryption.
+///
 /// The header is deliberately small and self-contained: the streaming stack
 /// stores it on the *parent* CloudKit record as a plain `Data` field, so a player
 /// can learn a video's plaintext length — which it must report to AVFoundation

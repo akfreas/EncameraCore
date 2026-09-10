@@ -42,23 +42,26 @@ public final class AlbumsDirectoryMigrationUtil: DebugPrintable {
     }
 
     /// Moves every album directory at `rootURL` into `albumsURL`.
-    /// Returns `true` iff the destination was prepared and every candidate
-    /// either moved successfully or was safely skipped (destination exists).
-    /// Exposed as `internal` for testing.
+    /// Returns `true` iff every candidate either moved successfully or was safely
+    /// skipped (destination exists). With nothing to move the root is left
+    /// untouched: creating `albums/` here would plant a directory in a fresh
+    /// install's iCloud Drive container, which the existing-data probe then
+    /// reports as legacy data. Exposed as `internal` for testing.
     @discardableResult
     func performMigration(at rootURL: URL, into albumsURL: URL) -> Bool {
-        do {
-            try fileManager.createDirectory(at: albumsURL, withIntermediateDirectories: true)
-        } catch {
-            printDebug("Could not create albumsURL at \(albumsURL.path): \(error)")
-            return false
-        }
-
         let candidates: [URL]
         do {
             candidates = try legacyAlbumCandidates(at: rootURL, albumsURL: albumsURL)
         } catch {
             printDebug("Could not enumerate legacy albums at \(rootURL.path): \(error)")
+            return false
+        }
+        guard !candidates.isEmpty else { return true }
+
+        do {
+            try fileManager.createDirectory(at: albumsURL, withIntermediateDirectories: true)
+        } catch {
+            printDebug("Could not create albumsURL at \(albumsURL.path): \(error)")
             return false
         }
 
